@@ -1312,9 +1312,22 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                 
         # 2. Servir archivos estáticos
         else:
-            # Por defecto sirve index.html
+            # Por defecto sirve index.html con no-cache headers
             if path == "/" or path == "/index.html":
-                self.path = "/index.html"
+                html_path = os.path.join(os.path.dirname(__file__), "index.html")
+                try:
+                    with open(html_path, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html; charset=utf-8')
+                    self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    self.send_header('Pragma', 'no-cache')
+                    self.send_header('Expires', '0')
+                    self.end_headers()
+                    self.wfile.write(content)
+                except Exception:
+                    self.send_error(500, "Error serving index.html")
+                return
             return super().do_GET()
 
     def do_POST(self):
