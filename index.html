@@ -458,11 +458,64 @@
   .alert-meta  { font-size: 11.5px; color: var(--text3); }
   .alert-time  { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
 
-  /* ── PROGRESS RING ────────────────────────────────────────────── */
-  .ring-container { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 10px; transition: background 0.3s ease; }
-  .ring-container:hover { background: var(--surface2); }
-  .ring-label { font-size: 10px; color: var(--text3); text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; font-family: var(--font-ui); }
-  .ring-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; text-align: center; }
+  /* ── PROGRESS RING (Premium) ──────────────────────────────────── */
+  .ring-container {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 14px 12px 10px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    position: relative; overflow: hidden;
+  }
+  .ring-container::before {
+    content:''; position:absolute; inset:0; border-radius:16px;
+    background: radial-gradient(circle at 50% 110%, var(--ring-glow, transparent) , transparent 70%);
+    opacity: 0.12; pointer-events:none; transition: opacity 0.4s;
+  }
+  .ring-container:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border-color: rgba(255,255,255,0.08);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px -6px rgba(0,0,0,0.3);
+  }
+  .ring-container:hover::before { opacity: 0.22; }
+  .ring-label {
+    font-size: 10px; color: var(--text3); text-align: center;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    font-family: var(--font-ui); margin-top: 2px;
+  }
+  .ring-val {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    text-align: center; opacity: 0.85; letter-spacing: 0.3px;
+  }
+  @keyframes ringPulse {
+    0%, 100% { filter: drop-shadow(0 0 3px var(--ring-glow, transparent)); }
+    50% { filter: drop-shadow(0 0 10px var(--ring-glow, transparent)); }
+  }
+  .ring-svg-active { animation: ringPulse 3s ease-in-out infinite; }
+  /* Network info premium cards */
+  .net-stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 14px 16px;
+    transition: all 0.3s ease;
+  }
+  .net-stat-card:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    transform: translateY(-2px); box-shadow: 0 6px 20px -4px rgba(0,0,0,0.25);
+  }
+  .net-iface-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; transition: all 0.3s ease;
+  }
+  .net-iface-card:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+  .net-device-row {
+    display: grid; grid-template-columns: 1fr 1fr 70px; gap: 4px;
+    padding: 6px 8px; border-radius: 6px; font-size: 11px;
+    transition: background 0.2s;
+  }
+  .net-device-row:hover { background: rgba(255,255,255,0.03); }
 
   /* ── APP TIME BARS ─────────────────────────────────────────────── */
   .app-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -573,7 +626,10 @@
   .equipo-actions { margin-left: auto; display: flex; gap: 8px; }
 
   /* ── RING SVG ─────────────────────────────────────────────────── */
-  .rings-row { display: flex; justify-content: space-around; padding: 14px 0 8px; }
+  .rings-row {
+    display: flex; justify-content: center; gap: 12px;
+    padding: 16px 8px 10px; flex-wrap: wrap;
+  }
 
   /* ── SCROLLBAR ────────────────────────────────────────────────── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -703,10 +759,102 @@
     filter: brightness(1.05);
   }
 
+  /* ══ LOGIN SCREEN ═══════════════════════════════════════════ */
+  .login-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: linear-gradient(135deg, #06080F 0%, #0C1221 30%, #121B32 60%, #1A2544 100%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 99999; transition: opacity 0.5s, visibility 0.5s;
+  }
+  .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .login-card {
+    background: rgba(12,18,33,0.85); border: 1px solid rgba(108,159,255,0.2);
+    border-radius: 20px; padding: 48px 40px; width: 400px; max-width: 90vw;
+    backdrop-filter: blur(30px); box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(108,159,255,0.1);
+    animation: loginSlideUp 0.6s ease-out;
+  }
+  @keyframes loginSlideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .logo-icon { width: 56px; height: 56px; margin: 0 auto 12px; background: linear-gradient(135deg, #6C9FFF, #22D3EE); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+  .login-logo .logo-icon svg { width: 32px; height: 32px; }
+  .login-logo h1 { font-family: var(--font-disp); font-size: 26px; font-weight: 700; color: var(--text); margin: 0; }
+  .login-logo p { color: var(--text3); font-size: 13px; margin-top: 4px; }
+  .login-field { margin-bottom: 18px; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .login-field input { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: var(--font-ui); outline: none; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; }
+  .login-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(108,159,255,0.15); }
+  .login-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #6C9FFF, #3B6FE8); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: 600; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,159,255,0.35); }
+  .login-btn:disabled { opacity: 0.6; cursor: wait; }
+  .login-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 8px; padding: 10px 14px; color: #F87171; font-size: 13px; margin-bottom: 16px; display: none; animation: shake 0.4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .login-footer { text-align: center; margin-top: 24px; color: var(--text3); font-size: 11px; }
+
+/* ── GRAPH ────────────────────────────────────────────────────── */
+  .graph-canvas { position: relative; height: 320px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+  .graph-node {
+    position: absolute;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 0 12px rgba(0,0,0,0.5);
+  }
+  .graph-node:hover { transform: scale(1.15); z-index: 10; }
+  .graph-node.ok   { background: var(--green); box-shadow: 0 0 16px rgba(16,185,129,0.5); }
+  .graph-node.warn { background: var(--amber); box-shadow: 0 0 16px rgba(245,158,11,0.5); }
+  .graph-node.crit { background: var(--red);   box-shadow: 0 0 16px rgba(239,68,68,0.5); }
+  .graph-node.off  { background: #334155; }
+  .graph-edge {
+    position: absolute;
+    background: rgba(99,120,180,0.2);
+    height: 1px;
+    transform-origin: left center;
+    pointer-events: none;
+  }
+  .graph-cluster {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px dashed;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="none" stroke="white" stroke-width="1.8"/>
+          <path d="M8 20h8M12 17v3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M8.5 9.5l2 2 5-5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="18" cy="7" r="3" fill="#22D3EE" stroke="white" stroke-width="1"/>
+        </svg>
+      </div>
+      <h1>EndpointIQ</h1>
+      <p>Intelligent Monitoring Platform</p>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <form onsubmit="handleLogin(event)">
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@endpointiq.local" required autocomplete="email" />
+      </div>
+      <div class="login-field">
+        <label>Contraseña</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
+    </form>
+    <div class="login-footer">EndpointIQ v2.0 · Powered by Google Cloud</div>
+  </div>
+</div>
+
+<div class="app" id="appContainer" style="display:none">
 
   <!-- ══════════════ SIDEBAR ══════════════ -->
   <nav class="sidebar">
@@ -738,34 +886,35 @@
     <a class="nav-item" onclick="showView('productividad')">
       <span class="nav-icon">📊</span> Productividad
     </a>
-    <a class="nav-item" onclick="showView('seguridad')">
+    <a class="nav-item" onclick="showView('seguridad')" data-requires="seguridad">
       <span class="nav-icon">🔒</span> Seguridad <span class="nav-badge" id="badgeSeguridad">4</span>
     </a>
-    <a class="nav-item" onclick="showView('kpibuilder')">
+    <a class="nav-item" onclick="showView('kpibuilder')" data-requires="kpibuilder">
       <span class="nav-icon">🛠</span> KPI Builder
     </a>
 
     <div class="nav-section">Soporte</div>
-    <a class="nav-item" onclick="showView('mesa')">
+    <a class="nav-item" onclick="showView('mesa')" data-requires="mesa">
       <span class="nav-icon">🎫</span> Mesa de Ayuda <span class="nav-badge" id="badgeMesa">12</span>
     </a>
-    <a class="nav-item" onclick="showView('agentes')">
+    <a class="nav-item" onclick="showView('agentes')" data-requires="agentes">
       <span class="nav-icon">🤖</span> Agentes IA
     </a>
 
     <div class="nav-section">Reportes</div>
-    <a class="nav-item"><span class="nav-icon">📈</span> Informes</a>
-    <a class="nav-item"><span class="nav-icon">⚙️</span> Configuración</a>
+    <a class="nav-item" data-requires="informes"><span class="nav-icon">📈</span> Informes</a>
+    <a class="nav-item" onclick="showView('usuarios')" data-requires="usuarios"><span class="nav-icon">👥</span> Gestión Usuarios</a>
     <a class="nav-item" href="EndpointIQ_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
       <div class="user-avatar">
-        <div class="avatar-circle">AD</div>
+        <div class="avatar-circle" id="sidebarAvatar">??</div>
         <div>
-          <div class="user-name">Admin TI</div>
-          <div class="user-role">Administrador</div>
+          <div class="user-name" id="sidebarUserName">Cargando...</div>
+          <div class="user-role" id="sidebarUserRole">-</div>
         </div>
       </div>
+      <button onclick="handleLogout()" style="width:100%;margin-top:10px;padding:8px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px;color:#F87171;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-ui);transition:all 0.2s" onmouseover="this.style.background='rgba(248,113,113,0.2)'" onmouseout="this.style.background='rgba(248,113,113,0.1)'">🚪 Cerrar Sesión</button>
     </div>
   </nav>
 
@@ -973,21 +1122,24 @@
               <span class="card-title">Resumen de Red — Flota</span>
             </div>
             <div class="card-body" id="dashboardNetworkBody">
-              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="netOverviewGrid">
-                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-                  <div style="font-size:24px;font-weight:800;color:var(--blue)" id="netStatTotal">0</div>
-                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Conexiones Activas</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="netOverviewGrid">
+                <div class="net-stat-card" style="text-align:center">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Conexiones</div>
+                  <div style="font-size:26px;font-weight:800;font-family:var(--font-disp);color:var(--blue)" id="netStatTotal">0</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:4px">Activas</div>
                 </div>
-                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-                  <div style="font-size:24px;font-weight:800;color:var(--green)" id="netStatWifi">0</div>
-                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Conexiones WiFi</div>
+                <div class="net-stat-card" style="text-align:center">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">WiFi</div>
+                  <div style="font-size:26px;font-weight:800;font-family:var(--font-disp);color:var(--green)" id="netStatWifi">0</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:4px">Inalambricas</div>
                 </div>
-                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-                  <div style="font-size:24px;font-weight:800;color:var(--cyan)" id="netStatDevices">0</div>
-                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Dispositivos en Red</div>
+                <div class="net-stat-card" style="text-align:center">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Dispositivos</div>
+                  <div style="font-size:26px;font-weight:800;font-family:var(--font-disp);color:var(--cyan)" id="netStatDevices">0</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:4px">En la red</div>
                 </div>
               </div>
-              <div id="netSSIDList" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"></div>
+              <div id="netSSIDList" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
             </div>
           </div>
 
@@ -1008,7 +1160,7 @@
           <button class="btn btn-ghost" onclick="clearDeviceSelection()" style="font-size:12px;padding:4px 10px">✕ Limpiar</button>
         </div>
 
-        <!-- Empty state / Reporte de Sincronizacion (default) -->
+        <!-- Empty state (default) -->
         <div id="equipoEmptyState" style="animation:fadeIn 0.4s ease">
           <!-- Resumen de Conectividad de la Flota -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
@@ -1055,7 +1207,6 @@
             </div>
           </div>
         </div>
-
         <!-- Content (hidden until device selected) -->
         <div id="equipoContent" style="display:none">
 
@@ -1085,14 +1236,33 @@
           </div>
         </div>
 
-        <!-- Informacion de Red -->
+        <!-- Informacion de Red (Premium) -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
             <span>🌐</span>
             <span class="card-title">Informacion de Red</span>
-            <span class="card-sub" id="netWifiLabel" style="color:var(--blue)">—</span>
+            <span class="card-sub" id="netWifiLabel" style="color:var(--cyan)">—</span>
           </div>
           <div class="card-body" id="networkInfoBody">
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px" id="netStatsRow">
+              <div class="net-stat-card" style="--ring-glow:#3B82F6">
+                <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Conexion</div>
+                <div style="font-size:20px;font-weight:800;font-family:var(--font-disp);color:var(--blue)" id="netStatType">—</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px" id="netStatSSID">Sin datos</div>
+              </div>
+              <div class="net-stat-card">
+                <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Interfaces</div>
+                <div style="font-size:20px;font-weight:800;font-family:var(--font-disp);color:var(--cyan)" id="netStatIfaceCount">0</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">Activas</div>
+              </div>
+              <div class="net-stat-card">
+                <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Dispositivos</div>
+                <div style="font-size:20px;font-weight:800;font-family:var(--font-disp);color:var(--purple)" id="netDeviceCount">0</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">En la red</div>
+              </div>
+            </div>
+            <!-- Interfaces & Devices grid -->
             <div style="display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px" id="networkGrid">
               <!-- Interfaces -->
               <div>
@@ -1110,8 +1280,6 @@
                 <div id="subnetGraphCanvas" style="position:relative;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
                   <svg id="subnetGraphSvg" style="width:100%;height:100%"></svg>
                 </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1194,14 +1362,32 @@
             <div class="card-header"><span>🍩</span><span class="card-title" id="prodDonutTitle">Distribucion de Actividad</span></div>
             <div class="card-body" style="display:flex;align-items:center;justify-content:center;padding:28px;gap:32px">
               <div style="position:relative">
-                <svg width="160" height="160" viewBox="0 0 160 160" id="prodDonutSvg" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15))">
-                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--surface3)" stroke-width="12" opacity="0.5"/>
-                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--blue)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" transform="rotate(-90 80 80)" id="donutTrabajo" style="transition:stroke-dashoffset 0.8s ease"/>
-                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutComun" style="transition:stroke-dashoffset 0.8s ease"/>
-                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--amber)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutWeb" style="transition:stroke-dashoffset 0.8s ease"/>
-                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--red)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutOcio" style="transition:stroke-dashoffset 0.8s ease"/>
-                  <text x="80" y="76" text-anchor="middle" fill="var(--text)" font-size="26" font-weight="800" font-family="Syne" id="donutCenterPct">—</text>
-                  <text x="80" y="94" text-anchor="middle" fill="var(--text3)" font-size="10" font-family="DM Sans">Productivo</text>
+                <svg width="160" height="160" viewBox="0 0 160 160" id="prodDonutSvg" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15))">
+                  <defs>
+                    <linearGradient id="donutGradTrabajo" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#3B82F6"/>
+                      <stop offset="100%" stop-color="#60A5FA"/>
+                    </linearGradient>
+                    <linearGradient id="donutGradComun" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#10B981"/>
+                      <stop offset="100%" stop-color="#34D399"/>
+                    </linearGradient>
+                    <linearGradient id="donutGradWeb" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#F59E0B"/>
+                      <stop offset="100%" stop-color="#FBBF24"/>
+                    </linearGradient>
+                    <linearGradient id="donutGradOcio" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#EF4444"/>
+                      <stop offset="100%" stop-color="#F87171"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--border)" stroke-width="6" opacity="0.15"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradTrabajo)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutTrabajo" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradComun)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutComun" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradWeb)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutWeb" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradOcio)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutOcio" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
+                  <text x="80" y="76" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="800" font-family="var(--font-disp)" id="donutCenterPct">—</text>
+                  <text x="80" y="94" text-anchor="middle" fill="var(--text3)" font-size="10" font-family="var(--font-ui)" font-weight="600" letter-spacing="0.5px" style="text-transform:uppercase">Productivo</text>
                 </svg>
               </div>
               <div style="display:flex;flex-direction:column;gap:10px;min-width:120px">
@@ -1228,33 +1414,80 @@
           </div>
         </div>
 
-        <!-- 3.5. Tiempo por Aplicación: Escritorio + Web -->
+        <!-- 3.5. Actividad Web & Aplicaciones — Premium Visualization -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span>⏰</span><span class="card-title" id="prodTimeAppTitle">Tiempo por Aplicación — Usuario seleccionado</span></div>
+          <div class="card-header"><span>🌐</span><span class="card-title" id="prodTimeAppTitle">Actividad Web & Aplicaciones</span></div>
           <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-              <!-- Aplicaciones de Escritorio -->
+            <div style="display:grid;grid-template-columns:300px 1fr;gap:28px">
+              
+              <!-- LEFT: Category Time Blocks -->
               <div>
-                <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">Aplicaciones de Escritorio</div>
-                <div id="prodDesktopApps">
-                  <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando...</div>
+                <div id="prodDesktopTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:16px">⏱️ Tiempo por Categoría</div>
+                
+                <!-- Category blocks -->
+                <div id="webCategoryBlocks" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+                  <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(108,159,255,0.08),rgba(108,159,255,0.02));border:1px solid rgba(108,159,255,0.15)">
+                    <div style="font-size:22px;margin-bottom:4px">💼</div>
+                    <div id="catBlockTrabajo" style="font-size:20px;font-weight:800;color:#6C9FFF;font-family:var(--font-mono)">0h</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Trabajo</div>
+                    <div id="catBlockTrabajoCount" style="font-size:9px;color:#6C9FFF88;margin-top:2px">0 sitios</div>
+                  </div>
+                  <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,0.08),rgba(52,211,153,0.02));border:1px solid rgba(52,211,153,0.15)">
+                    <div style="font-size:22px;margin-bottom:4px">💬</div>
+                    <div id="catBlockComun" style="font-size:20px;font-weight:800;color:#34D399;font-family:var(--font-mono)">0h</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Comunicación</div>
+                    <div id="catBlockComunCount" style="font-size:9px;color:#34D39988;margin-top:2px">0 sitios</div>
+                  </div>
+                  <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(251,191,36,0.02));border:1px solid rgba(251,191,36,0.15)">
+                    <div style="font-size:22px;margin-bottom:4px">🌐</div>
+                    <div id="catBlockWeb" style="font-size:20px;font-weight:800;color:#FBBF24;font-family:var(--font-mono)">0h</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Navegación</div>
+                    <div id="catBlockWebCount" style="font-size:9px;color:#FBBF2488;margin-top:2px">0 sitios</div>
+                  </div>
+                  <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(248,113,113,0.08),rgba(248,113,113,0.02));border:1px solid rgba(248,113,113,0.15)">
+                    <div style="font-size:22px;margin-bottom:4px">🎮</div>
+                    <div id="catBlockOcio" style="font-size:20px;font-weight:800;color:#F87171;font-family:var(--font-mono)">0h</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Ocio</div>
+                    <div id="catBlockOcioCount" style="font-size:9px;color:#F8717188;margin-top:2px">0 sitios</div>
+                  </div>
+                </div>
+
+                <!-- Stacked horizontal bar -->
+                <div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Distribución del tiempo</div>
+                <div id="catStackedBar" style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface1)">
+                </div>
+                <div id="catStackedLabels" style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--text3)"></div>
+                
+                <!-- Total time -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                  <span style="font-size:10px;color:var(--text3);font-weight:600">TOTAL NAVEGACIÓN</span>
+                  <span id="catTotalTime" style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--font-mono)">0h 00m</span>
                 </div>
               </div>
-              <!-- Páginas Web -->
+
+              <!-- RIGHT: Site Detail Cards -->
               <div>
-                <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">Páginas Web — Tiempo Activo</div>
-                <table class="data-table" style="font-size:12px" id="prodWebPagesTable">
-                  <thead><tr><th>Dominio</th><th>Categoría</th><th>Tiempo</th></tr></thead>
-                  <tbody id="prodWebPagesBody">
-                    <tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Cargando...</td></tr>
-                  </tbody>
-                </table>
+                <div id="prodWebTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">📊 Detalle de Navegación</div>
+                <div id="prodWebPagesCards" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding-right:4px">
+                  <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Cargando datos de navegación...</div>
+                </div>
+                <!-- Hidden tbody for compatibility -->
+                <table style="display:none"><tbody id="prodWebPagesBody"></tbody></table>
+              </div>
+
+            </div>
+
+            <!-- Desktop Apps Row (below) -->
+            <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px">
+              <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px">💻 Aplicaciones Activas</div>
+              <div id="prodDesktopApps" style="display:flex;gap:10px;flex-wrap:wrap">
+                <div style="color:var(--text3);font-size:13px;padding:12px">Cargando...</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 3.8 Grafo de Concentracion de Trafico Web -->
+<!-- 3.8 Grafo de Concentracion de Trafico Web -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
             <span>🕸️</span>
@@ -1528,56 +1761,65 @@
       ════════════════════════════════════════════ -->
       <div class="view" id="view-seguridad">
         <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="kpi-card red"><div class="kpi-label">Alertas Seguridad</div><div class="kpi-value">4</div><div class="kpi-delta">2 sin resolver</div><div class="kpi-icon-bg">🔐</div></div>
-          <div class="kpi-card amber"><div class="kpi-label">IPs Extranjeras</div><div class="kpi-value">2</div><div class="kpi-delta">Detectadas hoy</div><div class="kpi-icon-bg">🌍</div></div>
-          <div class="kpi-card amber"><div class="kpi-label">Equipos Inactivos</div><div class="kpi-value">3</div><div class="kpi-delta">> 5 días sin encender</div><div class="kpi-icon-bg">⚫</div></div>
-          <div class="kpi-card blue"><div class="kpi-label">Logins Fallidos</div><div class="kpi-value">17</div><div class="kpi-delta">Últimas 24h</div><div class="kpi-icon-bg">🔑</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Score de Seguridad</div><div class="kpi-value" id="secScore">—</div><div class="kpi-delta" id="secScoreDelta">Calculando...</div><div class="kpi-icon-bg">🛡️</div></div>
+          <div class="kpi-card red"><div class="kpi-label">Alertas Críticas</div><div class="kpi-value" id="secThreats">0</div><div class="kpi-delta" id="secThreatsDelta">—</div><div class="kpi-icon-bg">🚨</div></div>
+          <div class="kpi-card amber"><div class="kpi-label">Advertencias</div><div class="kpi-value" id="secWarnings">0</div><div class="kpi-delta" id="secWarningsDelta">—</div><div class="kpi-icon-bg">⚠️</div></div>
+          <div class="kpi-card green"><div class="kpi-label">Equipos Monitoreados</div><div class="kpi-value" id="secDevices">0</div><div class="kpi-delta" id="secDevicesDelta">—</div><div class="kpi-icon-bg">💻</div></div>
         </div>
 
         <div class="two-col">
           <div class="card">
-            <div class="card-header"><span>🔐</span><span class="card-title">Eventos de Seguridad — Últimas 24h</span></div>
-            <div style="overflow-x:auto">
-              <table class="data-table">
-                <thead><tr><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>IP</th><th>Hora</th><th>Estado</th></tr></thead>
-                <tbody>
-                  <tr><td><span class="badge crit">Login Fallido</span></td><td class="mono">PC-BSANCHEZ</td><td>5 intentos · user: admin</td><td class="mono">192.168.1.44</td><td class="mono">09:31</td><td><span class="badge warn">Revisando</span></td></tr>
-                  <tr><td><span class="badge warn">IP Extranjera</span></td><td class="mono">LAPTOP-ADIAZ</td><td>Sync desde Venezuela</td><td class="mono">186.4.22.11</td><td class="mono">08:15</td><td><span class="badge crit">Sin resolver</span></td></tr>
-                  <tr><td><span class="badge warn">IP Extranjera</span></td><td class="mono">PC-NMORA</td><td>Sync desde Ecuador</td><td class="mono">190.12.44.8</td><td class="mono">07:50</td><td><span class="badge crit">Sin resolver</span></td></tr>
-                  <tr><td><span class="badge info">Inactivo 7d</span></td><td class="mono">PC-LMENDEZ</td><td>Último encendido 25/05</td><td class="mono">—</td><td class="mono">—</td><td><span class="badge off">Investigando</span></td></tr>
-                  <tr><td><span class="badge info">Software Ext.</span></td><td class="mono">PC-RLOPEZ</td><td>uTorrent 3.5 detectado</td><td class="mono">—</td><td class="mono">06:00</td><td><span class="badge ok">Ticket abierto</span></td></tr>
+            <div class="card-header"><span>🔐</span><span class="card-title">Eventos de Seguridad — Tiempo Real</span></div>
+            <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+              <table class="data-table" id="secEventsTable">
+                <thead><tr><th></th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>Categoría</th><th>Hora</th><th>Severidad</th></tr></thead>
+                <tbody id="secEventsBody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Cargando eventos...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header"><span>🌐</span><span class="card-title">Mapa de Conexiones — IPs de Sincronización</span></div>
-            <div class="card-body">
-              <div style="background:var(--surface2);border-radius:10px;overflow:hidden;position:relative;height:220px;display:flex;align-items:center;justify-content:center">
-                <svg viewBox="0 0 500 220" width="100%" height="100%" style="position:absolute;top:0;left:0">
-                  <!-- Colombia (home) -->
-                  <circle cx="150" cy="120" r="28" fill="rgba(16,185,129,0.2)" stroke="var(--green)" stroke-width="1.5"/>
-                  <circle cx="150" cy="120" r="8" fill="var(--green)"/>
-                  <text x="150" y="160" text-anchor="middle" fill="var(--green)" font-size="11" font-family="DM Sans" font-weight="700">Colombia ✓</text>
-                  <text x="150" y="173" text-anchor="middle" fill="var(--text3)" font-size="9" font-family="JetBrains Mono">1,183 equipos</text>
-                  <!-- Venezuela -->
-                  <circle cx="280" cy="90" r="12" fill="rgba(239,68,68,0.25)" stroke="var(--red)" stroke-width="1.5"/>
-                  <circle cx="280" cy="90" r="5" fill="var(--red)"/>
-                  <text x="280" y="113" text-anchor="middle" fill="var(--red)" font-size="10" font-family="DM Sans" font-weight="700">Venezuela ⚠</text>
-                  <line x1="155" y1="118" x2="275" y2="93" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/>
-                  <!-- Ecuador -->
-                  <circle cx="115" cy="165" r="10" fill="rgba(239,68,68,0.25)" stroke="var(--red)" stroke-width="1.5"/>
-                  <circle cx="115" cy="165" r="4" fill="var(--red)"/>
-                  <text x="115" y="185" text-anchor="middle" fill="var(--red)" font-size="10" font-family="DM Sans" font-weight="700">Ecuador ⚠</text>
-                  <line x1="148" y1="126" x2="118" y2="162" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/>
-                  <!-- Leyenda -->
-                  <rect x="340" y="10" width="140" height="60" rx="6" fill="var(--surface3)" opacity="0.9"/>
-                  <circle cx="356" cy="30" r="5" fill="var(--green)"/>
-                  <text x="366" y="34" fill="var(--text2)" font-size="10" font-family="DM Sans">Conexión normal</text>
-                  <circle cx="356" cy="50" r="5" fill="var(--red)"/>
-                  <text x="366" y="54" fill="var(--text2)" font-size="10" font-family="DM Sans">IP extranjera ⚠</text>
-                </svg>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- World Map -->
+            <div class="card">
+              <div class="card-header"><span>🗺️</span><span class="card-title">Mapa Global de Conexiones — Monitoreo en Tiempo Real</span></div>
+              <div class="card-body" style="padding:0;overflow:hidden;border-radius:0 0 12px 12px">
+                <div style="position:relative;height:360px;overflow:hidden;background:#040d21" id="secWorldMapContainer">
+                  <!-- Canvas for dot-matrix world -->
+                  <canvas id="secWorldCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
+                  <!-- SVG overlay for pins -->
+                  <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" id="secWorldMapSvg" style="position:absolute;top:0;left:0;z-index:2">
+                    <defs>
+                      <radialGradient id="glowG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#10B981" stop-opacity="0.8"/><stop offset="100%" stop-color="#10B981" stop-opacity="0"/></radialGradient>
+                      <radialGradient id="glowB" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#6C9FFF" stop-opacity="0.8"/><stop offset="100%" stop-color="#6C9FFF" stop-opacity="0"/></radialGradient>
+                      <radialGradient id="glowY" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FBBF24" stop-opacity="0.8"/><stop offset="100%" stop-color="#FBBF24" stop-opacity="0"/></radialGradient>
+                      <radialGradient id="glowR" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#EF4444" stop-opacity="0.8"/><stop offset="100%" stop-color="#EF4444" stop-opacity="0"/></radialGradient>
+                    </defs>
+                  </svg>
+                  <!-- Scan line -->
+                  <div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,rgba(16,185,129,0.5),transparent);z-index:3;animation:mapScan 5s linear infinite"></div>
+                  <style>@keyframes mapScan{0%{transform:translateY(0)}100%{transform:translateY(360px)}}@keyframes pinPulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.8);opacity:0}}</style>
+                  <!-- Tooltip -->
+                  <div id="secMapTooltip" style="display:none;position:absolute;z-index:10;background:rgba(4,13,33,0.95);border:1px solid rgba(108,159,255,0.35);border-radius:10px;padding:12px 16px;pointer-events:none;backdrop-filter:blur(12px);min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.6)">
+                    <div id="secMapTooltipContent"></div>
+                  </div>
+                  <!-- Legend -->
+                  <div style="position:absolute;top:12px;right:12px;background:rgba(4,13,33,0.9);border:1px solid rgba(108,159,255,0.2);border-radius:10px;padding:10px 14px;z-index:4">
+                    <div style="color:#64748B;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">ESTADO DE RED</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 10px #10B98199"></div><span style="color:#CBD5E1;font-size:10px">Conectado</span></div>
+                    <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:50%;background:#EF4444;box-shadow:0 0 10px #EF444499"></div><span style="color:#CBD5E1;font-size:10px">Desconectado</span></div>
+                  </div>
+                  <!-- Device cards -->
+                  <div id="secMapDeviceCards" style="position:absolute;bottom:12px;left:12px;display:flex;gap:10px;flex-wrap:wrap;z-index:4"></div>
+                </div>
+              </div>
+            </div>
+            <!-- Categories Breakdown -->
+            <div class="card">
+              <div class="card-header"><span>📊</span><span class="card-title">Desglose por Categoría</span></div>
+              <div class="card-body" id="secCategoriesPanel">
+                <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando...</div>
               </div>
             </div>
           </div>
@@ -1790,12 +2032,79 @@
   </div>
 </div>
 
+      <!-- ════════════════════════════════════════════
+           VIEW: GESTIÓN DE USUARIOS (admin only)
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-usuarios">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">👥 Gestión de Usuarios</h2>
+            <p style="color:var(--text3);font-size:13px;margin-top:4px">Administra los accesos y roles de la plataforma</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="openChangePasswordModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px;background:linear-gradient(135deg,#A78BFA,#7C3AED)">🔑 Cambiar Mi Contraseña</button>
+            <button onclick="openUserModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px">➕ Nuevo Usuario</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="prod-table" style="width:100%">
+            <thead>
+              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="6" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal: Crear/Editar Usuario -->
+      <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center">
+        <div class="login-card" style="animation:loginSlideUp 0.3s">
+          <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)" id="userModalTitle">Nuevo Usuario</h3>
+          <div class="login-field"><label>Nombre Completo</label><input id="umName" placeholder="Nombre Apellido" /></div>
+          <div class="login-field"><label>Email</label><input id="umEmail" type="email" placeholder="email@empresa.com" /></div>
+          <div class="login-field" id="umPasswordField"><label>Contraseña</label><input id="umPassword" type="password" placeholder="Mínimo 6 caracteres" /></div>
+          <div class="login-field">
+            <label>Rol</label>
+            <select id="umRole" style="width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--font-ui)">
+              <option value="admin">🔑 Administrador</option>
+              <option value="analyst">📊 Analista</option>
+              <option value="viewer" selected>👁 Visor</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button onclick="closeUserModal()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
+            <button onclick="saveUser()" class="login-btn" style="flex:1;margin-top:0">💾 Guardar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Cambiar Contraseña -->
+      <div id="changePwModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
+        <div class="login-card" style="animation:loginSlideUp 0.3s">
+          <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">🔑 Cambiar Contraseña</h3>
+          <div class="login-field"><label>Contraseña Actual</label><input id="cpCurrent" type="password" /></div>
+          <div class="login-field"><label>Nueva Contraseña</label><input id="cpNew" type="password" placeholder="Mínimo 6 caracteres" /></div>
+          <div class="login-error" id="cpError"></div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button onclick="document.getElementById('changePwModal').style.display='none'" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
+            <button onclick="changePassword()" class="login-btn" style="flex:1;margin-top:0;background:linear-gradient(135deg,#A78BFA,#7C3AED)">💾 Cambiar</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </div><!-- .main -->
+</div><!-- .app -->
+
 <script>
 // ── Estado Global ──
 let fleetDevices = [];
 let kpiDefinitions = [];
 let securityEvents = [];
 let selectedDeviceId = "device-01";
+let currentUser = null;
 
 const titles = {
   dashboard:     'Dashboard General',
@@ -1804,7 +2113,8 @@ const titles = {
   mesa:          'Mesa de Ayuda',
   seguridad:     'Seguridad',
   agentes:       'Agentes Inteligentes IA',
-  kpibuilder:    'KPI Builder Asistido por IA'
+  kpibuilder:    'KPI Builder Asistido por IA',
+  usuarios:      'Gestión de Usuarios'
 };
 
 // ── Navegación de Vistas ──
@@ -1836,6 +2146,8 @@ function showView(id) {
     fetchKPIs();
   } else if (id === 'agentes') {
     fetchWhatsAppHistory();
+  } else if (id === 'usuarios') {
+    fetchUsers();
   }
 }
 
@@ -1884,82 +2196,6 @@ function fetchDevices() {
       updateDashboardNetwork();
       updateEquipoReport();
     });
-}
-
-// ── Actualizar Reporte de Sincronizacion por Equipo ──
-function updateEquipoReport() {
-  const totalEl = document.getElementById('eqReportTotal');
-  const onlineEl = document.getElementById('eqReportOnline');
-  const offlineEl = document.getElementById('eqReportOffline');
-  const tbody = document.querySelector('#eqReportTable tbody');
-  
-  if (!tbody) return;
-  
-  const total = fleetDevices.length;
-  const online = fleetDevices.filter(d => d.status === 'Online').length;
-  const offline = total - online;
-  
-  if (totalEl) totalEl.textContent = total;
-  if (onlineEl) onlineEl.textContent = online;
-  if (offlineEl) offlineEl.textContent = offline;
-  
-  if (total === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No hay equipos registrados en la flota.</td></tr>';
-    return;
-  }
-  
-  tbody.innerHTML = '';
-  fleetDevices.forEach(dev => {
-    const isOnline = dev.status === 'Online';
-    const statusClass = isOnline ? 'ok' : 'off';
-    const statusText = isOnline ? 'Activo' : 'Inactivo';
-    
-    // Calcular tiempo transcurrido desde ultima sincronizacion
-    const syncTimeStr = timeAgo(dev.last_sync || dev.timestamp);
-    
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="mono" style="font-weight:600;color:var(--text)">${dev.device_id}</td>
-      <td>${dev.device_type || 'Desktop'}</td>
-      <td style="color:var(--text2)">${syncTimeStr}</td>
-      <td class="mono" style="font-size:12.5px;color:var(--text3)">${dev.last_ip || 'N/A'}</td>
-      <td><span class="badge ${statusClass}">${statusText}</span></td>
-      <td><button class="btn btn-ghost" onclick="loadDeviceDetail('${dev.device_id}')" style="font-size:11px;padding:3px 9px">Analizar \u2192</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// ── Calcular tiempo transcurrido relativo ──
-function timeAgo(dateString) {
-  if (!dateString) return 'Nunca';
-  try {
-    let s = dateString;
-    if (s.includes(' ') && !s.includes('T')) {
-      s = s.replace(' ', 'T');
-    }
-    const date = new Date(s);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 5) return 'Justo ahora';
-    if (seconds < 60) return `Hace ${seconds}s`;
-    
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `Hace ${minutes} min`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-    
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
-    
-    return date.toLocaleDateString();
-  } catch (e) {
-    return dateString;
-  }
 }
 
 // ── Actualizar Tarjetas KPIs del Dashboard ──
@@ -2287,7 +2523,10 @@ function updateDashboardNetwork() {
           totalConns += net.interfaces.length;
           net.interfaces.forEach(i => { if (i.type === 'WiFi') wifiConns++; });
         }
-        if (net.wifi_ssid) ssids.add(net.wifi_ssid);
+        if (net.wifi_ssid) {
+          const clean = net.wifi_ssid.replace(/[\r\n]+/g, ' ').trim().split(' ')[0];
+          if (clean) ssids.add(clean);
+        }
         if (net.connected_devices) totalDevices += net.connected_devices.length;
       } catch(e) {}
     }
@@ -2437,107 +2676,94 @@ function loadDeviceDetail(id) {
     });
 }
 
-// ── Renderizar Grafo de Topologia Local (Subred) ──
-function renderSubnetGraph(m) {
-  const svg = document.getElementById('subnetGraphSvg');
-  if (!svg) return;
-  svg.innerHTML = '';
-  
-  let netInfo = null;
-  if (m.network_info) {
-    try {
-      netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
-    } catch (e) {
-      netInfo = null;
-    }
-  }
-  
-  const width = svg.clientWidth || 300;
-  const height = svg.clientHeight || 200;
-  const cx = width / 2;
-  const cy = height / 2;
-  
-  if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
-    svg.innerHTML = `
-      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
-      <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
-      <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
-    `;
-    return;
-  }
-  
-  const devices = netInfo.connected_devices.slice(0, 10);
-  const N = devices.length;
-  const radius = 65;
-  
-  let content = '';
-  
-  // Nodos satélites y líneas
-  devices.forEach((dev, i) => {
-    const angle = i * (2 * Math.PI / N);
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    
-    const isGateway = dev.ip.endsWith('.1');
-    const color = isGateway ? 'var(--amber)' : 'var(--green)';
-    const size = isGateway ? 9 : 7;
-    
-    // Línea al nodo central
-    content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
-    
-    // Nodo satélite
-    content += `
-      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
-        <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
-      </circle>
-    `;
-  });
-  
-  // Nodo central
-  content += `
-    <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
-      <title>Este equipo: ${m.device_id}</title>
-    </circle>
-  `;
-  
-  svg.innerHTML = content;
-}
-
 function renderRings(m) {
   const container = document.getElementById('ringsRow');
   if (!container) return;
   
   const ringData = [
-    { label: 'Procesador', value: m.cpu_usage || 0, unit: '%', maxVal: 100, color: m.cpu_usage > 80 ? '#EF4444' : m.cpu_usage > 60 ? '#F59E0B' : '#10B981' },
-    { label: 'Memoria', value: m.ram_usage || 0, unit: '%', maxVal: 100, color: m.ram_usage > 85 ? '#EF4444' : m.ram_usage > 70 ? '#F59E0B' : '#10B981', subVal: `${(m.ram_usage/100*16).toFixed(1)}/16 GB` },
-    { label: 'Disco', value: m.disk_free_gb || 0, unit: 'GB', maxVal: 500, color: m.disk_free_gb < 10 ? '#EF4444' : m.disk_free_gb < 50 ? '#F59E0B' : '#10B981', subVal: `${(m.disk_free_gb||0).toFixed(0)} GB libres` },
-    { label: 'Red', value: m.network_latency_ms || 0, unit: 'ms', maxVal: 200, color: m.network_latency_ms > 100 ? '#EF4444' : m.network_latency_ms > 50 ? '#F59E0B' : '#06B6D4', subVal: `${(m.network_latency_ms||0).toFixed(0)} ms` },
-    { label: m.device_type === 'Laptop' ? 'Bateria' : 'Alimentacion', value: m.battery_percent || 0, unit: m.device_type === 'Laptop' ? '%' : '', maxVal: 100, color: '#F59E0B', isEnergy: true }
+    { label: 'Procesador', value: m.cpu_usage || 0, unit: '%', maxVal: 100, icon: '⚙️' },
+    { label: 'Memoria', value: m.ram_usage || 0, unit: '%', maxVal: 100, icon: '🧠', subVal: `${(m.ram_usage/100*16).toFixed(1)} / 16 GB` },
+    { label: 'Disco', value: m.disk_free_gb || 0, unit: 'GB', maxVal: 500, icon: '💾', subVal: `${(m.disk_free_gb||0).toFixed(0)} GB libres` },
+    { label: 'Red', value: m.network_latency_ms || 0, unit: 'ms', maxVal: 200, icon: '📡', subVal: `${(m.network_latency_ms||0).toFixed(0)} ms latencia` },
+    { label: m.device_type === 'Laptop' ? 'Bateria' : 'Energia', value: m.battery_percent || 0, unit: m.device_type === 'Laptop' ? '%' : '', maxVal: 100, icon: '🔋', isEnergy: true }
   ];
   
   container.innerHTML = '';
-  ringData.forEach(r => {
-    const circumference = 2 * Math.PI * 44; // 276.46
+  const R = 50;  // radius
+  const circumference = 2 * Math.PI * R;
+  
+  ringData.forEach((r, idx) => {
     let pct = r.maxVal > 0 ? Math.min(r.value / r.maxVal, 1) : 0;
-    if (r.label === 'Disco') pct = Math.min((500 - r.value) / 500, 1); // inverted
+    if (r.label === 'Disco') pct = Math.min((500 - r.value) / 500, 1);
     const offset = circumference * (1 - pct);
     
-    let displayVal = r.isEnergy ? (r.value > 0 ? `${Math.round(r.value)}%` : 'AC') : `${r.unit === '%' ? Math.round(r.value) : r.value.toFixed(0)}${r.unit}`;
-    let subDisplay = r.subVal || displayVal;
-    if (r.isEnergy && r.value <= 0) { displayVal = 'Direct'; subDisplay = 'Direct Power'; }
+    let displayVal = r.isEnergy ? (r.value > 0 ? `${Math.round(r.value)}` : '⚡') : `${r.unit === '%' ? Math.round(r.value) : r.value.toFixed(0)}`;
+    let displayUnit = r.isEnergy ? (r.value > 0 ? '%' : '') : r.unit;
+    let subDisplay = r.subVal || `${displayVal}${displayUnit}`;
+    if (r.isEnergy && r.value <= 0) { displayVal = '⚡'; displayUnit = ''; subDisplay = 'Corriente directa'; }
+    
+    // Dynamic gradient colors by status
+    let c1, c2;
+    if (r.label === 'Procesador') {
+      if (r.value > 80) { c1 = '#EF4444'; c2 = '#F87171'; }
+      else if (r.value > 60) { c1 = '#F59E0B'; c2 = '#FBBF24'; }
+      else { c1 = '#3B82F6'; c2 = '#818CF8'; }
+    } else if (r.label === 'Memoria') {
+      if (r.value > 85) { c1 = '#EF4444'; c2 = '#F87171'; }
+      else if (r.value > 70) { c1 = '#F59E0B'; c2 = '#FBBF24'; }
+      else { c1 = '#10B981'; c2 = '#34D399'; }
+    } else if (r.label === 'Disco') {
+      if (r.value < 10) { c1 = '#EF4444'; c2 = '#F87171'; }
+      else if (r.value < 50) { c1 = '#F59E0B'; c2 = '#FBBF24'; }
+      else { c1 = '#06B6D4'; c2 = '#3B82F6'; }
+    } else if (r.label === 'Red') {
+      if (r.value > 100) { c1 = '#EF4444'; c2 = '#F87171'; }
+      else if (r.value > 50) { c1 = '#F59E0B'; c2 = '#FBBF24'; }
+      else { c1 = '#06B6D4'; c2 = '#8B5CF6'; }
+    } else {
+      if (r.value > 0 && r.value < 25) { c1 = '#EF4444'; c2 = '#F59E0B'; }
+      else if (r.value > 0) { c1 = '#10B981'; c2 = '#34D399'; }
+      else { c1 = '#8B5CF6'; c2 = '#A78BFA'; }
+    }
+    
+    const isCritical = (r.label === 'Procesador' && r.value > 80) || (r.label === 'Memoria' && r.value > 85) || (r.label === 'Disco' && r.value < 10);
+    const gradId = `rg-${idx}`;
+    const glowId = `rglow-${idx}`;
+    const bgGlowId = `rbg-${idx}`;
     
     container.innerHTML += `
-      <div class="ring-container" style="animation:fadeIn 0.5s ease">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle cx="55" cy="55" r="44" fill="none" stroke="var(--surface3)" stroke-width="10"/>
-          <circle cx="55" cy="55" r="44" fill="none" stroke="${r.color}" stroke-width="10"
+      <div class="ring-container" style="--ring-glow:${c1};animation:fadeIn 0.4s ease ${idx * 0.08}s both">
+        <svg width="130" height="130" viewBox="0 0 120 120" class="${isCritical ? 'ring-svg-active' : ''}" style="--ring-glow:${c1}">
+          <defs>
+            <linearGradient id="${gradId}" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="${c1}"/>
+              <stop offset="100%" stop-color="${c2}"/>
+            </linearGradient>
+            <radialGradient id="${bgGlowId}" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="${c1}" stop-opacity="0.08"/>
+              <stop offset="100%" stop-color="${c1}" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="${glowId}" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3.5" result="blur"/>
+              <feComponentTransfer in="blur" result="glow"><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+              <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Subtle inner glow fill -->
+          <circle cx="60" cy="60" r="${R}" fill="url(#${bgGlowId})"/>
+          <!-- Background track -->
+          <circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--border)" stroke-width="4" opacity="0.12"/>
+          <!-- Progress arc -->
+          <circle cx="60" cy="60" r="${R}" fill="none" stroke="url(#${gradId})" stroke-width="8"
             stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
-            transform="rotate(-90 55 55)" style="filter:drop-shadow(0 0 6px ${r.color});transition:stroke-dashoffset 1s ease"/>
-          <text x="55" y="50" text-anchor="middle" fill="var(--text)" font-family="Syne" font-size="18" font-weight="800">${displayVal}</text>
-          <text x="55" y="65" text-anchor="middle" fill="var(--text3)" font-family="DM Sans" font-size="10">${r.label.toUpperCase()}</text>
+            transform="rotate(-90 60 60)" filter="url(#${glowId})"
+            style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+          <!-- Percentage/value text -->
+          <text x="60" y="55" text-anchor="middle" fill="var(--text)" font-family="var(--font-disp)" font-size="22" font-weight="800" letter-spacing="-0.5px">${displayVal}</text>
+          <text x="60" y="70" text-anchor="middle" fill="${c1}" font-family="var(--font-mono)" font-size="10" font-weight="600" opacity="0.8">${displayUnit}</text>
         </svg>
         <div class="ring-label">${r.label}</div>
-        <div class="ring-val" style="color:${r.color}">${subDisplay}</div>
+        <div class="ring-val" style="color:${c1}">${subDisplay}</div>
       </div>`;
   });
 }
@@ -2552,56 +2778,92 @@ function renderNetworkInfo(m) {
   const ifacesList = document.getElementById('netInterfacesList');
   const devicesList = document.getElementById('netDevicesList');
   const deviceCount = document.getElementById('netDeviceCount');
+  const statType = document.getElementById('netStatType');
+  const statSSID = document.getElementById('netStatSSID');
+  const statIfaceCount = document.getElementById('netStatIfaceCount');
   
   if (!netInfo) {
     if (wifiLabel) wifiLabel.textContent = 'Sin datos de red';
-    if (ifacesList) ifacesList.innerHTML = '<div style="color:var(--text3);padding:8px">Esperando datos del agente...</div>';
-    if (devicesList) devicesList.innerHTML = '<div style="color:var(--text3);padding:8px">Esperando datos del agente...</div>';
-    if (deviceCount) deviceCount.textContent = '0';
+    if (statType) statType.textContent = '—';
+    if (statSSID) statSSID.textContent = 'Agente sin modulo de red';
+    if (statIfaceCount) statIfaceCount.textContent = '—';
+    if (deviceCount) deviceCount.textContent = '—';
+    if (ifacesList) ifacesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">📡</div>El agente de este equipo aun no reporta datos de red.<br>Se mostraran automaticamente en la proxima actualizacion.</div>';
+    if (devicesList) devicesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">🔍</div>Sin tabla ARP disponible.</div>';
     return;
   }
   
-  // WiFi SSID
-  if (wifiLabel) wifiLabel.textContent = netInfo.wifi_ssid ? `\ud83d\udce1 WiFi: ${netInfo.wifi_ssid}` : '\ud83d\udcbb Ethernet';
+  // Sanitize SSID (may contain \r\n from netsh output)
+  const cleanSSID = netInfo.wifi_ssid ? netInfo.wifi_ssid.replace(/[\r\n]+/g, ' ').trim().split(' ')[0] : null;
   
-  // Interfaces
+  // Connection type & SSID
+  const hasWifi = cleanSSID && cleanSSID.length > 0;
+  if (wifiLabel) wifiLabel.textContent = hasWifi ? `📡 ${cleanSSID}` : '🔌 Ethernet';
+  if (statType) { statType.textContent = hasWifi ? 'WiFi' : 'Ethernet'; statType.style.color = hasWifi ? 'var(--cyan)' : 'var(--blue)'; }
+  if (statSSID) statSSID.textContent = hasWifi ? cleanSSID : 'Conexion cableada';
+  
+  // Interface count
+  const ifCount = netInfo.interfaces ? netInfo.interfaces.length : 0;
+  if (statIfaceCount) statIfaceCount.textContent = ifCount;
+  
+  // Device count
+  const devCount = netInfo.connected_devices ? netInfo.connected_devices.length : 0;
+  if (deviceCount) deviceCount.textContent = devCount;
+  
+  // Render interfaces
   if (ifacesList && netInfo.interfaces) {
     ifacesList.innerHTML = '';
-    netInfo.interfaces.forEach(iface => {
-      const icon = iface.type === 'WiFi' ? '\ud83d\udce1' : '\ud83d\udd0c';
-      const speed = iface.speed_mbps ? `${iface.speed_mbps} Mbps` : '';
-      const sent = iface.bytes_sent ? `\u2b06 ${(iface.bytes_sent/1024/1024).toFixed(0)}MB` : '';
-      const recv = iface.bytes_recv ? `\u2b07 ${(iface.bytes_recv/1024/1024).toFixed(0)}MB` : '';
-      ifacesList.innerHTML += `
-        <div style="padding:8px 10px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border:1px solid var(--border)">
-          <div style="font-weight:600;color:var(--text);font-size:12px">${icon} ${iface.name}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">
-            ${iface.type} \u00b7 ${iface.ip} ${iface.mac ? '\u00b7 ' + iface.mac : ''}<br/>
-            ${speed ? speed + ' \u00b7 ' : ''}${sent} ${recv}
-          </div>
-        </div>`;
-    });
     if (netInfo.interfaces.length === 0) {
-      ifacesList.innerHTML = '<div style="color:var(--text3);padding:8px">No hay interfaces activas</div>';
+      ifacesList.innerHTML = '<div style="color:var(--text3);padding:12px;text-align:center;font-size:11px">Sin interfaces activas</div>';
+    } else {
+      netInfo.interfaces.forEach(iface => {
+        const isWifi = iface.type === 'WiFi';
+        const icon = isWifi ? '📡' : '🔌';
+        const accentColor = isWifi ? 'var(--cyan)' : 'var(--blue)';
+        const speed = iface.speed_mbps ? `${iface.speed_mbps} Mbps` : '';
+        const sentMB = iface.bytes_sent ? (iface.bytes_sent / 1024 / 1024).toFixed(0) : '0';
+        const recvMB = iface.bytes_recv ? (iface.bytes_recv / 1024 / 1024).toFixed(0) : '0';
+        
+        ifacesList.innerHTML += `
+          <div class="net-iface-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <div style="font-weight:700;color:var(--text);font-size:12px;display:flex;align-items:center;gap:6px">
+                <span style="font-size:14px">${icon}</span> ${iface.name}
+              </div>
+              <span class="badge ${isWifi ? 'ok' : 'info'}" style="font-size:9px;padding:2px 8px">${iface.type}</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <span style="font-family:var(--font-mono);font-size:11px;color:${accentColor};font-weight:600">${iface.ip}</span>
+              ${iface.mac ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">${iface.mac}</span>` : ''}
+            </div>
+            <div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
+              ${speed ? `<span style="color:var(--text2)">⚡ ${speed}</span>` : ''}
+              <span style="color:#10B981">⬆ ${sentMB} MB</span>
+              <span style="color:#3B82F6">⬇ ${recvMB} MB</span>
+            </div>
+          </div>`;
+      });
     }
   }
   
-  // Connected devices (ARP)
+  // Render connected devices (ARP table)
   if (devicesList && netInfo.connected_devices) {
-    if (deviceCount) deviceCount.textContent = netInfo.connected_devices.length;
     devicesList.innerHTML = '';
     if (netInfo.connected_devices.length === 0) {
-      devicesList.innerHTML = '<div style="color:var(--text3);padding:8px">Sin dispositivos detectados</div>';
+      devicesList.innerHTML = '<div style="color:var(--text3);padding:12px;text-align:center;font-size:11px">Sin dispositivos detectados</div>';
       return;
     }
-    let html = '<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:2px;font-size:11px">';
-    html += '<div style="font-weight:700;color:var(--text3);padding:4px">IP</div><div style="font-weight:700;color:var(--text3);padding:4px">MAC</div><div style="font-weight:700;color:var(--text3);padding:4px">Tipo</div>';
-    netInfo.connected_devices.forEach(dev => {
-      html += `<div style="padding:3px 4px;color:var(--text2);font-family:var(--font-mono)">${dev.ip}</div>`;
-      html += `<div style="padding:3px 4px;color:var(--text3);font-family:var(--font-mono)">${dev.mac}</div>`;
-      html += `<div style="padding:3px 4px"><span class="badge ${dev.type === 'dynamic' ? 'ok' : 'off'}" style="font-size:9px;padding:1px 6px">${dev.type === 'dynamic' ? 'DHCP' : dev.type}</span></div>`;
+    // Header
+    let html = '<div class="net-device-row" style="font-weight:700;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px">';
+    html += '<div>IP</div><div>MAC</div><div>Tipo</div></div>';
+    netInfo.connected_devices.forEach((dev, i) => {
+      const isDynamic = dev.type === 'dynamic' || dev.type === 'dinámico';
+      html += `<div class="net-device-row" style="${i % 2 === 0 ? 'background:rgba(255,255,255,0.015);' : ''}">`;
+      html += `<div style="color:var(--text2);font-family:var(--font-mono);font-size:11px">${dev.ip}</div>`;
+      html += `<div style="color:var(--text3);font-family:var(--font-mono);font-size:10px">${dev.mac}</div>`;
+      html += `<div><span class="badge ${isDynamic ? 'ok' : 'off'}" style="font-size:9px;padding:1px 6px">${isDynamic ? 'DHCP' : (dev.type || 'static')}</span></div>`;
+      html += '</div>';
     });
-    html += '</div>';
     devicesList.innerHTML = html;
   }
 }
@@ -2821,13 +3083,17 @@ function fetchProductivity() {
     .then(data => {
       _prodData = data;
       
-      // Populate user selector
+      // Populate user selector (DEDUPLICATED by device_id)
       const sel = document.getElementById('prodUserSelector');
       if (sel && data.users_productivity_table) {
         const currentVal = sel.value;
         sel.innerHTML = '<option value="__all__">📊 Todos los usuarios</option>';
+        const seenIds = new Set();
         data.users_productivity_table.forEach(u => {
-          sel.innerHTML += `<option value="${u.device_id}">${u.usuario} (${u.device_id})</option>`;
+          if (!seenIds.has(u.device_id)) {
+            seenIds.add(u.device_id);
+            sel.innerHTML += `<option value="${u.device_id}">👤 ${u.usuario} — ${u.device_id}</option>`;
+          }
         });
         sel.value = currentVal;
       }
@@ -2854,6 +3120,9 @@ function loadUserProductivity(userId) {
     document.getElementById('prodDonutTitle').textContent = 'Distribución — Todos los usuarios';
     document.getElementById('prodAppsTitle').textContent = 'Top Aplicaciones — Flota';
     document.getElementById('prodKpiIndexDelta').textContent = `${data.users_productivity_table?.length || 0} usuarios activos`;
+    // Use global desktop_apps and web_pages
+    var filteredDesktopApps = data.desktop_apps || [];
+    var filteredWebPages = data.web_pages || [];
   } else {
     const user = (data.users_productivity_table || []).find(u => u.device_id === userId);
     if (!user) return;
@@ -2869,8 +3138,15 @@ function loadUserProductivity(userId) {
     comun = Math.round(cm / total * 100);
     web = Math.round(wb / total * 100);
     ocio = Math.round(oc / total * 100);
-    topApps = data.top_apps || [];
+    
+    // Per-device apps data
+    const deviceApps = (data.per_device_apps || {})[userId] || {};
+    topApps = deviceApps.top_apps || data.top_apps || [];
     tableRows = [user];
+    
+    // Per-device desktop_apps and web_pages
+    var filteredDesktopApps = deviceApps.desktop_apps || [];
+    var filteredWebPages = (data.per_device_web || {})[userId] || [];
     
     document.getElementById('prodDonutTitle').textContent = `Distribución — ${user.usuario}`;
     document.getElementById('prodAppsTitle').textContent = `Apps — ${user.usuario}`;
@@ -2895,13 +3171,49 @@ function loadUserProductivity(userId) {
   const dO = document.getElementById('donutOcio');
   
   if (dT) {
-    dT.setAttribute('stroke-dashoffset', C - (C * trabajo / 100));
-    dC.setAttribute('stroke-dashoffset', C - (C * comun / 100));
-    dC.setAttribute('transform', `rotate(${trabajo * 3.6 - 90} 80 80)`);
-    dW.setAttribute('stroke-dashoffset', C - (C * web / 100));
-    dW.setAttribute('transform', `rotate(${(trabajo + comun) * 3.6 - 90} 80 80)`);
-    dO.setAttribute('stroke-dashoffset', C - (C * ocio / 100));
-    dO.setAttribute('transform', `rotate(${(trabajo + comun + web) * 3.6 - 90} 80 80)`);
+    const activeSegments = [trabajo, comun, web, ocio].filter(v => v > 0).length;
+    const gapPct = activeSegments > 1 ? 1.8 : 0;
+    let accumulated = 0;
+    
+    if (trabajo > 0) {
+      const len = trabajo - gapPct;
+      dT.setAttribute('stroke-dashoffset', C - (C * Math.max(0.5, len) / 100));
+      dT.setAttribute('transform', `rotate(${accumulated * 3.6 + (gapPct / 2) * 3.6 - 90} 80 80)`);
+      dT.style.display = '';
+      accumulated += trabajo;
+    } else {
+      dT.style.display = 'none';
+    }
+    
+    if (comun > 0) {
+      const len = comun - gapPct;
+      dC.setAttribute('stroke-dashoffset', C - (C * Math.max(0.5, len) / 100));
+      dC.setAttribute('transform', `rotate(${accumulated * 3.6 + (gapPct / 2) * 3.6 - 90} 80 80)`);
+      dC.style.display = '';
+      accumulated += comun;
+    } else {
+      dC.style.display = 'none';
+    }
+    
+    if (web > 0) {
+      const len = web - gapPct;
+      dW.setAttribute('stroke-dashoffset', C - (C * Math.max(0.5, len) / 100));
+      dW.setAttribute('transform', `rotate(${accumulated * 3.6 + (gapPct / 2) * 3.6 - 90} 80 80)`);
+      dW.style.display = '';
+      accumulated += web;
+    } else {
+      dW.style.display = 'none';
+    }
+    
+    if (ocio > 0) {
+      const len = ocio - gapPct;
+      dO.setAttribute('stroke-dashoffset', C - (C * Math.max(0.5, len) / 100));
+      dO.setAttribute('transform', `rotate(${accumulated * 3.6 + (gapPct / 2) * 3.6 - 90} 80 80)`);
+      dO.style.display = '';
+      accumulated += ocio;
+    } else {
+      dO.style.display = 'none';
+    }
   }
   
   document.getElementById('donutCenterPct').textContent = avgIndex + '%';
@@ -2910,7 +3222,7 @@ function loadUserProductivity(userId) {
   document.getElementById('legendWeb').textContent = web + '%';
   document.getElementById('legendOcio').textContent = ocio + '%';
   
-  // Top Apps
+  // Top Apps → Radial Arc Chart
   const ac = document.getElementById('prodAppsContainer');
   if (ac && topApps.length > 0) {
     const icons = ['💻', '🌐', '📧', '📄', '🎨', '⚙️'];
@@ -2928,48 +3240,153 @@ function loadUserProductivity(userId) {
     ac.innerHTML = h;
   }
   
-  // Desktop Apps
+  // === Category Time Blocks + Stacked Bar ===
   const userName = (userId === '__all__') ? 'Flota' : (data.users_productivity_table || []).find(u => u.device_id === userId)?.usuario || userId;
   const titleEl = document.getElementById('prodTimeAppTitle');
-  if (titleEl) titleEl.textContent = `Tiempo por Aplicación — ${userName}`;
+  if (titleEl) titleEl.textContent = `Actividad Web & Apps — ${userName}`;
+  const deskTitleEl = document.getElementById('prodDesktopTitle');
+  if (deskTitleEl) deskTitleEl.textContent = `⏱️ Tiempo por Categoría — ${userName}`;
+  const webTitleEl = document.getElementById('prodWebTitle');
+  if (webTitleEl) webTitleEl.textContent = `📊 Detalle de Navegación — ${userName}`;
   
+  const catColors = {'Trabajo': '#6C9FFF', 'Comun.': '#34D399', 'Web': '#FBBF24', 'Ocio': '#F87171'};
+  
+  // Calculate time & counts per category from web pages
+  const catData = {Trabajo: {mins: 0, count: 0}, 'Comun.': {mins: 0, count: 0}, Web: {mins: 0, count: 0}, Ocio: {mins: 0, count: 0}};
+  if (filteredWebPages && filteredWebPages.length > 0) {
+    filteredWebPages.forEach(wp => {
+      const cat = wp.category || 'Web';
+      if (!catData[cat]) catData[cat] = {mins: 0, count: 0};
+      catData[cat].count++;
+      // Parse time like "1h 35m" or "0h 56m"
+      const tm = wp.time || '0h 00m';
+      const hMatch = tm.match(/(\d+)h/);
+      const mMatch = tm.match(/(\d+)m/);
+      catData[cat].mins += (hMatch ? parseInt(hMatch[1]) * 60 : 0) + (mMatch ? parseInt(mMatch[1]) : 0);
+    });
+  }
+  
+  // Update category blocks
+  const fmtTime = (mins) => { const h = Math.floor(mins/60); const m = mins % 60; return h > 0 ? `${h}h ${m.toString().padStart(2,'0')}m` : `${m}m`; };
+  
+  const catBlockTrabajo = document.getElementById('catBlockTrabajo');
+  const catBlockComun = document.getElementById('catBlockComun');
+  const catBlockWeb = document.getElementById('catBlockWeb');
+  const catBlockOcio = document.getElementById('catBlockOcio');
+  
+  if (catBlockTrabajo) catBlockTrabajo.textContent = fmtTime(catData.Trabajo.mins);
+  if (catBlockComun) catBlockComun.textContent = fmtTime(catData['Comun.'].mins);
+  if (catBlockWeb) catBlockWeb.textContent = fmtTime(catData.Web.mins);
+  if (catBlockOcio) catBlockOcio.textContent = fmtTime(catData.Ocio.mins);
+  
+  const catBlockTrabajoCount = document.getElementById('catBlockTrabajoCount');
+  const catBlockComunCount = document.getElementById('catBlockComunCount');
+  const catBlockWebCount = document.getElementById('catBlockWebCount');
+  const catBlockOcioCount = document.getElementById('catBlockOcioCount');
+  
+  if (catBlockTrabajoCount) catBlockTrabajoCount.textContent = `${catData.Trabajo.count} sitio${catData.Trabajo.count !== 1 ? 's' : ''}`;
+  if (catBlockComunCount) catBlockComunCount.textContent = `${catData['Comun.'].count} sitio${catData['Comun.'].count !== 1 ? 's' : ''}`;
+  if (catBlockWebCount) catBlockWebCount.textContent = `${catData.Web.count} sitio${catData.Web.count !== 1 ? 's' : ''}`;
+  if (catBlockOcioCount) catBlockOcioCount.textContent = `${catData.Ocio.count} sitio${catData.Ocio.count !== 1 ? 's' : ''}`;
+  
+  // Stacked bar
+  const totalMins = catData.Trabajo.mins + catData['Comun.'].mins + catData.Web.mins + catData.Ocio.mins;
+  const stackedBar = document.getElementById('catStackedBar');
+  const stackedLabels = document.getElementById('catStackedLabels');
+  
+  if (stackedBar && totalMins > 0) {
+    const segments = [
+      {cat: 'Trabajo', color: '#6C9FFF', pct: Math.round(catData.Trabajo.mins / totalMins * 100)},
+      {cat: 'Comun.', color: '#34D399', pct: Math.round(catData['Comun.'].mins / totalMins * 100)},
+      {cat: 'Web', color: '#FBBF24', pct: Math.round(catData.Web.mins / totalMins * 100)},
+      {cat: 'Ocio', color: '#F87171', pct: Math.round(catData.Ocio.mins / totalMins * 100)}
+    ].filter(s => s.pct > 0);
+    
+    stackedBar.innerHTML = segments.map((s, i) => 
+      `<div style="width:0;height:100%;background:${s.color};transition:width 0.8s cubic-bezier(.4,0,.2,1) ${i*100}ms;box-shadow:0 0 8px ${s.color}44" class="stacked-seg" data-pct="${s.pct}"></div>`
+    ).join('');
+    
+    // Animate
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        stackedBar.querySelectorAll('.stacked-seg').forEach(seg => {
+          seg.style.width = seg.dataset.pct + '%';
+        });
+      }, 50);
+    });
+    
+    if (stackedLabels) {
+      stackedLabels.innerHTML = segments.map(s => 
+        `<span style="color:${s.color};font-weight:600">${s.pct}%</span>`
+      ).join('');
+    }
+  } else if (stackedBar) {
+    stackedBar.innerHTML = '';
+    if (stackedLabels) stackedLabels.innerHTML = '';
+  }
+  
+  // Total time
+  const catTotalEl = document.getElementById('catTotalTime');
+  if (catTotalEl) catTotalEl.textContent = fmtTime(totalMins);
+  
+  // Web Pages Cards (right panel)
+  const webCards = document.getElementById('prodWebPagesCards');
+  if (webCards && filteredWebPages && filteredWebPages.length > 0) {
+    const totalVisits = filteredWebPages.reduce((s, p) => s + (p.visits || 1), 0);
+    let wh = '';
+    filteredWebPages.forEach((wp, i) => {
+      const color = catColors[wp.category] || '#FBBF24';
+      const pct = Math.round((wp.visits || 1) / totalVisits * 100);
+      const delay = i * 50;
+      wh += `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);animation:loginSlideUp 0.4s ease ${delay}ms both">
+        <div style="min-width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${color}22,${color}44);display:flex;align-items:center;justify-content:center;font-size:14px">🌐</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${wp.domain}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <div style="flex:1;height:4px;background:var(--surface1);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${color},${color}88);border-radius:2px;transition:width 0.6s ease"></div></div>
+          </div>
+        </div>
+        <div style="text-align:right;min-width:55px">
+          <div style="font-size:12px;font-weight:700;color:${color};font-family:var(--font-mono)">${wp.time}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:1px">${wp.visits || 0} visitas</div>
+        </div>
+        <span style="padding:2px 8px;border-radius:4px;background:${color}15;color:${color};font-size:9px;font-weight:700;letter-spacing:0.3px">${wp.category}</span>
+      </div>`;
+    });
+    webCards.innerHTML = wh;
+  } else if (webCards) {
+    webCards.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Sin datos de navegación</div>';
+  }
+  // Keep hidden tbody in sync for compatibility
+  const webBody = document.getElementById('prodWebPagesBody');
+  if (webBody) webBody.innerHTML = '';
+  
+  // Desktop Apps → Compact pill cards
   const deskEl = document.getElementById('prodDesktopApps');
-  if (deskEl && data.desktop_apps && data.desktop_apps.length > 0) {
+  if (deskEl && filteredDesktopApps && filteredDesktopApps.length > 0) {
     let dh = '';
-    data.desktop_apps.forEach(app => {
-      dh += `<div class="app-bar-row">
-        <div class="app-icon" style="background:${app.color}22">${app.icon}</div>
-        <div class="app-name">${app.name}</div>
-        <div class="app-track"><div class="app-fill" style="width:${app.pct}%;background:${app.color}"></div></div>
-        <div class="app-hours">${app.hours}</div>
-        <div class="app-pct">${app.pct_label}</div>
+    filteredDesktopApps.forEach((app, i) => {
+      const delay = i * 60;
+      dh += `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;animation:loginSlideUp 0.3s ease ${delay}ms both">
+        <div style="width:28px;height:28px;border-radius:7px;background:${app.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${app.icon}</div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${app.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${app.hours} · ${app.pct_label}</div>
+        </div>
       </div>`;
     });
     deskEl.innerHTML = dh;
   } else if (deskEl) {
-    deskEl.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Sin datos de aplicaciones</div>';
-  }
-  
-  // Web Pages
-  const webBody = document.getElementById('prodWebPagesBody');
-  if (webBody && data.web_pages && data.web_pages.length > 0) {
-    let wh = '';
-    data.web_pages.forEach((wp, i) => {
-      wh += `<tr>
-        <td>${wp.domain}</td>
-        <td><span class="cat-pill ${wp.cat_class}">${wp.category}</span></td>
-        <td class="mono">${wp.time || '0h 10m'}</td>
-      </tr>`;
-    });
-    webBody.innerHTML = wh;
-  } else if (webBody) {
-    webBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:16px">Sin datos de navegacion</td></tr>';
+    deskEl.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px">Sin datos de aplicaciones</div>';
   }
   
   const tbody = document.querySelector('#prodUserTable tbody');
   if (tbody) {
     tbody.innerHTML = '';
+    const seenTableIds = new Set();
     tableRows.forEach(row => {
+      if (seenTableIds.has(row.device_id)) return;
+      seenTableIds.add(row.device_id);
       const cls = row.index >= 70 ? 'ok' : (row.index >= 40 ? 'warn' : 'crit');
       tbody.innerHTML += `<tr${row.index < 40 ? ' style="background:rgba(239,68,68,0.04)"' : ''}>
         <td><strong>${row.usuario}</strong></td>
@@ -2983,107 +3400,6 @@ function loadUserProductivity(userId) {
       </tr>`;
     });
   }
-  
-  // Render web traffic graph
-  renderWebTrafficGraph(userId);
-}
-
-// ── Renderizar Grafo de Concentracion de Trafico Web (Top Sitios) ──
-function renderWebTrafficGraph(userId) {
-  const svg = document.getElementById('webTrafficGraphSvg');
-  if (!svg) return;
-  svg.innerHTML = '';
-  
-  const width = svg.clientWidth || 500;
-  const height = svg.clientHeight || 350;
-  
-  // Obtener los usuarios/equipos a graficar
-  let users = [];
-  if (userId === '__all__') {
-    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
-  } else {
-    const dev = fleetDevices.find(d => d.device_id === userId);
-    if (dev) users = [dev];
-  }
-  
-  // Obtener los dominios top
-  let domains = [];
-  if (_prodData && _prodData.web_pages) {
-    domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
-  }
-  
-  if (users.length === 0 || domains.length === 0) {
-    svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
-    return;
-  }
-  
-  const uCount = users.length;
-  const dCount = domains.length;
-  
-  const uX = 80;
-  const dX = width - 130;
-  
-  let content = '';
-  
-  // Mapa de posiciones de los nodos para dibujar líneas
-  const userPos = {};
-  const domainPos = {};
-  
-  // Dibujar líneas/enlaces (Edges) primero
-  users.forEach((user, ui) => {
-    const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
-    userPos[user.device_id] = { x: uX, y: uy };
-    
-    // Parsear historial del navegador del equipo
-    let history = [];
-    if (user.browser_history) {
-      try {
-        history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
-      } catch(e) { history = []; }
-    }
-    
-    domains.forEach((dom, di) => {
-      const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
-      domainPos[dom.domain] = { x: dX, y: dy };
-      
-      // Buscar visitas de este usuario a este dominio
-      const visitRecord = (history || []).find(h => h.domain === dom.domain);
-      if (visitRecord) {
-        const visits = visitRecord.visits || 1;
-        const strokeWidth = Math.min(1 + visits * 0.5, 6);
-        const opacity = Math.min(0.1 + visits * 0.05, 0.7);
-        content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
-      }
-    });
-  });
-  
-  // Dibujar nodos de Usuarios (Azul)
-  users.forEach((user, ui) => {
-    const pos = userPos[user.device_id];
-    content += `
-      <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
-        <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
-        <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
-      </g>
-    `;
-  });
-  
-  // Dibujar nodos de Dominios Web (Púrpura)
-  domains.forEach((dom, di) => {
-    const pos = domainPos[dom.domain];
-    const visits = dom.visits || 1;
-    const size = Math.min(8 + visits * 0.3, 22);
-    
-    content += `
-      <g class="graph-node-group">
-        <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
-        <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
-        <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
-      </g>
-    `;
-  });
-  
-  svg.innerHTML = content;
 }
 
 function exportProductivityCSV() {
@@ -3136,31 +3452,53 @@ function fetchSecurity() {
     .then(res => res.json())
     .then(data => {
       const events = data.events || [];
+      const score = data.score || 0;
       
-      // Update badge
+      // Badge
       const badge = document.getElementById('badgeSeguridad');
-      if (badge) badge.textContent = events.length;
+      if (badge) badge.textContent = data.threat_count || 0;
       
-      // Update KPI cards
-      const kpis = document.querySelectorAll('#view-seguridad .kpi-value');
-      if (kpis.length >= 4) {
-        kpis[0].textContent = data.threat_count || 0;
-        kpis[1].textContent = data.warning_count || 0;
-        kpis[2].textContent = data.info_count || 0;
-        kpis[3].textContent = events.length;
+      // KPIs
+      const secScore = document.getElementById('secScore');
+      const secScoreDelta = document.getElementById('secScoreDelta');
+      if (secScore) {
+        secScore.textContent = score;
+        const scoreCard = secScore.closest('.kpi-card');
+        if (scoreCard) {
+          scoreCard.className = 'kpi-card ' + (score >= 80 ? 'green' : score >= 50 ? 'amber' : 'red');
+        }
       }
-      const deltas = document.querySelectorAll('#view-seguridad .kpi-delta');
-      if (deltas.length >= 4) {
-        deltas[0].innerHTML = (data.threat_count > 0 ? `<span class="down">${data.threat_count} alertas críticas</span>` : '<span class="up">Sin alertas</span>');
-        deltas[3].textContent = 'Eventos totales';
+      if (secScoreDelta) {
+        secScoreDelta.innerHTML = score >= 80 
+          ? '<span class="up">Estado saludable</span>' 
+          : score >= 50 
+            ? '<span class="down">Requiere atención</span>'
+            : '<span class="down">⚠️ Estado crítico</span>';
       }
       
-      // Populate table
-      const tbody = document.querySelector('#view-seguridad table.data-table tbody');
+      const secThreats = document.getElementById('secThreats');
+      if (secThreats) secThreats.textContent = data.threat_count || 0;
+      const secThreatsDelta = document.getElementById('secThreatsDelta');
+      if (secThreatsDelta) secThreatsDelta.innerHTML = data.threat_count > 0 
+        ? `<span class="down">${data.threat_count} alertas activas</span>` 
+        : '<span class="up">Sin alertas</span>';
+      
+      const secWarnings = document.getElementById('secWarnings');
+      if (secWarnings) secWarnings.textContent = data.warning_count || 0;
+      const secWarningsDelta = document.getElementById('secWarningsDelta');
+      if (secWarningsDelta) secWarningsDelta.textContent = `${data.info_count || 0} informativas`;
+      
+      const secDevices = document.getElementById('secDevices');
+      if (secDevices) secDevices.textContent = data.devices_monitored || 0;
+      const secDevicesDelta = document.getElementById('secDevicesDelta');
+      if (secDevicesDelta) secDevicesDelta.innerHTML = '<span class="up">Monitoreo activo</span>';
+      
+      // Events Table
+      const tbody = document.getElementById('secEventsBody');
       if (tbody) {
         tbody.innerHTML = '';
         if (events.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad — Todo en orden</td></tr>';
           return;
         }
         events.forEach(row => {
@@ -3169,21 +3507,258 @@ function fetchSecurity() {
           else if (row.severity === 'Media') badgeClass = 'warn';
           else if (row.severity === 'Baja') badgeClass = 'info';
           
-          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || 'N/A' : 'N/A';
+          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
+          const devName = row.device_name || row.device_id || '—';
+          const icon = row.icon || '🔐';
+          const cat = row.category || 'general';
+          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
           
-          tbody.innerHTML += `
-            <tr>
-              <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
-              <td class="mono">${row.device_id}</td>
-              <td>${row.details}</td>
-              <td><span class="badge ${badgeClass}">${row.severity}</span></td>
-              <td class="mono">${time}</td>
-              <td><span class="badge info">Revisado</span></td>
-            </tr>
-          `;
+          tbody.innerHTML += `<tr>
+            <td style="font-size:18px;text-align:center">${icon}</td>
+            <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
+            <td style="font-weight:600">${devName}</td>
+            <td style="font-size:12px">${row.details}</td>
+            <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
+            <td class="mono">${time}</td>
+            <td><span class="badge ${badgeClass}">${row.severity}</span></td>
+          </tr>`;
         });
       }
-    });
+      
+      // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
+      const mapCanvas = document.getElementById('secWorldCanvas');
+      const mapSvg = document.getElementById('secWorldMapSvg');
+      const mapCards = document.getElementById('secMapDeviceCards');
+      const tooltip = document.getElementById('secMapTooltip');
+      const tooltipContent = document.getElementById('secMapTooltipContent');
+      const mapContainer = document.getElementById('secWorldMapContainer');
+
+      if (mapCanvas && mapContainer) {
+        const W = mapContainer.clientWidth || 800;
+        const H = mapContainer.clientHeight || 360;
+        mapCanvas.width = W * 2; mapCanvas.height = H * 2;
+        mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
+        const ctx = mapCanvas.getContext('2d');
+        ctx.scale(2, 2);
+
+        // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
+        // Covers -180..180 lon (cols), 90..-90 lat (rows), 5° per cell
+        const worldBits = [
+          "000000000000000000000000000000000000000000000000000000000000000000000000",
+          "000000000000000000000000000011100000000000000000000000000000000000000000",
+          "000000000000001100000000001111111100000001111111111111111100000000000000",
+          "000000000000011111000000011111111110000011111111111111111110000000000000",
+          "000000000000111111100001111111111111000111111111111111111111100000000000",
+          "000000000001111111100001111111111111001111111111111111111111100000000000",
+          "000000000011111111110001111111111111011111111111111111111111110000000000",
+          "000000000011111111111000111111111111111111111111111111111111110000000000",
+          "000001100111111111111000011111111111111111110111111111111111111000000000",
+          "000011111111111111110000011111111111111111100111111111111111111000000000",
+          "000011111111111111100000001111111111111111100011111111111111111000000000",
+          "000001111111111111100000001111101111111111100001111111111111110000000000",
+          "000000111111111111000000000111100111111111100000111111111111100000000000",
+          "000000011111111110000000000011100011111111000000011111111111000000000000",
+          "000000001111111100000000000001100001111110000000001111111110000000000000",
+          "000000000111111000000000000000100001111100000000001111111100000000000000",
+          "000000000011110000000000000000000000111000000000000111111000000000000000",
+          "000000000001100000000000000000000000010000000000000011110000000000000000",
+          "000000000001100000000000000000000000000000000000000001100000000000000000",
+          "000000000011110000000000000000000000000000000000000000000000000000000000",
+          "000000000011110000000000000000000000000000000000000000000000000000000000",
+          "000000000111111000000000000000000000000000000000000000000000000000000000",
+          "000000000111111000000000001100000000000000000000000000000000000000000000",
+          "000000001111111100000000011100000000000000000000000000001100000000000000",
+          "000000001111111100000000111110000000000000000000000000011110000000000000",
+          "000000001111111110000001111110000000000000000000000000111111000000000000",
+          "000000000111111110000001111111000000000000000000000001111111100000000000",
+          "000000000011111100000001111111000000000000000000000011111111100000000000",
+          "000000000011111000000000111111000000000000000000000011111111110000000000",
+          "000000000001110000000000011110000000000000000000000001111111110000000000",
+          "000000000000100000000000001100000000000000000000000000111111100000000000",
+          "000000000000000000000000000000000000000000000000000000011111000000000000",
+          "000000000000000000000000000000000000000000000000000000001110000000000000",
+          "000000000000000000000000000000000000000000000000000000000100000000000000",
+          "000000000000000000000000000000000000000000000000000000000000000000000000",
+          "000000000000000000000000000000000000000000000000000000000000000000000000"
+        ];
+
+        // Background gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#040d21');
+        grad.addColorStop(0.5, '#071530');
+        grad.addColorStop(1, '#040d21');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid lines (subtle)
+        ctx.strokeStyle = 'rgba(108,159,255,0.06)';
+        ctx.lineWidth = 0.5;
+        for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, H*i/6); ctx.lineTo(W, H*i/6); ctx.stroke(); }
+        for (let i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(W*i/8, 0); ctx.lineTo(W*i/8, H); ctx.stroke(); }
+        // Equator
+        ctx.strokeStyle = 'rgba(108,159,255,0.12)';
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(0, H*0.5); ctx.lineTo(W, H*0.5); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw dot matrix world
+        const rows = worldBits.length;
+        const cols = worldBits[0].length;
+        const dotSpacingX = W / cols;
+        const dotSpacingY = H / rows;
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const px = dotSpacingX * c + dotSpacingX / 2;
+            const py = dotSpacingY * r + dotSpacingY / 2;
+            if (worldBits[r][c] === '1') {
+              // Land dot — cyan glow
+              ctx.beginPath();
+              ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(108,159,255,0.45)';
+              ctx.fill();
+              // Glow
+              ctx.beginPath();
+              ctx.arc(px, py, 4, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(108,159,255,0.08)';
+              ctx.fill();
+            } else {
+              // Ocean dot — very subtle
+              ctx.beginPath();
+              ctx.arc(px, py, 0.8, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(108,159,255,0.04)';
+              ctx.fill();
+            }
+          }
+        }
+
+        // Labels
+        ctx.font = '9px JetBrains Mono';
+        ctx.fillStyle = 'rgba(108,159,255,0.25)';
+        ctx.fillText('90°N', 4, 14);
+        ctx.fillText('0° EC', 4, H * 0.5 + 14);
+        ctx.fillText('90°S', 4, H - 4);
+      }
+
+      // Render pins on SVG overlay
+      if (mapSvg && data.connection_map && data.connection_map.length > 0) {
+        mapSvg.querySelectorAll('.map-pin').forEach(p => p.remove());
+        
+        const toSvgX = (lon) => ((lon + 180) / 360) * 1000;
+        const toSvgY = (lat) => ((90 - lat) / 180) * 500;
+        
+        const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
+        const glowIds = ['glowG', 'glowB', 'glowY', 'glowG', 'glowB', 'glowR'];
+        
+        // Offset overlapping pins
+        const usedPositions = [];
+        data.connection_map.forEach((dev, i) => {
+          let x = toSvgX(dev.lon || -74.1);
+          let y = toSvgY(dev.lat || 4.6);
+          // Spread overlapping pins in a circle
+          const overlap = usedPositions.filter(p => Math.abs(p.x - x) < 20 && Math.abs(p.y - y) < 20).length;
+          if (overlap > 0) {
+            const angle = (overlap * 2.1);
+            x += Math.cos(angle) * 45;
+            y += Math.sin(angle) * 35;
+          }
+          usedPositions.push({x, y});
+          
+          const isOnline = dev.status === 'online';
+          const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
+          const gId = isOnline ? glowIds[i % glowIds.length] : 'glowR';
+          
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('class', 'map-pin');
+          g.style.cursor = 'pointer';
+          g.style.opacity = '0';
+          g.style.transition = `opacity 0.8s ease ${i * 400}ms`;
+          
+          g.innerHTML = `
+            <circle cx="${x}" cy="${y}" r="28" fill="url(#${gId})" opacity="0.5">
+              <animate attributeName="r" values="20;35;20" dur="2.5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="${x}" cy="${y}" r="14" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.4">
+              <animate attributeName="r" values="14;22;14" dur="3s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" style="filter:drop-shadow(0 0 8px ${color})"/>
+            <text x="${x}" y="${y - 18}" text-anchor="middle" fill="#F1F5F9" font-size="11" font-family="DM Sans" font-weight="700" style="text-shadow:0 2px 6px rgba(0,0,0,0.9)">${dev.name}</text>
+            <text x="${x}" y="${y + 26}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="JetBrains Mono" style="text-shadow:0 1px 4px rgba(0,0,0,0.9)">${dev.city || 'Bogotá'}, ${dev.country || 'Colombia'}</text>
+          `;
+          mapSvg.appendChild(g);
+
+          // Tooltip
+          g.addEventListener('mouseenter', (e) => {
+            if (tooltip && tooltipContent && mapContainer) {
+              const rect = mapContainer.getBoundingClientRect();
+              tooltip.style.display = 'block';
+              tooltip.style.left = (e.clientX - rect.left + 16) + 'px';
+              tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+              tooltipContent.innerHTML = `
+                <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">${isOnline ? '🟢' : '🔴'} ${dev.name}</div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px">
+                  <span style="color:#64748B">IP:</span><span style="font-family:var(--font-mono);color:#CBD5E1">${dev.ip || 'N/A'}</span>
+                  <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
+                  <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
+                  <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || '—'}</span>
+                  <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? '● Conectado' : '● Desconectado'}</span>
+                </div>`;
+            }
+          });
+          g.addEventListener('mouseleave', () => { if (tooltip) tooltip.style.display = 'none'; });
+          g.addEventListener('mousemove', (e) => {
+            if (tooltip && mapContainer) {
+              const rect = mapContainer.getBoundingClientRect();
+              tooltip.style.left = (e.clientX - rect.left + 16) + 'px';
+              tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+            }
+          });
+          
+          setTimeout(() => { g.style.opacity = '1'; }, 150);
+        });
+        
+        // Device cards
+        if (mapCards) {
+          mapCards.innerHTML = data.connection_map.map((dev, i) => {
+            const isOnline = dev.status === 'online';
+            const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
+            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:120px;backdrop-filter:blur(8px)">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color}88"></div>
+                <span style="color:#F1F5F9;font-weight:700;font-size:12px">${dev.name}</span>
+              </div>
+              <div style="color:#64748B;font-family:var(--font-mono);font-size:9px">${dev.ip || 'N/A'}</div>
+              <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'Bogotá'} · ${dev.country || 'Colombia'}</div>
+            </div>`;
+          }).join('');
+        }
+      }
+      
+      // Categories Panel
+      const catPanel = document.getElementById('secCategoriesPanel');
+      if (catPanel && data.categories) {
+        const catColors = {disponibilidad:'#F87171',rendimiento:'#FBBF24',almacenamiento:'#A78BFA',red:'#6C9FFF',software:'#F59E0B',navegacion:'#34D399',productividad:'#06B6D4',estado:'#10B981',general:'#8B9DAF'};
+        const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
+        const catIcons = {disponibilidad:'⚫',rendimiento:'🔥',almacenamiento:'💿',red:'📡',software:'⚠️',navegacion:'🌐',productividad:'📱',estado:'✅',general:'🔐'};
+        
+        let cp = '';
+        const total = Object.values(data.categories).reduce((s,v) => s+v, 0);
+        Object.entries(data.categories).sort((a,b) => b[1]-a[1]).forEach(([cat, count]) => {
+          const c = catColors[cat] || '#8B9DAF';
+          const pct = Math.round(count/total*100);
+          cp += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+            <span style="font-size:14px">${catIcons[cat] || '📋'}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--text);min-width:100px">${catLabels[cat] || cat}</span>
+            <div style="flex:1;height:6px;background:var(--surface1);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:3px"></div></div>
+            <span style="font-size:11px;font-weight:700;color:${c};min-width:24px;text-align:right">${count}</span>
+          </div>`;
+        });
+        catPanel.innerHTML = cp;
+      }
+    })
+    .catch(err => console.error('Error fetching security:', err));
 }
 
 // ── Módulo de KPI Builder ──
@@ -3457,11 +4032,479 @@ function markSyncNow() {
   updateSyncClock();
 }
 
+// ══════════════════════════════════════════════════════════════
+// AUTH FUNCTIONS
+// ══════════════════════════════════════════════════════════════
+function checkAuth() {
+  return fetch('/api/auth/me')
+    .then(r => r.json())
+    .then(data => {
+      if (data.authenticated) {
+        currentUser = data;
+        showApp();
+      } else {
+        showLogin();
+      }
+    })
+    .catch(() => showLogin());
+}
+
+function showLogin() {
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('appContainer').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('appContainer').style.display = '';
+  // Update sidebar user info
+  if (currentUser) {
+    document.getElementById('sidebarAvatar').textContent = currentUser.avatar || '??';
+    document.getElementById('sidebarUserName').textContent = currentUser.full_name || 'Usuario';
+    document.getElementById('sidebarUserRole').textContent = currentUser.role_label || currentUser.role;
+    applyRolePermissions(currentUser.permissions || []);
+  }
+  markSyncNow();
+  fetchDevices();
+}
+
+function applyRolePermissions(permissions) {
+  // Hide/show nav items based on role permissions
+  document.querySelectorAll('.nav-item[data-requires]').forEach(el => {
+    const req = el.getAttribute('data-requires');
+    if (req && !permissions.includes(req)) {
+      el.style.display = 'none';
+    } else {
+      el.style.display = '';
+    }
+  });
+  // Also hide sections in sidebar for non-admin roles
+  const isAdmin = permissions.includes('usuarios');
+  // Show "Reportes" section label only for roles that have items
+  document.querySelectorAll('.nav-section').forEach(s => {
+    if (s.textContent.trim() === 'Reportes' && !isAdmin) {
+      // Check if any visible child nav-items exist after this section
+    }
+  });
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '⏳ Verificando...';
+  
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      currentUser.authenticated = true;
+      currentUser.permissions = data.user.permissions;
+      showApp();
+    } else {
+      errEl.textContent = data.error || 'Error de autenticación';
+      errEl.style.display = 'block';
+    }
+  } catch(err) {
+    errEl.textContent = 'Error de conexión con el servidor';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔐 Iniciar Sesión';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch('/api/auth/logout', {method: 'POST'});
+  } catch(e) {}
+  currentUser = null;
+  showLogin();
+}
+
+// ── Users Management ──
+async function fetchUsers() {
+  try {
+    const res = await fetch('/api/users');
+    if (res.status === 401 || res.status === 403) return;
+    const users = await res.json();
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const roleColors = {admin: '#6C9FFF', analyst: '#34D399', viewer: '#FBBF24'};
+    const roleIcons = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    users.forEach(u => {
+      const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
+      const roleColor = roleColors[u.role] || '#888';
+      tbody.innerHTML += `<tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,${roleColor}22,${roleColor}44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${roleColor}">${u.avatar||'??'}</div>
+          <strong>${u.full_name}</strong>
+        </div></td>
+        <td class="mono" style="font-size:12px">${u.email}</td>
+        <td><span style="padding:4px 10px;border-radius:6px;background:${roleColor}18;color:${roleColor};font-size:11px;font-weight:600">${roleIcons[u.role]||''} ${u.role_label}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${lastLogin}</td>
+        <td><span class="badge ok" style="font-size:11px">Activo</span></td>
+        <td>
+          <button onclick="openEditUserModal('${u.user_id}','${u.full_name}','${u.email}','${u.role}')" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
+          <button onclick="deleteUser('${u.user_id}','${u.full_name}')" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
+        </td>
+      </tr>`;
+    });
+  } catch(e) { console.error('Error fetching users:', e); }
+}
+
+let editingUserId = null;
+
+function openUserModal() {
+  editingUserId = null;
+  document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+  document.getElementById('umName').value = '';
+  document.getElementById('umEmail').value = '';
+  document.getElementById('umPassword').value = '';
+  document.getElementById('umRole').value = 'viewer';
+  document.getElementById('umPasswordField').style.display = '';
+  document.getElementById('userModal').style.display = 'flex';
+}
+
+function openEditUserModal(id, name, email, role) {
+  editingUserId = id;
+  document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+  document.getElementById('umName').value = name;
+  document.getElementById('umEmail').value = email;
+  document.getElementById('umRole').value = role;
+  document.getElementById('umPassword').value = '';
+  document.getElementById('umPasswordField').style.display = 'none';
+  document.getElementById('userModal').style.display = 'flex';
+}
+
+function closeUserModal() {
+  document.getElementById('userModal').style.display = 'none';
+  editingUserId = null;
+}
+
+async function saveUser() {
+  const name = document.getElementById('umName').value.trim();
+  const email = document.getElementById('umEmail').value.trim();
+  const password = document.getElementById('umPassword').value;
+  const role = document.getElementById('umRole').value;
+  
+  if (!name || !email) { alert('Nombre y email son requeridos'); return; }
+  
+  if (editingUserId) {
+    // Update
+    const res = await fetch('/api/users/update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: editingUserId, full_name: name, email, role})
+    });
+    const data = await res.json();
+    if (data.success) { closeUserModal(); fetchUsers(); }
+    else { alert(data.error || 'Error al actualizar'); }
+  } else {
+    // Create
+    if (!password || password.length < 6) { alert('La contraseña debe tener al menos 6 caracteres'); return; }
+    const res = await fetch('/api/users/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_name: name, email, password, role})
+    });
+    const data = await res.json();
+    if (data.success) { closeUserModal(); fetchUsers(); }
+    else { alert(data.error || 'Error al crear usuario'); }
+  }
+}
+
+async function deleteUser(userId, userName) {
+  if (!confirm(`¿Desactivar al usuario "${userName}"?`)) return;
+  const res = await fetch('/api/users/delete', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  const data = await res.json();
+  if (data.success) fetchUsers();
+  else alert(data.error || 'Error');
+}
+
+function openChangePasswordModal() {
+  document.getElementById('cpCurrent').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpError').style.display = 'none';
+  document.getElementById('changePwModal').style.display = 'flex';
+}
+
+async function changePassword() {
+  const curr = document.getElementById('cpCurrent').value;
+  const newPw = document.getElementById('cpNew').value;
+  const errEl = document.getElementById('cpError');
+  if (!curr || !newPw) { errEl.textContent = 'Ambos campos son requeridos'; errEl.style.display = 'block'; return; }
+  if (newPw.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  const res = await fetch('/api/users/change-password', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({current_password: curr, new_password: newPw})
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('changePwModal').style.display = 'none';
+    alert('Contraseña cambiada exitosamente');
+  } else {
+    errEl.textContent = data.error || 'Error';
+    errEl.style.display = 'block';
+  }
+}
+
+function updateEquipoReport() {
+  const totalEl = document.getElementById('eqReportTotal');
+  const onlineEl = document.getElementById('eqReportOnline');
+  const offlineEl = document.getElementById('eqReportOffline');
+  const tbody = document.querySelector('#eqReportTable tbody');
+  
+  if (!tbody) return;
+  
+  const total = fleetDevices.length;
+  const online = fleetDevices.filter(d => d.status === 'Online').length;
+  const offline = total - online;
+  
+  if (totalEl) totalEl.textContent = total;
+  if (onlineEl) onlineEl.textContent = online;
+  if (offlineEl) offlineEl.textContent = offline;
+  
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No hay equipos registrados en la flota.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  fleetDevices.forEach(dev => {
+    const isOnline = dev.status === 'Online';
+    const statusClass = isOnline ? 'ok' : 'off';
+    const statusText = isOnline ? 'Activo' : 'Inactivo';
+    
+    // Calcular tiempo transcurrido desde ultima sincronizacion
+    const syncTimeStr = timeAgo(dev.last_sync || dev.timestamp);
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="font-weight:600;color:var(--text)">${dev.device_id}</td>
+      <td>${dev.device_type || 'Desktop'}</td>
+      <td style="color:var(--text2)">${syncTimeStr}</td>
+      <td class="mono" style="font-size:12.5px;color:var(--text3)">${dev.last_ip || 'N/A'}</td>
+      <td><span class="badge ${statusClass}">${statusText}</span></td>
+      <td><button class="btn btn-ghost" onclick="loadDeviceDetail('${dev.device_id}')" style="font-size:11px;padding:3px 9px">Analizar \u2192</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function timeAgo(dateString) {
+  if (!dateString) return 'Nunca';
+  try {
+    let s = dateString;
+    if (s.includes(' ') && !s.includes('T')) {
+      s = s.replace(' ', 'T');
+    }
+    const date = new Date(s);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 5) return 'Justo ahora';
+    if (seconds < 60) return `Hace ${seconds}s`;
+    
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Hace ${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
+    
+    return date.toLocaleDateString();
+  } catch (e) {
+    return dateString;
+  }
+}
+
+function renderSubnetGraph(m) {
+  const svg = document.getElementById('subnetGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  let netInfo = null;
+  if (m.network_info) {
+    try {
+      netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
+    } catch (e) {
+      netInfo = null;
+    }
+  }
+  
+  const width = svg.clientWidth || 300;
+  const height = svg.clientHeight || 200;
+  const cx = width / 2;
+  const cy = height / 2;
+  
+  if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
+    svg.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
+      <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
+    `;
+    return;
+  }
+  
+  const devices = netInfo.connected_devices.slice(0, 10);
+  const N = devices.length;
+  const radius = 65;
+  
+  let content = '';
+  
+  // Nodos satélites y líneas
+  devices.forEach((dev, i) => {
+    const angle = i * (2 * Math.PI / N);
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    
+    const isGateway = dev.ip.endsWith('.1');
+    const color = isGateway ? 'var(--amber)' : 'var(--green)';
+    const size = isGateway ? 9 : 7;
+    
+    // Línea al nodo central
+    content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+    
+    // Nodo satélite
+    content += `
+      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
+        <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
+      </circle>
+    `;
+  });
+  
+  // Nodo central
+  content += `
+    <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
+      <title>Este equipo: ${m.device_id}</title>
+    </circle>
+  `;
+  
+  svg.innerHTML = content;
+}
+
+function renderWebTrafficGraph(userId) {
+  const svg = document.getElementById('webTrafficGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  const width = svg.clientWidth || 500;
+  const height = svg.clientHeight || 350;
+  
+  // Obtener los usuarios/equipos a graficar
+  let users = [];
+  if (userId === '__all__') {
+    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
+  } else {
+    const dev = fleetDevices.find(d => d.device_id === userId);
+    if (dev) users = [dev];
+  }
+  
+  // Obtener los dominios top
+  let domains = [];
+  if (_prodData && _prodData.web_pages) {
+    domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
+  }
+  
+  if (users.length === 0 || domains.length === 0) {
+    svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
+    return;
+  }
+  
+  const uCount = users.length;
+  const dCount = domains.length;
+  
+  const uX = 80;
+  const dX = width - 130;
+  
+  let content = '';
+  
+  // Mapa de posiciones de los nodos para dibujar líneas
+  const userPos = {};
+  const domainPos = {};
+  
+  // Dibujar líneas/enlaces (Edges) primero
+  users.forEach((user, ui) => {
+    const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
+    userPos[user.device_id] = { x: uX, y: uy };
+    
+    // Parsear historial del navegador del equipo
+    let history = [];
+    if (user.browser_history) {
+      try {
+        history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
+      } catch(e) { history = []; }
+    }
+    
+    domains.forEach((dom, di) => {
+      const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
+      domainPos[dom.domain] = { x: dX, y: dy };
+      
+      // Buscar visitas de este usuario a este dominio
+      const visitRecord = (history || []).find(h => h.domain === dom.domain);
+      if (visitRecord) {
+        const visits = visitRecord.visits || 1;
+        const strokeWidth = Math.min(1 + visits * 0.5, 6);
+        const opacity = Math.min(0.1 + visits * 0.05, 0.7);
+        content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
+      }
+    });
+  });
+  
+  // Dibujar nodos de Usuarios (Azul)
+  users.forEach((user, ui) => {
+    const pos = userPos[user.device_id];
+    content += `
+      <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
+        <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
+        <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
+      </g>
+    `;
+  });
+  
+  // Dibujar nodos de Dominios Web (Púrpura)
+  domains.forEach((dom, di) => {
+    const pos = domainPos[dom.domain];
+    const visits = dom.visits || 1;
+    const size = Math.min(8 + visits * 0.3, 22);
+    
+    content += `
+      <g class="graph-node-group">
+        <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
+        <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
+        <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
+      </g>
+    `;
+  });
+  
+  svg.innerHTML = content;
+}
+
 // ── Inicializacion ──
 window.onload = () => {
   applySavedTheme();
-  markSyncNow();
-  fetchDevices();
+  checkAuth();
   
   // Reloj de ultima sync + countdown cada segundo
   setInterval(() => {
@@ -3484,7 +4527,6 @@ window.onload = () => {
   }, 5000);
 };
 </script>
-<!-- ========================================== -->
 <!-- CHATBOT FLOTANTE GLOBAL -->
 <!-- ========================================== -->
 <style>
@@ -3821,5 +4863,8 @@ window.onload = () => {
     }
   }
 </script>
+</body>
+</html>
+
 </body>
 </html>
