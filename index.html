@@ -6,6 +6,30 @@
 <title>EndpointIQ — Enterprise Monitoring Platform</title>
 <meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script>
+// TEMPORARY DEBUG: Show JS errors on page
+(function(){
+  var errs = [];
+  window.onerror = function(msg, src, line, col, err) {
+    errs.push('ERROR L' + line + ':' + col + ' ' + msg + ' [' + (src||'').split('/').pop() + ']');
+    showDbg();
+  };
+  window.onunhandledrejection = function(e) {
+    errs.push('PROMISE: ' + (e.reason ? (e.reason.message || e.reason) : 'unknown'));
+    showDbg();
+  };
+  function showDbg() {
+    var d = document.getElementById('__dbg');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = '__dbg';
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;font:12px monospace;padding:8px;max-height:200px;overflow:auto';
+      document.body ? document.body.prepend(d) : document.addEventListener('DOMContentLoaded', function(){ document.body.prepend(d); });
+    }
+    d.innerHTML = errs.join('<br>');
+  }
+})();
+</script>
 <style>
   /* ══ THEME: DARK ══════════════════════════════════════════════ */
   [data-theme="dark"] {
