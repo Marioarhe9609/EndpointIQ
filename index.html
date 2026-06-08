@@ -991,8 +991,8 @@
               <span>🍩</span>
               <span class="card-title">Estado de Flota — Distribución</span>
             </div>
-            <div class="card-body" style="display:flex;align-items:center;justify-content:center;gap:30px;padding:20px">
-              <svg id="fleetDonutSvg" viewBox="0 0 160 160" width="140" height="140" style="flex-shrink:0">
+            <div class="card-body" style="display:flex;align-items:center;justify-content:center;gap:24px;padding:14px 20px">
+              <svg id="fleetDonutSvg" viewBox="0 0 160 160" width="110" height="110" style="flex-shrink:0">
                 <circle cx="80" cy="80" r="62" fill="none" stroke="var(--surface2)" stroke-width="18"/>
                 <circle id="fleetDonutOnline" cx="80" cy="80" r="62" fill="none" stroke="#10B981" stroke-width="18" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" transform="rotate(-90 80 80)" style="transition:stroke-dashoffset 1s ease"/>
                 <circle id="fleetDonutWarn" cx="80" cy="80" r="62" fill="none" stroke="#F59E0B" stroke-width="18" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
@@ -1014,8 +1014,8 @@
               <span>⏱️</span>
               <span class="card-title">Última Sincronización por Equipo</span>
             </div>
-            <div class="card-body" style="padding:16px 20px">
-              <div id="syncTimelineContainer" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto"></div>
+            <div class="card-body" style="padding:10px 16px">
+              <div id="syncTimelineContainer" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>
             </div>
           </div>
         </div>
@@ -2067,10 +2067,6 @@
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
-
       <!-- ════════════════════════════════════════════
            VIEW: GESTIÓN DE USUARIOS (admin only)
       ════════════════════════════════════════════ -->
@@ -2225,6 +2221,16 @@ function fetchDevices() {
   fetch('/api/devices')
     .then(res => res.json())
     .then(data => {
+      // Derive online/offline from timestamp: if last sync > 4h ago → Offline
+      const now = new Date();
+      const OFFLINE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
+      data.forEach(d => {
+        const ts = d.timestamp || d.last_sync || null;
+        if (ts) {
+          const diff = now - new Date(ts);
+          if (diff > OFFLINE_THRESHOLD_MS) d.status = 'Offline';
+        }
+      });
       fleetDevices = data;
       updateDashboardKPIs();
       generateFleetHeatmap();
