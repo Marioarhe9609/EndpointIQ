@@ -3502,30 +3502,30 @@ function fetchSecurity() {
         tbody.innerHTML = '';
         if (events.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad — Todo en orden</td></tr>';
-          return;
+        } else {
+          events.forEach(row => {
+            let badgeClass = 'ok';
+            if (row.severity === 'Alta') badgeClass = 'crit';
+            else if (row.severity === 'Media') badgeClass = 'warn';
+            else if (row.severity === 'Baja') badgeClass = 'info';
+            
+            const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
+            const devName = row.device_name || row.device_id || '—';
+            const icon = row.icon || '🔐';
+            const cat = row.category || 'general';
+            const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
+            
+            tbody.innerHTML += `<tr>
+              <td style="font-size:18px;text-align:center">${icon}</td>
+              <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
+              <td style="font-weight:600">${devName}</td>
+              <td style="font-size:12px">${row.details}</td>
+              <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
+              <td class="mono">${time}</td>
+              <td><span class="badge ${badgeClass}">${row.severity}</span></td>
+            </tr>`;
+          });
         }
-        events.forEach(row => {
-          let badgeClass = 'ok';
-          if (row.severity === 'Alta') badgeClass = 'crit';
-          else if (row.severity === 'Media') badgeClass = 'warn';
-          else if (row.severity === 'Baja') badgeClass = 'info';
-          
-          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
-          const devName = row.device_name || row.device_id || '—';
-          const icon = row.icon || '🔐';
-          const cat = row.category || 'general';
-          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
-          
-          tbody.innerHTML += `<tr>
-            <td style="font-size:18px;text-align:center">${icon}</td>
-            <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
-            <td style="font-weight:600">${devName}</td>
-            <td style="font-size:12px">${row.details}</td>
-            <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
-            <td class="mono">${time}</td>
-            <td><span class="badge ${badgeClass}">${row.severity}</span></td>
-          </tr>`;
-        });
       }
       
       // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
@@ -3542,7 +3542,8 @@ function fetchSecurity() {
         mapCanvas.width = W * 2; mapCanvas.height = H * 2;
         mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
         const ctx = mapCanvas.getContext('2d');
-        if (!ctx) { console.warn('Canvas 2d context unavailable'); return; }
+        if (!ctx) { console.warn('Canvas 2d context unavailable'); }
+        else {
         ctx.scale(2, 2);
 
         // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
@@ -3642,6 +3643,7 @@ function fetchSecurity() {
         ctx.fillText('90°N', 4, 14);
         ctx.fillText('0° EC', 4, H * 0.5 + 14);
         ctx.fillText('90°S', 4, H - 4);
+        } // close else (ctx available)
       }
 
       // Render pins on SVG overlay
