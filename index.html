@@ -9,7 +9,8 @@
 <script>
 // TEMPORARY DEBUG v2: Always-visible DOM inspector
 (function(){
-  var errs = [];
+  window.__dbgErrs = [];
+  var errs = window.__dbgErrs;
   window.onerror = function(msg, src, line, col, err) {
     errs.push('JS_ERR L' + line + ' ' + msg);
     showDbg();
@@ -29,7 +30,7 @@
       else document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(d); });
     }
     d.innerHTML = errs.join('<br>');
-  }
+  window.__dbgPush = function(msg) { errs.push(msg); showDbg(); };}
 
   // Periodic DOM check every 2 seconds
   setInterval(function(){
@@ -2250,16 +2251,16 @@ function fetchDevices() {
     .then(res => res.json())
     .then(data => {
       fleetDevices = data;
-      try { updateDashboardKPIs(); } catch(e) { console.error('KPIs error:', e); }
-      try { generateFleetHeatmap(); } catch(e) { console.error('Heatmap error:', e); }
-      try { updateTopProblematicTable(); } catch(e) { console.error('Table error:', e); }
-      try { populateDeviceSelector(); } catch(e) { console.error('Selector error:', e); }
-      try { updateAlertsFeed(); } catch(e) { console.error('Alerts error:', e); }
-      try { updateFleetTable(); } catch(e) { console.error('Fleet error:', e); }
-      try { updateDashboardNetwork(); } catch(e) { console.error('Network error:', e); }
-      try { updateEquipoReport(); } catch(e) { console.error('Report error:', e); }
+      try { updateDashboardKPIs(); } catch(e) { if(window.__dbgPush) window.__dbgPush('KPIs: '+e.message); }
+      try { generateFleetHeatmap(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Heatmap: '+e.message); }
+      try { updateTopProblematicTable(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Table: '+e.message); }
+      try { populateDeviceSelector(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Selector: '+e.message); }
+      try { updateAlertsFeed(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Alerts: '+e.message); }
+      try { updateFleetTable(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Fleet: '+e.message); }
+      try { updateDashboardNetwork(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Network: '+e.message); }
+      try { updateEquipoReport(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Report: '+e.message); }
     })
-    .catch(err => console.error('fetchDevices error:', err));
+    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchDevices CATCH: ' + (err.message||err)); });
 }
 
 // ── Actualizar Tarjetas KPIs del Dashboard ──
@@ -3164,7 +3165,7 @@ function fetchProductivity() {
       
       loadUserProductivity(sel ? sel.value : '__all__');
     })
-    .catch(err => console.error('fetchProductivity error:', err));
+    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchProductivity CATCH: ' + (err.message||err)); });
 }
 
 function loadUserProductivity(userId) {
@@ -3827,7 +3828,7 @@ function fetchSecurity() {
         catPanel.innerHTML = cp;
       }
     })
-    .catch(err => console.error('Error fetching security:', err));
+    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchSecurity CATCH: ' + (err.message||err)); });
 }
 
 // ── Módulo de KPI Builder ──
