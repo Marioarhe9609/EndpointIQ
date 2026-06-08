@@ -2187,16 +2187,16 @@ function fetchDevices() {
     .then(res => res.json())
     .then(data => {
       fleetDevices = data;
-      try { updateDashboardKPIs(); } catch (e) { console.error('Error updating KPIs:', e); }
-      try { generateFleetHeatmap(); } catch (e) { console.error('Error generating fleet heatmap:', e); }
-      try { updateTopProblematicTable(); } catch (e) { console.error('Error updating problematic table:', e); }
-      try { populateDeviceSelector(); } catch (e) { console.error('Error populating device selector:', e); }
-      try { updateAlertsFeed(); } catch (e) { console.error('Error updating alerts feed:', e); }
-      try { updateFleetTable(); } catch (e) { console.error('Error updating fleet table:', e); }
-      try { updateDashboardNetwork(); } catch (e) { console.error('Error updating dashboard network:', e); }
-      try { updateEquipoReport(); } catch (e) { console.error('Error updating equipo report:', e); }
+      try { updateDashboardKPIs(); } catch(e) { console.error('KPIs error:', e); }
+      try { generateFleetHeatmap(); } catch(e) { console.error('Heatmap error:', e); }
+      try { updateTopProblematicTable(); } catch(e) { console.error('Table error:', e); }
+      try { populateDeviceSelector(); } catch(e) { console.error('Selector error:', e); }
+      try { updateAlertsFeed(); } catch(e) { console.error('Alerts error:', e); }
+      try { updateFleetTable(); } catch(e) { console.error('Fleet error:', e); }
+      try { updateDashboardNetwork(); } catch(e) { console.error('Network error:', e); }
+      try { updateEquipoReport(); } catch(e) { console.error('Report error:', e); }
     })
-    .catch(err => console.error('Error fetching devices:', err));
+    .catch(err => console.error('fetchDevices error:', err));
 }
 
 // ── Actualizar Tarjetas KPIs del Dashboard ──
@@ -3101,13 +3101,12 @@ function fetchProductivity() {
       
       loadUserProductivity(sel ? sel.value : '__all__');
     })
-    .catch(err => console.error('Error fetching productivity:', err));
+    .catch(err => console.error('fetchProductivity error:', err));
 }
 
 function loadUserProductivity(userId) {
-  try {
-    if (!_prodData) return;
-    const data = _prodData;
+  if (!_prodData) return;
+  const data = _prodData;
   
   let dist, avgIndex, trabajo, comun, web, ocio, topApps, tableRows;
   
@@ -3403,14 +3402,7 @@ function loadUserProductivity(userId) {
       </tr>`;
     });
   }
-  try {
-    renderWebTrafficGraph(userId);
-  } catch (graphErr) {
-    console.error('Error rendering web traffic graph:', graphErr);
-  }
-  } catch (err) {
-    console.error('Error loading user productivity:', err);
-  }
+  try { renderWebTrafficGraph(userId); } catch(e) { console.error('WebTrafficGraph error:', e); }
 }
 
 function exportProductivityCSV() {
@@ -3537,22 +3529,21 @@ function fetchSecurity() {
       }
       
       // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
-      try {
-        const mapCanvas = document.getElementById('secWorldCanvas');
-        const mapSvg = document.getElementById('secWorldMapSvg');
-        const mapCards = document.getElementById('secMapDeviceCards');
-        const tooltip = document.getElementById('secMapTooltip');
-        const tooltipContent = document.getElementById('secMapTooltipContent');
-        const mapContainer = document.getElementById('secWorldMapContainer');
+      const mapCanvas = document.getElementById('secWorldCanvas');
+      const mapSvg = document.getElementById('secWorldMapSvg');
+      const mapCards = document.getElementById('secMapDeviceCards');
+      const tooltip = document.getElementById('secMapTooltip');
+      const tooltipContent = document.getElementById('secMapTooltipContent');
+      const mapContainer = document.getElementById('secWorldMapContainer');
 
-        if (mapCanvas && mapContainer) {
-          const W = mapContainer.clientWidth || 800;
-          const H = mapContainer.clientHeight || 360;
-          mapCanvas.width = W * 2; mapCanvas.height = H * 2;
-          mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
-          const ctx = mapCanvas.getContext('2d');
-          if (ctx) {
-            ctx.scale(2, 2);
+      if (mapCanvas && mapContainer) {
+        const W = mapContainer.clientWidth || 800;
+        const H = mapContainer.clientHeight || 360;
+        mapCanvas.width = W * 2; mapCanvas.height = H * 2;
+        mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
+        const ctx = mapCanvas.getContext('2d');
+        if (!ctx) { console.warn('Canvas 2d context unavailable'); return; }
+        ctx.scale(2, 2);
 
         // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
         // Covers -180..180 lon (cols), 90..-90 lat (rows), 5° per cell
@@ -3645,13 +3636,12 @@ function fetchSecurity() {
           }
         }
 
-          // Labels
-          ctx.font = '9px JetBrains Mono';
-          ctx.fillStyle = 'rgba(108,159,255,0.25)';
-          ctx.fillText('90°N', 4, 14);
-          ctx.fillText('0° EC', 4, H * 0.5 + 14);
-          ctx.fillText('90°S', 4, H - 4);
-        }
+        // Labels
+        ctx.font = '9px JetBrains Mono';
+        ctx.fillStyle = 'rgba(108,159,255,0.25)';
+        ctx.fillText('90°N', 4, 14);
+        ctx.fillText('0° EC', 4, H * 0.5 + 14);
+        ctx.fillText('90°S', 4, H - 4);
       }
 
       // Render pins on SVG overlay
@@ -3734,7 +3724,7 @@ function fetchSecurity() {
         });
         
         // Device cards
-        if (mapCards && data.connection_map) {
+        if (mapCards) {
           mapCards.innerHTML = data.connection_map.map((dev, i) => {
             const isOnline = dev.status === 'online';
             const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
@@ -3749,9 +3739,6 @@ function fetchSecurity() {
           }).join('');
         }
       }
-    } catch (mapErr) {
-      console.error("Error drawing world map:", mapErr);
-    }
       
       // Categories Panel
       const catPanel = document.getElementById('secCategoriesPanel');
@@ -3949,22 +3936,14 @@ function toggleTheme() {
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  try {
-    localStorage.setItem('endpointiq-theme', next);
-  } catch (e) {
-    console.warn('localStorage is blocked or unavailable:', e);
-  }
+  try { localStorage.setItem('endpointiq-theme', next); } catch(e) {}
 }
 
 function applySavedTheme() {
   try {
     const saved = localStorage.getItem('endpointiq-theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-  } catch (e) {
-    console.warn('localStorage is blocked or unavailable:', e);
-  }
+    if (saved) { document.documentElement.setAttribute('data-theme', saved); }
+  } catch(e) {}
 }
 
 // ── Temporizador regresivo de actualizacion ──
@@ -4365,173 +4344,165 @@ function timeAgo(dateString) {
 }
 
 function renderSubnetGraph(m) {
-  try {
-    const svg = document.getElementById('subnetGraphSvg');
-    if (!svg) return;
-    svg.innerHTML = '';
-    
-    let netInfo = null;
-    if (m.network_info) {
-      try {
-        netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
-      } catch (e) {
-        netInfo = null;
-      }
+  const svg = document.getElementById('subnetGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  let netInfo = null;
+  if (m.network_info) {
+    try {
+      netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
+    } catch (e) {
+      netInfo = null;
     }
+  }
+  
+  const width = svg.clientWidth || 300;
+  const height = svg.clientHeight || 200;
+  const cx = width / 2;
+  const cy = height / 2;
+  
+  if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
+    svg.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
+      <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
+    `;
+    return;
+  }
+  
+  const devices = netInfo.connected_devices.slice(0, 10);
+  const N = devices.length;
+  const radius = 65;
+  
+  let content = '';
+  
+  // Nodos satélites y líneas
+  devices.forEach((dev, i) => {
+    const angle = i * (2 * Math.PI / N);
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
     
-    const width = svg.clientWidth || 300;
-    const height = svg.clientHeight || 200;
-    const cx = width / 2;
-    const cy = height / 2;
+    const isGateway = dev.ip.endsWith('.1');
+    const color = isGateway ? 'var(--amber)' : 'var(--green)';
+    const size = isGateway ? 9 : 7;
     
-    if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
-      svg.innerHTML = `
-        <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
-        <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
-        <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
-      `;
-      return;
-    }
+    // Línea al nodo central
+    content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
     
-    const devices = netInfo.connected_devices.slice(0, 10);
-    const N = devices.length;
-    const radius = 65;
-    
-    let content = '';
-    
-    // Nodos satélites y líneas
-    devices.forEach((dev, i) => {
-      const angle = i * (2 * Math.PI / N);
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      
-      const isGateway = dev.ip.endsWith('.1');
-      const color = isGateway ? 'var(--amber)' : 'var(--green)';
-      const size = isGateway ? 9 : 7;
-      
-      // Línea al nodo central
-      content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
-      
-      // Nodo satélite
-      content += `
-        <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
-          <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
-        </circle>
-      `;
-    });
-    
-    // Nodo central
+    // Nodo satélite
     content += `
-      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
-        <title>Este equipo: ${m.device_id}</title>
+      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
+        <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
       </circle>
     `;
-    
-    svg.innerHTML = content;
-  } catch (err) {
-    console.error("Error rendering subnet graph:", err);
-  }
+  });
+  
+  // Nodo central
+  content += `
+    <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
+      <title>Este equipo: ${m.device_id}</title>
+    </circle>
+  `;
+  
+  svg.innerHTML = content;
 }
 
 function renderWebTrafficGraph(userId) {
-  try {
-    const svg = document.getElementById('webTrafficGraphSvg');
-    if (!svg) return;
-    svg.innerHTML = '';
-    
-    const width = svg.clientWidth || 500;
-    const height = svg.clientHeight || 350;
-    
-    // Obtener los usuarios/equipos a graficar
-    let users = [];
-    if (userId === '__all__') {
-      users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
-    } else {
-      const dev = fleetDevices.find(d => d.device_id === userId);
-      if (dev) users = [dev];
-    }
-    
-    // Obtener los dominios top
-    let domains = [];
-    if (_prodData && _prodData.web_pages) {
-      domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
-    }
-    
-    if (users.length === 0 || domains.length === 0) {
-      svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
-      return;
-    }
-    
-    const uCount = users.length;
-    const dCount = domains.length;
-    
-    const uX = 80;
-    const dX = width - 130;
-    
-    let content = '';
-    
-    // Mapa de posiciones de los nodos para dibujar líneas
-    const userPos = {};
-    const domainPos = {};
-    
-    // Dibujar líneas/enlaces (Edges) primero
-    users.forEach((user, ui) => {
-      const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
-      userPos[user.device_id] = { x: uX, y: uy };
-      
-      // Parsear historial del navegador del equipo
-      let history = [];
-      if (user.browser_history) {
-        try {
-          history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
-        } catch(e) { history = []; }
-      }
-      
-      domains.forEach((dom, di) => {
-        const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
-        domainPos[dom.domain] = { x: dX, y: dy };
-        
-        // Buscar visitas de este usuario a este dominio
-        const visitRecord = (history || []).find(h => h.domain === dom.domain);
-        if (visitRecord) {
-          const visits = visitRecord.visits || 1;
-          const strokeWidth = Math.min(1 + visits * 0.5, 6);
-          const opacity = Math.min(0.1 + visits * 0.05, 0.7);
-          content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
-        }
-      });
-    });
-    
-    // Dibujar nodos de Usuarios (Azul)
-    users.forEach((user, ui) => {
-      const pos = userPos[user.device_id];
-      content += `
-        <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
-          <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
-          <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
-        </g>
-      `;
-    });
-    
-    // Dibujar nodos de Dominios Web (Púrpura)
-    domains.forEach((dom, di) => {
-      const pos = domainPos[dom.domain];
-      const visits = dom.visits || 1;
-      const size = Math.min(8 + visits * 0.3, 22);
-      
-      content += `
-        <g class="graph-node-group">
-          <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
-          <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
-          <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
-        </g>
-      `;
-    });
-    
-    svg.innerHTML = content;
-  } catch (err) {
-    console.error("Error rendering web traffic graph:", err);
+  const svg = document.getElementById('webTrafficGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  const width = svg.clientWidth || 500;
+  const height = svg.clientHeight || 350;
+  
+  // Obtener los usuarios/equipos a graficar
+  let users = [];
+  if (userId === '__all__') {
+    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
+  } else {
+    const dev = fleetDevices.find(d => d.device_id === userId);
+    if (dev) users = [dev];
   }
+  
+  // Obtener los dominios top
+  let domains = [];
+  if (_prodData && _prodData.web_pages) {
+    domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
+  }
+  
+  if (users.length === 0 || domains.length === 0) {
+    svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
+    return;
+  }
+  
+  const uCount = users.length;
+  const dCount = domains.length;
+  
+  const uX = 80;
+  const dX = width - 130;
+  
+  let content = '';
+  
+  // Mapa de posiciones de los nodos para dibujar líneas
+  const userPos = {};
+  const domainPos = {};
+  
+  // Dibujar líneas/enlaces (Edges) primero
+  users.forEach((user, ui) => {
+    const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
+    userPos[user.device_id] = { x: uX, y: uy };
+    
+    // Parsear historial del navegador del equipo
+    let history = [];
+    if (user.browser_history) {
+      try {
+        history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
+      } catch(e) { history = []; }
+    }
+    
+    domains.forEach((dom, di) => {
+      const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
+      domainPos[dom.domain] = { x: dX, y: dy };
+      
+      // Buscar visitas de este usuario a este dominio
+      const visitRecord = (history || []).find(h => h.domain === dom.domain);
+      if (visitRecord) {
+        const visits = visitRecord.visits || 1;
+        const strokeWidth = Math.min(1 + visits * 0.5, 6);
+        const opacity = Math.min(0.1 + visits * 0.05, 0.7);
+        content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
+      }
+    });
+  });
+  
+  // Dibujar nodos de Usuarios (Azul)
+  users.forEach((user, ui) => {
+    const pos = userPos[user.device_id];
+    content += `
+      <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
+        <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
+        <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
+      </g>
+    `;
+  });
+  
+  // Dibujar nodos de Dominios Web (Púrpura)
+  domains.forEach((dom, di) => {
+    const pos = domainPos[dom.domain];
+    const visits = dom.visits || 1;
+    const size = Math.min(8 + visits * 0.3, 22);
+    
+    content += `
+      <g class="graph-node-group">
+        <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
+        <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
+        <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
+      </g>
+    `;
+  });
+  
+  svg.innerHTML = content;
 }
 
 // ── Inicializacion ──
