@@ -7,27 +7,66 @@
 <meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script>
-// TEMPORARY DEBUG: Show JS errors on page
+// TEMPORARY DEBUG v2: Always-visible DOM inspector
 (function(){
   var errs = [];
   window.onerror = function(msg, src, line, col, err) {
-    errs.push('ERROR L' + line + ':' + col + ' ' + msg + ' [' + (src||'').split('/').pop() + ']');
+    errs.push('JS_ERR L' + line + ' ' + msg);
     showDbg();
   };
   window.onunhandledrejection = function(e) {
-    errs.push('PROMISE: ' + (e.reason ? (e.reason.message || e.reason) : 'unknown'));
+    errs.push('PROMISE_ERR: ' + (e.reason ? (e.reason.message || e.reason) : '?'));
     showDbg();
   };
+  
   function showDbg() {
     var d = document.getElementById('__dbg');
     if (!d) {
       d = document.createElement('div');
       d.id = '__dbg';
-      d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;font:12px monospace;padding:8px;max-height:200px;overflow:auto';
-      document.body ? document.body.prepend(d) : document.addEventListener('DOMContentLoaded', function(){ document.body.prepend(d); });
+      d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#0f0;font:11px monospace;padding:8px;max-height:250px;overflow:auto;border-top:3px solid #e94560';
+      if (document.body) document.body.appendChild(d); 
+      else document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(d); });
     }
     d.innerHTML = errs.join('<br>');
   }
+
+  // Periodic DOM check every 2 seconds
+  setInterval(function(){
+    var info = [];
+    var vs = document.getElementById('view-seguridad');
+    var vp = document.getElementById('view-productividad');
+    
+    if (vs) {
+      var style = window.getComputedStyle(vs);
+      info.push('SEC: class="' + vs.className + '" display=' + style.display + ' children=' + vs.children.length + ' height=' + vs.offsetHeight);
+      var secScore = document.getElementById('secScore');
+      if (secScore) info.push('secScore.text="' + secScore.textContent + '"');
+      var tbody = document.getElementById('secEventsBody');
+      if (tbody) info.push('secEventsBody.rows=' + tbody.children.length);
+    } else {
+      info.push('SEC: view-seguridad NOT FOUND');
+    }
+    
+    if (vp) {
+      var style2 = window.getComputedStyle(vp);
+      info.push('PROD: class="' + vp.className + '" display=' + style2.display + ' children=' + vp.children.length);
+    } else {
+      info.push('PROD: view-productividad NOT FOUND');
+    }
+    
+    if (errs.length > 0) info.push('--- ERRORS ---');
+    errs.forEach(function(e){ info.push(e); });
+    
+    var d = document.getElementById('__dbg');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = '__dbg';
+      d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#0f0;font:11px monospace;padding:8px;max-height:250px;overflow:auto;border-top:3px solid #e94560';
+      document.body.appendChild(d);
+    }
+    d.innerHTML = info.join('<br>');
+  }, 2000);
 })();
 </script>
 <style>
