@@ -2601,8 +2601,8 @@ function renderFleetStatusDonut() {
   const total = fleetDevices.length;
   if (total === 0) return;
   
-  const online = fleetDevices.filter(d => d.status === 'Online' && (d.cpu_usage || 0) < 80 && (d.ram_usage || 0) < 85).length;
-  const warn = fleetDevices.filter(d => d.status === 'Online' && ((d.cpu_usage || 0) >= 80 || (d.ram_usage || 0) >= 85)).length;
+  const online = fleetDevices.filter(d => d.status === 'Online' && (d.cpu_usage || 0) < 90 && (d.ram_usage || 0) < 92).length;
+  const warn = fleetDevices.filter(d => d.status === 'Online' && ((d.cpu_usage || 0) >= 90 || (d.ram_usage || 0) >= 92)).length;
   const offline = total - online - warn;
   
   const onlinePct = online / total;
@@ -2646,14 +2646,15 @@ function renderSyncTimeline() {
   
   const now = new Date();
   const devices = [...fleetDevices].sort((a, b) => {
-    const ta = a.last_seen ? new Date(a.last_seen) : new Date(0);
-    const tb = b.last_seen ? new Date(b.last_seen) : new Date(0);
-    return tb - ta;
+    const ta = a.timestamp || a.last_sync || null;
+    const tb = b.timestamp || b.last_sync || null;
+    return (tb ? new Date(tb) : new Date(0)) - (ta ? new Date(ta) : new Date(0));
   });
   
   let html = '';
   devices.forEach(d => {
-    const lastSeen = d.last_seen ? new Date(d.last_seen) : null;
+    const rawTs = d.timestamp || d.last_sync || null;
+    const lastSeen = rawTs ? new Date(rawTs) : null;
     const diffMs = lastSeen ? (now - lastSeen) : Infinity;
     const diffMin = Math.floor(diffMs / 60000);
     
