@@ -1,0 +1,10 @@
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-01", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.10", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-02", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.11", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.12", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-04", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.13", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-05", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.14", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.15", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-07", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.16", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-08", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.17", "status": "Offline"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-09", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.18", "status": "Online"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-10", "last_sync": "2026-06-02T00:03:25.970445", "last_ip": "192.168.1.19", "status": "Online"}

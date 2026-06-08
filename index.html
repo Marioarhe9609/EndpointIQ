@@ -1,0 +1,3825 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EndpointIQ — Enterprise Monitoring Platform</title>
+<meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  /* ══ THEME: DARK ══════════════════════════════════════════════ */
+  [data-theme="dark"] {
+    --bg:        #06080F;
+    --surface:   #0C1221;
+    --surface2:  #121B32;
+    --surface3:  #1A2544;
+    --border:    rgba(100,140,255,0.12);
+    --blue:      #6C9FFF;
+    --blue-glow: rgba(108,159,255,0.2);
+    --cyan:      #22D3EE;
+    --green:     #34D399;
+    --amber:     #FBBF24;
+    --red:       #F87171;
+    --purple:    #A78BFA;
+    --text:      #E8EDF5;
+    --text2:     #8B9DC3;
+    --text3:     #4B5E80;
+    --accent:    #6C9FFF;
+    --card-glass: rgba(12,18,33,0.7);
+    --sidebar-bg: linear-gradient(180deg, #0A0F1E 0%, #0C1221 100%);
+    --topbar-glass: rgba(12,18,33,0.8);
+    --font-ui:   'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-disp: 'Space Grotesk', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.35);
+    --glow-blue: 0 0 20px rgba(108,159,255,0.15);
+  }
+
+  /* ══ THEME: LIGHT ═════════════════════════════════════════════ */
+  [data-theme="light"] {
+    --bg:        #F0F4FA;
+    --surface:   #FFFFFF;
+    --surface2:  #F5F7FB;
+    --surface3:  #E8ECF4;
+    --border:    rgba(60,80,130,0.12);
+    --blue:      #3B6FE8;
+    --blue-glow: rgba(59,111,232,0.15);
+    --cyan:      #0891B2;
+    --green:     #059669;
+    --amber:     #D97706;
+    --red:       #DC2626;
+    --purple:    #7C3AED;
+    --text:      #1A1F36;
+    --text2:     #4A5578;
+    --text3:     #8492B0;
+    --accent:    #3B6FE8;
+    --card-glass: rgba(255,255,255,0.85);
+    --sidebar-bg: linear-gradient(180deg, #FFFFFF 0%, #F5F7FB 100%);
+    --topbar-glass: rgba(255,255,255,0.85);
+    --font-ui:   'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-disp: 'Space Grotesk', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+    --glow-blue: 0 0 20px rgba(59,111,232,0.1);
+  }
+  [data-theme="light"] .sidebar { box-shadow: 2px 0 16px rgba(0,0,0,0.06); }
+  [data-theme="light"] .card { box-shadow: var(--shadow-sm); }
+  [data-theme="light"] .kpi-card { box-shadow: var(--shadow-sm); }
+  [data-theme="light"] .topbar { box-shadow: 0 1px 8px rgba(0,0,0,0.05); }
+  [data-theme="light"] .fleet-dot.offline { background: #CBD5E1; border-color: #94A3B8; }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  /* ── LAYOUT ─────────────────────────────────────────────────── */
+  .app { display: flex; min-height: 100vh; }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────────── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    padding: 0 0 24px;
+    transition: background 0.35s ease;
+  }
+  .sidebar-logo {
+    padding: 22px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(108,159,255,0.3);
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 22px; height: 22px; fill: white; }
+  .logo-text {
+    font-family: var(--font-disp);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+  }
+  .logo-sub { font-size: 9.5px; color: var(--text3); letter-spacing: 1.8px; text-transform: uppercase; margin-top: 3px; font-weight: 500; }
+  .nav-section { padding: 16px 16px 6px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); font-weight: 600; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    margin: 2px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: 1px solid transparent;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); transform: translateX(2px); }
+  .nav-item.active {
+    background: linear-gradient(135deg, rgba(108,159,255,0.15), rgba(34,211,238,0.08));
+    color: var(--blue);
+    border-color: rgba(108,159,255,0.2);
+    font-weight: 600;
+    box-shadow: var(--glow-blue);
+  }
+  .nav-item .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 12px 16px 0;
+    border-top: 1px solid var(--border);
+  }
+  .user-avatar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--surface2);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+  }
+  .user-avatar:hover { background: var(--surface3); }
+  .avatar-circle {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .user-role { font-size: 11px; color: var(--text3); }
+
+  /* ── MAIN ────────────────────────────────────────────────────── */
+  .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; transition: margin-left 0.3s; }
+
+  /* ── TOPBAR ──────────────────────────────────────────────────── */
+  .topbar {
+    height: 62px;
+    background: var(--topbar-glass);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 28px;
+    gap: 12px;
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: background 0.35s ease;
+  }
+  .topbar-title { font-family: var(--font-disp); font-size: 17px; font-weight: 700; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
+  .topbar-sub .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse-glow 2s infinite; }
+  @keyframes pulse-glow { 0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0.4)} 50%{box-shadow:0 0 0 6px rgba(52,211,153,0)} }
+  .topbar-spacer { flex: 1; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px 14px;
+    width: 260px;
+    transition: all 0.2s;
+  }
+  .search-box:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-size: 13px; font-family: var(--font-ui);
+    width: 100%;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    color: var(--text2);
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .icon-btn:hover { background: var(--surface3); color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .notif-dot {
+    position: absolute; top: 5px; right: 5px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red);
+    border: 2px solid var(--surface);
+    animation: pulse-glow 2s infinite;
+  }
+
+  /* ── THEME TOGGLE ───────────────────────────────────────────── */
+  .theme-toggle {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 17px;
+    color: var(--text2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .theme-toggle:hover { background: var(--surface3); color: var(--amber); transform: translateY(-1px) rotate(15deg); box-shadow: var(--shadow-sm); }
+  .theme-toggle .sun, .theme-toggle .moon { transition: all 0.3s ease; position: absolute; }
+  [data-theme="dark"] .theme-toggle .sun  { opacity: 1; transform: rotate(0deg); }
+  [data-theme="dark"] .theme-toggle .moon { opacity: 0; transform: rotate(-90deg) scale(0); }
+  [data-theme="light"] .theme-toggle .sun  { opacity: 0; transform: rotate(90deg) scale(0); }
+  [data-theme="light"] .theme-toggle .moon { opacity: 1; transform: rotate(0deg); }
+
+  /* ── TABS ────────────────────────────────────────────────────── */
+  .tabs {
+    display: flex; gap: 2px;
+    padding: 12px 28px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 10px 20px;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    color: var(--text2);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    border-bottom: none;
+    position: relative; bottom: -1px;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--blue);
+    border-color: var(--border);
+    font-weight: 600;
+  }
+
+  /* ── CONTENT ─────────────────────────────────────────────────── */
+  .content { padding: 24px 28px; flex: 1; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── KPI GRID ────────────────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    cursor: default;
+  }
+  .kpi-card:hover { transform: translateY(-3px); border-color: rgba(108,159,255,0.35); box-shadow: var(--shadow-md), var(--glow-blue); }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi-card.blue::before   { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+  .kpi-card.green::before  { background: linear-gradient(90deg, var(--green), #6EE7B7); }
+  .kpi-card.gray::before   { background: linear-gradient(90deg, #4B5E80, #8B9DC3); }
+  .kpi-card.amber::before  { background: linear-gradient(90deg, var(--amber), #FDE68A); }
+  .kpi-card.red::before    { background: linear-gradient(90deg, var(--red), #FCA5A5); }
+  .kpi-label { font-size: 10.5px; color: var(--text3); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .kpi-value { font-family: var(--font-disp); font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+  .kpi-card.blue .kpi-value  { color: var(--blue); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.gray .kpi-value  { color: var(--text3); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.red .kpi-value   { color: var(--red); }
+  .kpi-delta { font-size: 11.5px; color: var(--text3); }
+  .kpi-delta .up   { color: var(--green); }
+  .kpi-delta .down { color: var(--red); }
+  .kpi-icon-bg {
+    position: absolute; bottom: 14px; right: 16px;
+    font-size: 30px; opacity: 0.1;
+  }
+
+  /* ── TWO COL GRID ─────────────────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .col-7-3 { display: grid; grid-template-columns: 7fr 3fr; gap: 16px; margin-bottom: 16px; }
+  .col-4-8 { display: grid; grid-template-columns: 4fr 8fr; gap: 16px; margin-bottom: 16px; }
+
+  /* ── CARD ────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .card:hover { box-shadow: var(--shadow-sm); }
+  .card-header {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .card-sub { font-size: 12px; color: var(--text3); margin-left: auto; }
+  .card-body { padding: 18px 20px; }
+
+  /* ── FLEET HEATMAP ────────────────────────────────────────────── */
+  .fleet-grid {
+    display: grid;
+    grid-template-columns: repeat(40, 1fr);
+    gap: 3px;
+    padding: 16px 20px;
+  }
+  .fleet-dot {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .fleet-dot:hover { transform: scale(1.5); z-index: 10; position: relative; }
+  .fleet-dot.ok     { background: var(--green); }
+  .fleet-dot.warn   { background: var(--amber); }
+  .fleet-dot.crit   { background: var(--red); animation: blink 1.2s ease-in-out infinite; }
+  .fleet-dot.offline{ background: #1E293B; border: 1px solid #334155; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .legend { display: flex; gap: 16px; padding: 0 20px 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text3); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* ── CHART AREA ───────────────────────────────────────────────── */
+  .chart-area { position: relative; height: 180px; padding: 0 4px; }
+  .chart-svg { width: 100%; height: 100%; }
+
+  /* ── TABLE ────────────────────────────────────────────────────── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    padding: 10px 14px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    color: var(--text3);
+    background: var(--surface2);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(99,120,180,0.08);
+    vertical-align: middle;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(59,130,246,0.04); }
+  .data-table .mono { font-family: var(--font-mono); font-size: 12px; color: var(--text2); }
+
+  /* ── BADGES ──────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge.ok     { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.warn   { background: rgba(245,158,11,0.15);  color: var(--amber); }
+  .badge.crit   { background: rgba(239,68,68,0.15);   color: var(--red); }
+  .badge.info   { background: rgba(59,130,246,0.15);  color: var(--blue); }
+  .badge.off    { background: rgba(71,85,105,0.3);    color: var(--text3); }
+  .badge.purple { background: rgba(139,92,246,0.15);  color: var(--purple); }
+  .badge::before { content: '●'; font-size: 8px; }
+
+  /* ── METER ────────────────────────────────────────────────────── */
+  .meter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .meter-label { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; }
+  .meter-track { flex: 1; height: 6px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+  .meter-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); width: 40px; text-align: right; }
+
+  /* ── SPARK ────────────────────────────────────────────────────── */
+  .spark { display: inline-block; }
+
+  /* ── ALERT FEED ───────────────────────────────────────────────── */
+  .alert-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(99,120,180,0.08);
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .alert-icon.crit { background: rgba(239,68,68,0.15); }
+  .alert-icon.warn { background: rgba(245,158,11,0.15); }
+  .alert-icon.info { background: rgba(59,130,246,0.15); }
+  .alert-icon.sec  { background: rgba(139,92,246,0.15); }
+  .alert-body { flex: 1; }
+  .alert-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .alert-meta  { font-size: 11.5px; color: var(--text3); }
+  .alert-time  { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+
+  /* ── PROGRESS RING ────────────────────────────────────────────── */
+  .ring-container { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 10px; transition: background 0.3s ease; }
+  .ring-container:hover { background: var(--surface2); }
+  .ring-label { font-size: 10px; color: var(--text3); text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; font-family: var(--font-ui); }
+  .ring-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; text-align: center; }
+
+  /* ── APP TIME BARS ─────────────────────────────────────────────── */
+  .app-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .app-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .app-name { font-size: 13px; font-weight: 500; color: var(--text); width: 110px; flex-shrink: 0; }
+  .app-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; cursor: pointer; }
+  .app-fill  { height: 100%; border-radius: 99px; }
+  .app-hours { font-family: var(--font-mono); font-size: 12px; color: var(--text2); width: 45px; text-align: right; }
+  .app-pct   { font-size: 11px; color: var(--text3); width: 32px; text-align: right; }
+
+  /* ── TICKET CARD ──────────────────────────────────────────────── */
+  .ticket-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex; gap: 12px; align-items: flex-start;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .ticket-card:hover { border-color: rgba(59,130,246,0.4); }
+  .ticket-card.selected { border-color: var(--blue); background: rgba(59,130,246,0.06); }
+  .ticket-num { font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .ticket-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .ticket-meta  { font-size: 11.5px; color: var(--text3); }
+  .ticket-priority {
+    width: 4px; border-radius: 4px; flex-shrink: 0;
+    align-self: stretch;
+  }
+  .ticket-priority.p1 { background: var(--red); }
+  .ticket-priority.p2 { background: var(--amber); }
+  .ticket-priority.p3 { background: var(--blue); }
+
+  /* ── DETAIL PANEL ─────────────────────────────────────────────── */
+  .detail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    height: fit-content;
+  }
+  .detail-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(6,182,212,0.08));
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-title { font-family: var(--font-disp); font-size: 15px; font-weight: 700; color: var(--text); }
+  .detail-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .detail-body { padding: 18px 20px; }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(99,120,180,0.08); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 12px; color: var(--text3); font-weight: 500; }
+  .detail-val { font-size: 13px; color: var(--text); font-weight: 600; }
+  .detail-val.mono { font-family: var(--font-mono); font-size: 12px; }
+
+  /* ── BTN ─────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none;
+    font-family: var(--font-ui);
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: #2563EB; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+  .btn-ghost  { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover  { background: var(--surface3); color: var(--text); }
+  .btn-red    { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-red:hover    { background: rgba(239,68,68,0.25); }
+  .btn-green  { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+
+  /* ── MINI STAT ────────────────────────────────────────────────── */
+  .mini-stat { text-align: center; padding: 14px; background: var(--surface2); border-radius: 10px; }
+  .mini-stat-val { font-family: var(--font-disp); font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+  .mini-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.7px; }
+
+  /* ── TIMELINE ─────────────────────────────────────────────────── */
+  .timeline-item { display: flex; gap: 12px; margin-bottom: 14px; }
+  .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .tl-line { width: 2px; flex: 1; background: var(--border); margin-top: 4px; }
+  .tl-content { flex: 1; padding-bottom: 4px; }
+  .tl-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tl-desc  { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .tl-time  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── EQUIPO DETAIL ────────────────────────────────────────────── */
+  .equipo-header {
+    background: linear-gradient(135deg, var(--surface2), var(--surface3));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 20px;
+  }
+  .equipo-avatar {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0;
+  }
+  .equipo-name { font-family: var(--font-disp); font-size: 20px; font-weight: 800; color: var(--text); }
+  .equipo-sub  { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  .equipo-badges { display: flex; gap: 8px; margin-top: 10px; }
+  .equipo-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  /* ── RING SVG ─────────────────────────────────────────────────── */
+  .rings-row { display: flex; justify-content: space-around; padding: 14px 0 8px; }
+
+  /* ── SCROLLBAR ────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  /* ── TOAST ────────────────────────────────────────────────────── */
+  .toast-preview {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 340px;
+  }
+  .toast-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .toast-app-icon { font-size: 18px; }
+  .toast-app-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .toast-time     { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .toast-body     { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+  .toast-actions  { display: flex; gap: 8px; }
+  .toast-btn {
+    flex: 1; padding: 7px; border-radius: 7px;
+    font-size: 12px; font-weight: 600; text-align: center;
+    cursor: pointer; border: none; font-family: var(--font-ui);
+  }
+  .toast-btn.primary { background: var(--blue); color: white; }
+  .toast-btn.ghost   { background: var(--surface3); color: var(--text2); }
+
+  /* ── GRAPH ────────────────────────────────────────────────────── */
+  .graph-canvas { position: relative; height: 320px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+  .graph-node {
+    position: absolute;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 0 12px rgba(0,0,0,0.5);
+  }
+  .graph-node:hover { transform: scale(1.15); z-index: 10; }
+  .graph-node.ok   { background: var(--green); box-shadow: 0 0 16px rgba(16,185,129,0.5); }
+  .graph-node.warn { background: var(--amber); box-shadow: 0 0 16px rgba(245,158,11,0.5); }
+  .graph-node.crit { background: var(--red);   box-shadow: 0 0 16px rgba(239,68,68,0.5); }
+  .graph-node.off  { background: #334155; }
+  .graph-edge {
+    position: absolute;
+    background: rgba(99,120,180,0.2);
+    height: 1px;
+    transform-origin: left center;
+    pointer-events: none;
+  }
+  .graph-cluster {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px dashed;
+    pointer-events: none;
+  }
+
+  /* ── CATEGORY PILL ────────────────────────────────────────────── */
+  .cat-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .cat-trabajo  { background: rgba(59,130,246,0.15); color: var(--blue); }
+    .cat-comun    { background: rgba(16,185,129,0.15); color: var(--green); }
+  .cat-web      { background: rgba(245,158,11,0.15);  color: var(--amber); }
+  .cat-social   { background: rgba(239,68,68,0.15);   color: var(--red); }
+  .cat-otro     { background: rgba(71,85,105,0.3);    color: var(--text3); }
+
+  /* ── ANIM ─────────────────────────────────────────────────────── */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .view.active { animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1); }
+
+  /* ── SECTION LABEL ─────────────────────────────────────────────── */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* ── DONUT ────────────────────────────────────────────────────── */
+  .donut-wrap { display: flex; align-items: center; gap: 24px; }
+  .donut-legend { display: flex; flex-direction: column; gap: 10px; }
+  .donut-legend-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text2); transition: transform 0.2s ease; cursor: default; }
+  .donut-legend-row:hover { transform: translateX(3px); }
+  .donut-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .donut-legend-pct { font-family: var(--font-mono); font-size: 12px; color: var(--text); margin-left: auto; min-width: 35px; text-align: right; font-weight: 600; }
+
+  /* ── STATUS GLOW ──────────────────────────────────────────────── */
+  .status-glow {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-glow.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-glow.red   { background: var(--red);   box-shadow: 0 0 6px var(--red); animation: blink 1.2s infinite; }
+  .status-glow.gray  { background: #475569; }
+
+  /* ── CHART ANIMATIONS ──────────────────────────────────────── */
+  @keyframes drawLine {
+    to { stroke-dashoffset: 0; }
+  }
+  .chart-fill {
+    opacity: 0;
+    animation: chartFadeIn 0.8s ease forwards;
+  }
+  @keyframes chartFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .chart-legend-item {
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .chart-legend-item:hover {
+    background: rgba(59,130,246,0.08);
+    border-color: rgba(59,130,246,0.2) !important;
+    transform: translateY(-1px);
+  }
+  .chart-legend-item:not(.active) {
+    text-decoration: line-through;
+    opacity: 0.4;
+  }
+  #metricsChartArea:hover #metricsChart {
+    filter: brightness(1.05);
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="none" stroke="white" stroke-width="1.8"/>
+          <path d="M8 20h8M12 17v3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M8.5 9.5l2 2 5-5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="18" cy="7" r="3" fill="#22D3EE" stroke="white" stroke-width="1"/>
+          <path d="M17.3 6.5l.7.7 1.3-1.3" fill="none" stroke="white" stroke-width="0.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">EndpointIQ</div>
+        <div class="logo-sub">Intelligent Monitoring</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" onclick="showView('dashboard')">
+      <span class="nav-icon">⬡</span> Dashboard General
+    </a>
+    <a class="nav-item" onclick="showView('equipo')">
+      <span class="nav-icon">💻</span> Por Equipo
+    </a>
+
+    <div class="nav-section">Analítica</div>
+    <a class="nav-item" onclick="showView('productividad')">
+      <span class="nav-icon">📊</span> Productividad
+    </a>
+    <a class="nav-item" onclick="showView('seguridad')">
+      <span class="nav-icon">🔒</span> Seguridad <span class="nav-badge" id="badgeSeguridad">4</span>
+    </a>
+    <a class="nav-item" onclick="showView('kpibuilder')">
+      <span class="nav-icon">🛠</span> KPI Builder
+    </a>
+
+    <div class="nav-section">Soporte</div>
+    <a class="nav-item" onclick="showView('mesa')">
+      <span class="nav-icon">🎫</span> Mesa de Ayuda <span class="nav-badge" id="badgeMesa">12</span>
+    </a>
+    <a class="nav-item" onclick="showView('agentes')">
+      <span class="nav-icon">🤖</span> Agentes IA
+    </a>
+
+    <div class="nav-section">Reportes</div>
+    <a class="nav-item"><span class="nav-icon">📈</span> Informes</a>
+    <a class="nav-item"><span class="nav-icon">⚙️</span> Configuración</a>
+    <a class="nav-item" href="EndpointIQ_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
+
+    <div class="sidebar-bottom">
+      <div class="user-avatar">
+        <div class="avatar-circle">AD</div>
+        <div>
+          <div class="user-name">Admin TI</div>
+          <div class="user-role">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="pageTitle">Dashboard General</div>
+        <div class="topbar-sub" id="syncStatusLabel"><span class="pulse-dot"></span> <span id="syncTimeText">Cargando...</span> · <span id="countdownText" style="color:var(--blue);font-family:var(--font-mono);font-size:11px">⏱ --:--</span></div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="dashboardSearch" onkeyup="filterDevices(this.value)" placeholder="Buscar equipo..."/>
+      </div>
+      <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">
+        <span class="sun">☀️</span>
+        <span class="moon">🌙</span>
+      </div>
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+      <div class="icon-btn" id="btnSync" onclick="syncBigQuery()" title="Sincronizar con BigQuery">⟳</div>
+      <div class="icon-btn">⋮</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs" id="tabBar" style="display:none"></div>
+
+    <div class="content">
+
+      <!-- ════════════════════════════════════════════
+           VIEW 1: DASHBOARD GENERAL
+      ════════════════════════════════════════════ -->
+      <div class="view active" id="view-dashboard">
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Total Equipos</div>
+            <div class="kpi-value">1,248</div>
+            <div class="kpi-delta">Flota registrada</div>
+            <div class="kpi-icon-bg">💻</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Online</div>
+            <div class="kpi-value">1,187</div>
+            <div class="kpi-delta"><span class="up">▲ 95.1%</span> disponibilidad</div>
+            <div class="kpi-icon-bg">🟢</div>
+          </div>
+          <div class="kpi-card gray">
+            <div class="kpi-label">Offline</div>
+            <div class="kpi-value">61</div>
+            <div class="kpi-delta"><span class="down">▼ 4.9%</span> de la flota</div>
+            <div class="kpi-icon-bg">⚫</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Alertas Activas</div>
+            <div class="kpi-value">14</div>
+            <div class="kpi-delta"><span class="down">▲ +3</span> vs ayer</div>
+            <div class="kpi-icon-bg">⚠️</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Tickets Abiertos</div>
+            <div class="kpi-value">7</div>
+            <div class="kpi-delta">2 críticos sin atender</div>
+            <div class="kpi-icon-bg">🎫</div>
+          </div>
+        </div>
+
+        <!-- Heatmap + Alertas -->
+        <div class="col-7-3">
+          <div class="card">
+            <div class="card-header">
+              <span>🗺</span>
+              <span class="card-title">Mapa de Estado — Flota Completa</span>
+              <span class="card-sub">Hover para detalle</span>
+            </div>
+            <div class="fleet-grid" id="fleetGrid"></div>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Online OK</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Alerta</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Crítico</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#1E293B;border:1px solid #334155"></div> Offline</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>⚡</span>
+              <span class="card-title">Alertas Recientes</span>
+              <span class="card-sub" style="cursor:pointer;color:var(--blue)" onclick="showView('seguridad')">Ver todas →</span>
+            </div>
+            <div class="card-body" style="padding-top:8px">
+              <div class="alert-item">
+                <div class="alert-icon crit">🔴</div>
+                <div class="alert-body">
+                  <div class="alert-title">RAM crítica — LAPTOP-MROJAS</div>
+                  <div class="alert-meta">Chrome · 94% RAM · Ticket auto-creado</div>
+                </div>
+                <div class="alert-time">hace 2 min</div>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon warn">🟡</div>
+                <div class="alert-body">
+                  <div class="alert-title">Disco al 91% — PC-JGOMEZ</div>
+                  <div class="alert-meta">C:\ · 14.2 GB libres</div>
+                </div>
+                <div class="alert-time">hace 8 min</div>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon sec">🔐</div>
+                <div class="alert-body">
+                  <div class="alert-title">5 intentos fallidos — PC-BSANCHEZ</div>
+                  <div class="alert-meta">Seguridad · IP: 192.168.1.44</div>
+                </div>
+                <div class="alert-time">hace 15 min</div>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon warn">🟡</div>
+                <div class="alert-body">
+                  <div class="alert-title">CPU sostenido >85% — LAPTOP-CPEREZ</div>
+                  <div class="alert-meta">Antivirus MsMpEng · 12 min</div>
+                </div>
+                <div class="alert-time">hace 22 min</div>
+              </div>
+              <div class="alert-item">
+                <div class="alert-icon info">🔵</div>
+                <div class="alert-body">
+                  <div class="alert-title">Equipo offline 6 días — PC-LMENDEZ</div>
+                  <div class="alert-meta">Último encendido: 2025-05-25</div>
+                </div>
+                <div class="alert-time">hace 1 h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Métricas promedio + Top equipos -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <span>📉</span>
+              <span class="card-title">Métricas Promedio Flota — 24h</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-area" style="position:relative" id="metricsChartArea">
+                <svg id="metricsChart" class="chart-svg" viewBox="0 0 560 160" preserveAspectRatio="none" style="cursor:crosshair">
+                  <defs>
+                    <linearGradient id="gc" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.3"/>
+                      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
+                      <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
+                      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <!-- Tooltip flotante -->
+                <div id="chartTooltip" style="display:none;position:absolute;top:0;left:0;background:rgba(15,23,42,0.95);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:10px 14px;pointer-events:none;z-index:100;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.4);min-width:140px;font-size:12px;color:#e2e8f0;transition:opacity 0.15s ease">
+                  <div style="font-weight:600;margin-bottom:6px;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:0.5px" id="ttTime">--:--</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:#3B82F6"></div> CPU: <span id="ttCpu" style="font-family:var(--font-mono);font-weight:700;color:#3B82F6">--%</span></div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:8px;height:8px;border-radius:50%;background:#10B981"></div> RAM: <span id="ttRam" style="font-family:var(--font-mono);font-weight:700;color:#10B981">--%</span></div>
+                  <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div> Disco: <span id="ttDisk" style="font-family:var(--font-mono);font-weight:700;color:#F59E0B">--GB</span></div>
+                </div>
+              </div>
+              <div id="metricsLegend" style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
+                <div class="chart-legend-item active" data-series="cpu" onclick="toggleChartSeries('cpu')" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid transparent;transition:all 0.2s">
+                  <div style="width:20px;height:3px;background:#3B82F6;border-radius:2px;transition:opacity 0.2s" id="legendDotCpu"></div> <span id="cpuAvgLabel">CPU avg --%</span>
+                </div>
+                <div class="chart-legend-item active" data-series="ram" onclick="toggleChartSeries('ram')" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid transparent;transition:all 0.2s">
+                  <div style="width:20px;height:3px;background:#10B981;border-radius:2px;transition:opacity 0.2s" id="legendDotRam"></div> <span id="ramAvgLabel">RAM avg --%</span>
+                </div>
+                <div class="chart-legend-item active" data-series="disk" onclick="toggleChartSeries('disk')" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid transparent;transition:all 0.2s">
+                  <div style="width:20px;height:3px;background:#F59E0B;border-radius:2px;opacity:0.8;transition:opacity 0.2s" id="legendDotDisk"></div> <span id="diskAvgLabel">Disco libre --GB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>🔥</span>
+              <span class="card-title">Equipos — Estado de Flota</span>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Equipo</th><th>Tipo</th><th>CPU</th><th>RAM</th><th>Red</th><th>Estado</th><th>Accion</th>
+                </tr></thead>
+                <tbody id="fleetTableBody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Cargando equipos reales...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Network Overview -->
+          <div class="card">
+            <div class="card-header">
+              <span>🌐</span>
+              <span class="card-title">Resumen de Red — Flota</span>
+            </div>
+            <div class="card-body" id="dashboardNetworkBody">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="netOverviewGrid">
+                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                  <div style="font-size:24px;font-weight:800;color:var(--blue)" id="netStatTotal">0</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Conexiones Activas</div>
+                </div>
+                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                  <div style="font-size:24px;font-weight:800;color:var(--green)" id="netStatWifi">0</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Conexiones WiFi</div>
+                </div>
+                <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                  <div style="font-size:24px;font-weight:800;color:var(--cyan)" id="netStatDevices">0</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px">Dispositivos en Red</div>
+                </div>
+              </div>
+              <div id="netSSIDList" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 2: DETALLE POR EQUIPO
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-equipo">
+        <div style="margin-bottom:20px; display:flex; gap:12px; align-items:center; background:var(--surface); padding:12px 20px; border-radius:10px; border:1px solid var(--border); flex-wrap:wrap">
+          <span style="font-weight:600; color:var(--text2)">Diagnostico de Dispositivo:</span>
+          <input type="text" id="deviceSearchInput" oninput="filterDeviceSelector(this.value)" placeholder="Buscar equipo..." style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-family:var(--font-ui); outline:none; min-width:180px; font-size:13px"/>
+          <select id="deviceSelector" onchange="loadDeviceDetail(this.value)" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-family:var(--font-ui); outline:none; min-width:220px">
+            <option value="">-- Seleccione un equipo --</option>
+          </select>
+          <button class="btn btn-ghost" onclick="clearDeviceSelection()" style="font-size:12px;padding:4px 10px">✕ Limpiar</button>
+        </div>
+
+        <!-- Empty state / Reporte de Sincronizacion (default) -->
+        <div id="equipoEmptyState" style="animation:fadeIn 0.4s ease">
+          <!-- Resumen de Conectividad de la Flota -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+            <div class="mini-stat" style="background:var(--surface);border:1px solid var(--border)">
+              <div class="mini-stat-val" id="eqReportTotal" style="font-family:var(--font-disp)">0</div>
+              <div class="mini-stat-label">Total Flota</div>
+            </div>
+            <div class="mini-stat" style="background:var(--surface);border:1px solid var(--border)">
+              <div class="mini-stat-val" id="eqReportOnline" style="color:var(--green);font-family:var(--font-disp)">0</div>
+              <div class="mini-stat-label">Activos (Online)</div>
+            </div>
+            <div class="mini-stat" style="background:var(--surface);border:1px solid var(--border)">
+              <div class="mini-stat-val" id="eqReportOffline" style="color:var(--text3);font-family:var(--font-disp)">0</div>
+              <div class="mini-stat-label">Inactivos (Offline)</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <span>📊</span>
+              <span class="card-title">Estado de Sincronización de Equipos</span>
+              <span class="card-sub" style="font-size:12px;color:var(--text3)">Flota Piloto Activa</span>
+            </div>
+            <div class="card-body" style="padding:0">
+              <div style="overflow-x:auto">
+                <table class="data-table" id="eqReportTable">
+                  <thead>
+                    <tr>
+                      <th>Dispositivo</th>
+                      <th>Tipo</th>
+                      <th>Última Sincronización</th>
+                      <th>Dirección IP</th>
+                      <th>Estado</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Cargando reporte de flota...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content (hidden until device selected) -->
+        <div id="equipoContent" style="display:none">
+
+        <div class="equipo-header">
+          <div class="equipo-avatar">💻</div>
+          <div>
+            <div class="equipo-name" id="equipoDevName">—</div>
+            <div class="equipo-sub" id="equipoDevSub">—</div>
+            <div class="equipo-badges" id="equipoDevBadges"></div>
+          </div>
+          <div class="equipo-actions">
+            <button class="btn btn-ghost" onclick="exportDevicePDF()">📤 Exportar PDF</button>
+            <button class="btn btn-ghost">💬 Mensaje</button>
+            <button class="btn btn-red">🎫 Abrir Ticket</button>
+          </div>
+        </div>
+
+        <!-- Anillos de metricas en tiempo real -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>⚡</span>
+            <span class="card-title">Recursos en Tiempo Real</span>
+            <span class="card-sub" style="font-family:var(--font-mono);font-size:11px">Actualiza cada 2 min</span>
+          </div>
+          <div class="rings-row" id="ringsRow">
+            <!-- Se llena dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Informacion de Red -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🌐</span>
+            <span class="card-title">Informacion de Red</span>
+            <span class="card-sub" id="netWifiLabel" style="color:var(--blue)">—</span>
+          </div>
+          <div class="card-body" id="networkInfoBody">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px" id="networkGrid">
+              <!-- Interfaces -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Interfaces de Red</div>
+                <div id="netInterfacesList" style="font-size:12.5px;color:var(--text2)">Sin datos</div>
+              </div>
+              <!-- Dispositivos conectados -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Dispositivos en la Red (<span id="netDeviceCount">0</span>)</div>
+                <div id="netDevicesList" style="font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto">Sin datos</div>
+              </div>
+              <!-- Mapa de Topologia Local -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Mapa de Topología Local (Subred)</div>
+                <div id="subnetGraphCanvas" style="position:relative;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                  <svg id="subnetGraphSvg" style="width:100%;height:100%"></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Top procesos -->
+          <div class="card">
+            <div class="card-header"><span>🔬</span><span class="card-title">Top Procesos — Causa Raiz</span></div>
+            <div class="card-body" id="topProcessesBody">
+              <div id="diagAlertBox" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)">
+                ✅ <strong style="color:var(--green)">Sin alertas:</strong> Todos los recursos dentro de parametros normales.
+              </div>
+              <div id="processMeters">
+                <div style="font-size:12.5px;color:var(--text3);text-align:center;padding:16px 0">Seleccione un equipo para ver procesos activos</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historial de eventos -->
+          <div class="card">
+            <div class="card-header"><span>📋</span><span class="card-title">Historial de Eventos — Hoy</span></div>
+            <div class="card-body" style="padding-top:10px">
+              <div style="font-size:12.5px;color:var(--text3);text-align:center;padding:16px 0">Seleccione un equipo</div>
+            </div>
+          </div>
+        </div>
+
+        </div><!-- /equipoContent -->
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 3: PRODUCTIVIDAD Y USO DE APPS
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-productividad">
+
+        <!-- 1. Selector de Usuario -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:16px 20px;flex-wrap:wrap">
+            <span style="font-size:18px">👤</span>
+            <div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.8px">Análisis de Productividad</div>
+              <div style="font-size:13px;color:var(--text2);margin-top:2px">Seleccione un usuario para ver su actividad</div>
+            </div>
+            <select id="prodUserSelector" onchange="loadUserProductivity(this.value)" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-family:var(--font-ui);min-width:220px;cursor:pointer">
+              <option value="__all__">📊 Todos los usuarios</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. KPIs del usuario -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Índice Productivo</div>
+            <div class="kpi-value" id="prodKpiIndex">—</div>
+            <div class="kpi-delta" id="prodKpiIndexDelta">Cargando...</div>
+            <div class="kpi-icon-bg">📊</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Horas Trabajo</div>
+            <div class="kpi-value" id="prodKpiTrabajo">—</div>
+            <div class="kpi-delta">Ofimática + Código</div>
+            <div class="kpi-icon-bg">💼</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Comunicación</div>
+            <div class="kpi-value" id="prodKpiComun">—</div>
+            <div class="kpi-delta">Email + Chat</div>
+            <div class="kpi-icon-bg">💬</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Web / Ocio</div>
+            <div class="kpi-value" id="prodKpiOcio">—</div>
+            <div class="kpi-delta">Navegación + Redes</div>
+            <div class="kpi-icon-bg">🌐</div>
+          </div>
+        </div>
+
+        <!-- 3. Donut + Top Apps -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-header"><span>🍩</span><span class="card-title" id="prodDonutTitle">Distribucion de Actividad</span></div>
+            <div class="card-body" style="display:flex;align-items:center;justify-content:center;padding:28px;gap:32px">
+              <div style="position:relative">
+                <svg width="160" height="160" viewBox="0 0 160 160" id="prodDonutSvg" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15))">
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--surface3)" stroke-width="12" opacity="0.5"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--blue)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" transform="rotate(-90 80 80)" id="donutTrabajo" style="transition:stroke-dashoffset 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutComun" style="transition:stroke-dashoffset 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--amber)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutWeb" style="transition:stroke-dashoffset 0.8s ease"/>
+                  <circle cx="80" cy="80" r="62" fill="none" stroke="var(--red)" stroke-width="12" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutOcio" style="transition:stroke-dashoffset 0.8s ease"/>
+                  <text x="80" y="76" text-anchor="middle" fill="var(--text)" font-size="26" font-weight="800" font-family="Syne" id="donutCenterPct">—</text>
+                  <text x="80" y="94" text-anchor="middle" fill="var(--text3)" font-size="10" font-family="DM Sans">Productivo</text>
+                </svg>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;min-width:120px">
+                <div class="donut-legend-row" style="padding:6px 10px;border-radius:6px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.1)">
+                  <div class="donut-legend-dot" style="background:var(--blue);border-radius:50%"></div>Trabajo<span class="donut-legend-pct" id="legendTrabajo">0%</span>
+                </div>
+                <div class="donut-legend-row" style="padding:6px 10px;border-radius:6px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.1)">
+                  <div class="donut-legend-dot" style="background:var(--green);border-radius:50%"></div>Comunicacion<span class="donut-legend-pct" id="legendComun">0%</span>
+                </div>
+                <div class="donut-legend-row" style="padding:6px 10px;border-radius:6px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.1)">
+                  <div class="donut-legend-dot" style="background:var(--amber);border-radius:50%"></div>Web<span class="donut-legend-pct" id="legendWeb">0%</span>
+                </div>
+                <div class="donut-legend-row" style="padding:6px 10px;border-radius:6px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1)">
+                  <div class="donut-legend-dot" style="background:var(--red);border-radius:50%"></div>Ocio<span class="donut-legend-pct" id="legendOcio">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>🏆</span><span class="card-title" id="prodAppsTitle">Top Aplicaciones</span></div>
+            <div class="card-body" style="padding-top:10px" id="prodAppsContainer">
+              <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando datos...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.5. Tiempo por Aplicación: Escritorio + Web -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><span>⏰</span><span class="card-title" id="prodTimeAppTitle">Tiempo por Aplicación — Usuario seleccionado</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+              <!-- Aplicaciones de Escritorio -->
+              <div>
+                <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">Aplicaciones de Escritorio</div>
+                <div id="prodDesktopApps">
+                  <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando...</div>
+                </div>
+              </div>
+              <!-- Páginas Web -->
+              <div>
+                <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">Páginas Web — Tiempo Activo</div>
+                <table class="data-table" style="font-size:12px" id="prodWebPagesTable">
+                  <thead><tr><th>Dominio</th><th>Categoría</th><th>Tiempo</th></tr></thead>
+                  <tbody id="prodWebPagesBody">
+                    <tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Cargando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.8 Grafo de Concentracion de Trafico Web -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🕸️</span>
+            <span class="card-title">Grafo de Concentración de Tráfico Web (Top Sitios)</span>
+            <span class="card-sub" style="color:var(--purple)">Relación Flota & Dominios</span>
+          </div>
+          <div class="card-body" style="padding:16px 20px">
+            <div style="font-size:12.5px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+              Este grafo representa de manera visual qué <strong>sitios web</strong> concentran el tráfico de navegación de los <strong>endpoints</strong>. Los nodos de color <span style="color:var(--blue);font-weight:600">azul</span> representan a los equipos de los usuarios y los de color <span style="color:var(--purple);font-weight:600">púrpura</span> representan los dominios web. El tamaño del nodo de dominio es proporcional al número total de visitas recibidas desde el piloto.
+            </div>
+            <div style="position:relative;height:350px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              <svg id="webTrafficGraphSvg" style="width:100%;height:100%"></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span>👥</span>
+            <span class="card-title">Productividad por Usuario — Comparativa</span>
+            <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;padding:5px 12px" onclick="exportProductivityCSV()">📤 Exportar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table" id="prodUserTable">
+              <thead><tr>
+                <th>Usuario</th><th>Equipo</th>
+                <th>⏱ Trabajo</th><th>💬 Comun.</th>
+                <th>🌐 Web</th><th>🎬 Ocio</th>
+                <th>Índice</th><th>Apps Top</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 4: MESA DE AYUDA
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-mesa">
+
+        <!-- KPIs mesa -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="kpi-card red">
+            <div class="kpi-label">Tickets Abiertos</div>
+            <div class="kpi-value">12</div>
+            <div class="kpi-delta"><span class="down">3 críticos</span> sin asignar</div>
+            <div class="kpi-icon-bg">🎫</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">En Progreso</div>
+            <div class="kpi-value">7</div>
+            <div class="kpi-delta">Asignados a 4 agentes</div>
+            <div class="kpi-icon-bg">⏳</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Resueltos Hoy</div>
+            <div class="kpi-value">23</div>
+            <div class="kpi-delta"><span class="up">▲ +8</span> vs ayer</div>
+            <div class="kpi-icon-bg">✅</div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-label">MTTR Promedio</div>
+            <div class="kpi-value">2.4h</div>
+            <div class="kpi-delta"><span class="up">▼ -35 min</span> esta semana</div>
+            <div class="kpi-icon-bg">⚡</div>
+          </div>
+        </div>
+
+        <div class="col-4-8">
+          <!-- Lista de tickets -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div class="section-label">Tickets activos</div>
+              <button class="btn btn-primary" style="font-size:12px;padding:6px 12px">+ Nuevo Ticket</button>
+            </div>
+
+            <div class="ticket-card selected">
+              <div class="ticket-priority p1"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2851</div>
+                <div class="ticket-title">RAM crítica — Chrome 94% · LAPTOP-MROJAS</div>
+                <div class="ticket-meta">🤖 Auto-creado · hace 2 min · Sin asignar</div>
+              </div>
+              <span class="badge crit">P1</span>
+            </div>
+
+            <div class="ticket-card">
+              <div class="ticket-priority p1"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2849</div>
+                <div class="ticket-title">Disco 95% — PC-JGOMEZ · 4.2 GB libres</div>
+                <div class="ticket-meta">🤖 Auto-creado · hace 18 min · Sin asignar</div>
+              </div>
+              <span class="badge crit">P1</span>
+            </div>
+
+            <div class="ticket-card">
+              <div class="ticket-priority p2"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2847</div>
+                <div class="ticket-title">5 intentos login fallidos · PC-BSANCHEZ</div>
+                <div class="ticket-meta">🔐 Seguridad · hace 42 min · L. Vargas</div>
+              </div>
+              <span class="badge warn">P2</span>
+            </div>
+
+            <div class="ticket-card">
+              <div class="ticket-priority p2"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2845</div>
+                <div class="ticket-title">CPU >90% sostenido — LAPTOP-CPEREZ</div>
+                <div class="ticket-meta">⏳ En progreso · hace 1h 20min · A. Cruz</div>
+              </div>
+              <span class="badge warn">P2</span>
+            </div>
+
+            <div class="ticket-card">
+              <div class="ticket-priority p3"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2843</div>
+                <div class="ticket-title">Software no autorizado — PC-RLOPEZ</div>
+                <div class="ticket-meta">📦 Inventario · hace 2h 05min · M. Gil</div>
+              </div>
+              <span class="badge info">P3</span>
+            </div>
+
+            <div class="ticket-card">
+              <div class="ticket-priority p3"></div>
+              <div style="flex:1">
+                <div class="ticket-num">#INC-2841</div>
+                <div class="ticket-title">Equipo offline 6 días — PC-LMENDEZ</div>
+                <div class="ticket-meta">⚫ Offline · hace 3h · Sin asignar</div>
+              </div>
+              <span class="badge off">P3</span>
+            </div>
+          </div>
+
+          <!-- Detalle del ticket seleccionado -->
+          <div>
+            <div class="detail-panel">
+              <div class="detail-header">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">#INC-2851 · 🤖 Creado automáticamente por EndpointIQ</div>
+                    <div class="detail-title">RAM crítica — Chrome consume 94% de memoria</div>
+                    <div class="detail-sub">LAPTOP-MROJAS-001 · María Rojas · Gerencia Comercial</div>
+                  </div>
+                  <span class="badge crit">CRÍTICO P1</span>
+                </div>
+              </div>
+              <div class="detail-body">
+
+                <!-- Métricas al momento del incidente -->
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px;margin-bottom:16px">
+                  <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">📸 Snapshot al momento del incidente — 09:42:18</div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                    <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px">
+                      <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--red)">89%</div>
+                      <div style="font-size:10px;color:var(--text3)">CPU</div>
+                    </div>
+                    <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px">
+                      <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--red)">94%</div>
+                      <div style="font-size:10px;color:var(--text3)">RAM</div>
+                    </div>
+                    <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px">
+                      <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--amber)">60%</div>
+                      <div style="font-size:10px;color:var(--text3)">DISCO</div>
+                    </div>
+                    <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px">
+                      <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--cyan)">12M</div>
+                      <div style="font-size:10px;color:var(--text3)">RED</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Análisis causa raíz -->
+                <div style="margin-bottom:14px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">🔎 Análisis Automático de Causa Raíz</div>
+                  <div style="font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface2);border-radius:8px;padding:12px">
+                    El proceso <strong style="color:var(--text);font-family:var(--font-mono)">chrome.exe</strong> está utilizando <strong style="color:var(--red)">61%</strong> de la RAM total del equipo (9.8 GB de 16 GB). Se detectaron <strong style="color:var(--amber)">23 pestañas activas</strong>. El antivirus <strong style="color:var(--text);font-family:var(--font-mono)">MsMpEng</strong> consume adicionalmente un 18%, lo que combinado genera el pico crítico. <strong style="color:var(--green)">Recomendación:</strong> Cerrar pestañas no esenciales y programar escaneo antivirus fuera de horario laboral.
+                  </div>
+                </div>
+
+                <!-- Info del equipo -->
+                <div class="detail-row"><span class="detail-key">Equipo</span><span class="detail-val mono">LAPTOP-MROJAS-001</span></div>
+                <div class="detail-row"><span class="detail-key">Usuario</span><span class="detail-val">María Rojas · mrojas@empresa.com</span></div>
+                <div class="detail-row"><span class="detail-key">SO</span><span class="detail-val mono">Windows 11 Pro 23H2 · Build 22631</span></div>
+                <div class="detail-row"><span class="detail-key">RAM Instalada</span><span class="detail-val mono">16 GB DDR4 3200MHz</span></div>
+                <div class="detail-row"><span class="detail-key">Agente Notificó</span><span class="detail-val">✅ Toast enviado al usuario — 09:42</span></div>
+                <div class="detail-row"><span class="detail-key">Usuario respondió</span><span class="detail-val">❌ Sin respuesta — escalado automático</span></div>
+                <div class="detail-row"><span class="detail-key">Asignado a</span><span class="detail-val" style="color:var(--text3)">— Sin asignar —</span></div>
+
+                <!-- Acciones -->
+                <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+                  <button class="btn btn-primary">✅ Asignarme</button>
+                  <button class="btn btn-ghost">👤 Asignar a...</button>
+                  <button class="btn btn-green">✔ Resolver</button>
+                  <button class="btn btn-ghost">💬 Comentar</button>
+                  <button class="btn btn-ghost">📎 Ver Logs</button>
+                </div>
+
+                <!-- Notificación preview -->
+                <div style="margin-top:16px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">📩 Notificación enviada al usuario</div>
+                  <div class="toast-preview">
+                    <div class="toast-title-row">
+                      <div class="toast-app-icon">🔔</div>
+                      <div class="toast-app-name">EndpointIQ · Alerta de Rendimiento</div>
+                      <div class="toast-time">09:42</div>
+                    </div>
+                    <div class="toast-body">Tu equipo está experimentando lentitud. Chrome está usando el 94% de tu memoria RAM. Tienes 23 pestañas abiertas.</div>
+                    <div class="toast-actions">
+                      <div class="toast-btn primary">Cerrar pestañas</div>
+                      <div class="toast-btn ghost">Ver detalles</div>
+                      <div class="toast-btn ghost">Ignorar</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estadísticas mesa de ayuda -->
+        <div class="three-col" style="margin-top:16px">
+          <div class="card">
+            <div class="card-header"><span>📊</span><span class="card-title">Tickets por Tipo</span></div>
+            <div class="card-body">
+              <div class="meter-row"><div class="meter-label">Hardware</div><div class="meter-track"><div class="meter-fill" style="width:45%;background:var(--red)"></div></div><div class="meter-val">45%</div></div>
+              <div class="meter-row"><div class="meter-label">Software</div><div class="meter-track"><div class="meter-fill" style="width:28%;background:var(--blue)"></div></div><div class="meter-val">28%</div></div>
+              <div class="meter-row"><div class="meter-label">Seguridad</div><div class="meter-track"><div class="meter-fill" style="width:15%;background:var(--purple)"></div></div><div class="meter-val">15%</div></div>
+              <div class="meter-row"><div class="meter-label">Red</div><div class="meter-track"><div class="meter-fill" style="width:8%;background:var(--cyan)"></div></div><div class="meter-val">8%</div></div>
+              <div class="meter-row"><div class="meter-label">Otro</div><div class="meter-track"><div class="meter-fill" style="width:4%;background:var(--text3)"></div></div><div class="meter-val">4%</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>🤖</span><span class="card-title">Tickets Auto-creados</span></div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;justify-content:center;gap:20px;padding:10px 0">
+                <div style="text-align:center">
+                  <div style="font-family:var(--font-disp);font-size:40px;font-weight:800;color:var(--blue)">71%</div>
+                  <div style="font-size:12px;color:var(--text3);margin-top:4px">Tickets generados<br>automáticamente por IA</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="font-size:12.5px;color:var(--text2)">🤖 Auto: <strong style="color:var(--blue)">23</strong> tickets</div>
+                  <div style="font-size:12.5px;color:var(--text2)">👤 Manual: <strong style="color:var(--text)">9</strong> tickets</div>
+                  <div style="font-size:12.5px;color:var(--text2)">⚡ MTTR auto: <strong style="color:var(--green)">1.8h</strong></div>
+                  <div style="font-size:12.5px;color:var(--text2)">⌛ MTTR manual: <strong style="color:var(--amber)">3.2h</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>👥</span><span class="card-title">Carga por Agente</span></div>
+            <div class="card-body">
+              <div class="meter-row"><div class="meter-label">L. Vargas</div><div class="meter-track"><div class="meter-fill" style="width:80%;background:var(--red)"></div></div><div class="meter-val">8 tkt</div></div>
+              <div class="meter-row"><div class="meter-label">A. Cruz</div><div class="meter-track"><div class="meter-fill" style="width:60%;background:var(--amber)"></div></div><div class="meter-val">6 tkt</div></div>
+              <div class="meter-row"><div class="meter-label">M. Gil</div><div class="meter-track"><div class="meter-fill" style="width:40%;background:var(--green)"></div></div><div class="meter-val">4 tkt</div></div>
+              <div class="meter-row"><div class="meter-label">R. Pinto</div><div class="meter-track"><div class="meter-fill" style="width:30%;background:var(--green)"></div></div><div class="meter-val">3 tkt</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 5: SEGURIDAD
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-seguridad">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="kpi-card red"><div class="kpi-label">Alertas Seguridad</div><div class="kpi-value">4</div><div class="kpi-delta">2 sin resolver</div><div class="kpi-icon-bg">🔐</div></div>
+          <div class="kpi-card amber"><div class="kpi-label">IPs Extranjeras</div><div class="kpi-value">2</div><div class="kpi-delta">Detectadas hoy</div><div class="kpi-icon-bg">🌍</div></div>
+          <div class="kpi-card amber"><div class="kpi-label">Equipos Inactivos</div><div class="kpi-value">3</div><div class="kpi-delta">> 5 días sin encender</div><div class="kpi-icon-bg">⚫</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Logins Fallidos</div><div class="kpi-value">17</div><div class="kpi-delta">Últimas 24h</div><div class="kpi-icon-bg">🔑</div></div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span>🔐</span><span class="card-title">Eventos de Seguridad — Últimas 24h</span></div>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead><tr><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>IP</th><th>Hora</th><th>Estado</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="badge crit">Login Fallido</span></td><td class="mono">PC-BSANCHEZ</td><td>5 intentos · user: admin</td><td class="mono">192.168.1.44</td><td class="mono">09:31</td><td><span class="badge warn">Revisando</span></td></tr>
+                  <tr><td><span class="badge warn">IP Extranjera</span></td><td class="mono">LAPTOP-ADIAZ</td><td>Sync desde Venezuela</td><td class="mono">186.4.22.11</td><td class="mono">08:15</td><td><span class="badge crit">Sin resolver</span></td></tr>
+                  <tr><td><span class="badge warn">IP Extranjera</span></td><td class="mono">PC-NMORA</td><td>Sync desde Ecuador</td><td class="mono">190.12.44.8</td><td class="mono">07:50</td><td><span class="badge crit">Sin resolver</span></td></tr>
+                  <tr><td><span class="badge info">Inactivo 7d</span></td><td class="mono">PC-LMENDEZ</td><td>Último encendido 25/05</td><td class="mono">—</td><td class="mono">—</td><td><span class="badge off">Investigando</span></td></tr>
+                  <tr><td><span class="badge info">Software Ext.</span></td><td class="mono">PC-RLOPEZ</td><td>uTorrent 3.5 detectado</td><td class="mono">—</td><td class="mono">06:00</td><td><span class="badge ok">Ticket abierto</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>🌐</span><span class="card-title">Mapa de Conexiones — IPs de Sincronización</span></div>
+            <div class="card-body">
+              <div style="background:var(--surface2);border-radius:10px;overflow:hidden;position:relative;height:220px;display:flex;align-items:center;justify-content:center">
+                <svg viewBox="0 0 500 220" width="100%" height="100%" style="position:absolute;top:0;left:0">
+                  <!-- Colombia (home) -->
+                  <circle cx="150" cy="120" r="28" fill="rgba(16,185,129,0.2)" stroke="var(--green)" stroke-width="1.5"/>
+                  <circle cx="150" cy="120" r="8" fill="var(--green)"/>
+                  <text x="150" y="160" text-anchor="middle" fill="var(--green)" font-size="11" font-family="DM Sans" font-weight="700">Colombia ✓</text>
+                  <text x="150" y="173" text-anchor="middle" fill="var(--text3)" font-size="9" font-family="JetBrains Mono">1,183 equipos</text>
+                  <!-- Venezuela -->
+                  <circle cx="280" cy="90" r="12" fill="rgba(239,68,68,0.25)" stroke="var(--red)" stroke-width="1.5"/>
+                  <circle cx="280" cy="90" r="5" fill="var(--red)"/>
+                  <text x="280" y="113" text-anchor="middle" fill="var(--red)" font-size="10" font-family="DM Sans" font-weight="700">Venezuela ⚠</text>
+                  <line x1="155" y1="118" x2="275" y2="93" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/>
+                  <!-- Ecuador -->
+                  <circle cx="115" cy="165" r="10" fill="rgba(239,68,68,0.25)" stroke="var(--red)" stroke-width="1.5"/>
+                  <circle cx="115" cy="165" r="4" fill="var(--red)"/>
+                  <text x="115" y="185" text-anchor="middle" fill="var(--red)" font-size="10" font-family="DM Sans" font-weight="700">Ecuador ⚠</text>
+                  <line x1="148" y1="126" x2="118" y2="162" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/>
+                  <!-- Leyenda -->
+                  <rect x="340" y="10" width="140" height="60" rx="6" fill="var(--surface3)" opacity="0.9"/>
+                  <circle cx="356" cy="30" r="5" fill="var(--green)"/>
+                  <text x="366" y="34" fill="var(--text2)" font-size="10" font-family="DM Sans">Conexión normal</text>
+                  <circle cx="356" cy="50" r="5" fill="var(--red)"/>
+                  <text x="366" y="54" fill="var(--text2)" font-size="10" font-family="DM Sans">IP extranjera ⚠</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 6: AGENTES IA
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-agentes">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+
+          <div class="card" style="border-left:3px solid var(--red)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">🚨</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Centinela de Seguridad</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta intentos fallidos, IPs extranjeras y equipos inactivos</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">Alertas hoy</div><div style="color:var(--red);font-weight:700">4</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Último disparo</div><div style="color:var(--text2)">hace 31 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">🔮</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Predictor de Fallas</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta tendencias de degradación antes de que fallen</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">En riesgo (7d)</div><div style="color:var(--amber);font-weight:700">6 equipos</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Precisión modelo</div><div style="color:var(--green)">94.2%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--blue)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">📊</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Monitor Productividad</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Identifica patrones de bajo rendimiento y uso fuera de política</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">Bajo umbral</div><div style="color:var(--amber);font-weight:700">8 usuarios</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Reporte enviado</div><div style="color:var(--text2)">Lunes 08:00</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--green)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">🔧</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Auto-Ticket Engine</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Crea tickets automáticos cuando detecta incidentes críticos</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">Tickets auto hoy</div><div style="color:var(--green);font-weight:700">23</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Tasa de éxito</div><div style="color:var(--green)">97.8%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--purple)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">🕸</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Graph Analyzer</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta clusters de equipos con problemas relacionados</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">Clusters activos</div><div style="color:var(--purple);font-weight:700">3</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Último análisis</div><div style="color:var(--text2)">hace 4h</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--cyan)">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                <div style="font-size:22px">📦</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--amber)"><span class="status-glow" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Pausado</div>
+              </div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Inventario Guard</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta software no autorizado y versiones obsoletas</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <div style="color:var(--text3)">Pausado por</div><div style="color:var(--amber);font-weight:700">Mantenimiento</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
+                <div style="color:var(--text3)">Reactiva en</div><div style="color:var(--text2)">2h 15min</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Feed de alertas en tiempo real + Simulador WhatsApp -->
+        <div class="col-7-3" style="margin-top:20px">
+          <!-- Alertas -->
+          <div class="card">
+            <div class="card-header"><span>⚡</span><span class="card-title">Feed en Tiempo Real — Alertas de Agentes</span><span class="card-sub" style="display:flex;align-items:center;gap:6px"><span class="status-glow green"></span>Live</span></div>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead><tr><th>Hora</th><th>Agente</th><th>Equipo</th><th>Evento</th><th>Severidad</th><th>Acción</th></tr></thead>
+                <tbody id="agentAlertsTable">
+                  <!-- Se poblará dinámicamente -->
+                  <tr><td class="mono">09:42</td><td>Auto-Ticket</td><td class="mono">LAPTOP-MROJAS</td><td>Ticket #INC-2851 creado — RAM 94%</td><td><span class="badge crit">Crítico</span></td><td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">Ver →</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- WhatsApp Bot Simulator -->
+          <div class="card">
+            <div class="card-header">
+              <span>💬</span>
+              <span class="card-title">Simulador WhatsApp Business API</span>
+            </div>
+            <div class="card-body" style="display:flex; flex-direction:column; height:320px; padding:0; background:#080C14">
+              <!-- Chat logs container -->
+              <div id="chatContainer" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
+                  🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de EndpointIQ. Hazme una pregunta como:
+                  <div style="margin-top:6px; font-style:italic; opacity:0.8; font-size:11.5px">
+                    - "¿Cómo está la flota hoy?"<br>
+                    - "¿Hay alertas críticas de hardware?"<br>
+                    - "¿Qué puertos o USBs se detectaron?"
+                  </div>
+                </div>
+              </div>
+              <!-- Input field -->
+              <div style="display:flex; border-top:1px solid var(--border); padding:8px; background:var(--surface)">
+                <input type="text" id="chatInput" placeholder="Escribe tu consulta al bot..." style="flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-ui); font-size:12.5px" onkeydown="if(event.key === 'Enter') sendChatMessage()"/>
+                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding:6px 12px; margin-left:6px; font-size:12px">Enviar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           VIEW 7: KPI BUILDER
+      ════════════════════════════════════════════ -->
+      <div class="view" id="view-kpibuilder">
+        <div class="two-col">
+          <!-- Formulario para agregar KPI -->
+          <div class="card">
+            <div class="card-header">
+              <span>🛠</span>
+              <span class="card-title">Crear Nuevo KPI Asistido por IA</span>
+            </div>
+            <div class="card-body">
+              <form id="kpiForm" onsubmit="createNewKpi(event)">
+                <div style="margin-bottom:16px">
+                  <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">Nombre del KPI:</label>
+                  <input type="text" id="kpiNameInput" required placeholder="Ej: Cumplimiento de RAM" style="width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-ui)"/>
+                </div>
+                <div style="margin-bottom:16px">
+                  <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">Fórmula SQL (BigQuery):</label>
+                  <textarea id="kpiFormulaInput" required placeholder="Ej: COUNTIF(ram_usage < 80.0) / COUNT(device_id) * 100" style="width:100%; height:80px; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-mono); resize:none"></textarea>
+                </div>
+                <div style="margin-bottom:20px">
+                  <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">Valor Objetivo (%):</label>
+                  <input type="number" step="0.1" id="kpiTargetInput" required placeholder="Ej: 90.0" style="width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-ui)"/>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center">💾 Guardar KPI en BigQuery</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Listado de KPIs actuales -->
+          <div class="card">
+            <div class="card-header">
+              <span>📋</span>
+              <span class="card-title">Fórmulas de KPIs Activos en la Nube</span>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead><tr><th>ID</th><th>Nombre del KPI</th><th>Fórmula SQL</th><th>Objetivo</th></tr></thead>
+                <tbody id="kpisTableBody">
+                  <!-- Se poblará dinámicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Estado Global ──
+let fleetDevices = [];
+let kpiDefinitions = [];
+let securityEvents = [];
+let selectedDeviceId = "device-01";
+
+const titles = {
+  dashboard:     'Dashboard General',
+  equipo:        'Detalle por Equipo',
+  productividad: 'Productividad y Uso de Apps',
+  mesa:          'Mesa de Ayuda',
+  seguridad:     'Seguridad',
+  agentes:       'Agentes Inteligentes IA',
+  kpibuilder:    'KPI Builder Asistido por IA'
+};
+
+// ── Navegación de Vistas ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const view = document.getElementById('view-' + id);
+  if (view) view.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(id)) {
+      n.classList.add('active');
+    }
+  });
+
+  document.getElementById('pageTitle').textContent = titles[id] || id;
+  
+  // Recargar datos correspondientes al cambiar de vista
+  if (id === 'dashboard') {
+    fetchDevices();
+  } else if (id === 'equipo') {
+    loadDeviceDetail(selectedDeviceId);
+  } else if (id === 'productividad') {
+    fetchProductivity();
+  } else if (id === 'seguridad') {
+    fetchSecurity();
+  } else if (id === 'kpibuilder') {
+    fetchKPIs();
+  } else if (id === 'agentes') {
+    fetchWhatsAppHistory();
+  }
+}
+
+// ── Sincronizar BigQuery ──
+function syncBigQuery() {
+  const syncBtn = document.getElementById('btnSync');
+  const syncText = document.getElementById('syncTimeText');
+  
+  syncBtn.style.pointerEvents = 'none';
+  syncBtn.style.opacity = '0.5';
+  if (syncText) syncText.textContent = "Sincronizando con GCP BigQuery...";
+  
+  fetch('/api/refresh', { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      syncBtn.style.pointerEvents = 'auto';
+      syncBtn.style.opacity = '1';
+      if (data.success) {
+        markSyncNow();
+        // Refrescar vista activa
+        const activeView = document.querySelector('.view.active').id.replace('view-', '');
+        showView(activeView);
+      } else {
+        if (syncText) syncText.textContent = "Error al sincronizar.";
+      }
+    })
+    .catch(() => {
+      syncBtn.style.pointerEvents = 'auto';
+      syncBtn.style.opacity = '1';
+      if (syncText) syncText.textContent = "Error de red al sincronizar.";
+    });
+}
+
+// ── Fetch General de Dispositivos ──
+function fetchDevices() {
+  fetch('/api/devices')
+    .then(res => res.json())
+    .then(data => {
+      fleetDevices = data;
+      updateDashboardKPIs();
+      generateFleetHeatmap();
+      updateTopProblematicTable();
+      populateDeviceSelector();
+      updateAlertsFeed();
+      updateFleetTable();
+      updateDashboardNetwork();
+      updateEquipoReport();
+    });
+}
+
+// ── Actualizar Reporte de Sincronizacion por Equipo ──
+function updateEquipoReport() {
+  const totalEl = document.getElementById('eqReportTotal');
+  const onlineEl = document.getElementById('eqReportOnline');
+  const offlineEl = document.getElementById('eqReportOffline');
+  const tbody = document.querySelector('#eqReportTable tbody');
+  
+  if (!tbody) return;
+  
+  const total = fleetDevices.length;
+  const online = fleetDevices.filter(d => d.status === 'Online').length;
+  const offline = total - online;
+  
+  if (totalEl) totalEl.textContent = total;
+  if (onlineEl) onlineEl.textContent = online;
+  if (offlineEl) offlineEl.textContent = offline;
+  
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No hay equipos registrados en la flota.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  fleetDevices.forEach(dev => {
+    const isOnline = dev.status === 'Online';
+    const statusClass = isOnline ? 'ok' : 'off';
+    const statusText = isOnline ? 'Activo' : 'Inactivo';
+    
+    // Calcular tiempo transcurrido desde ultima sincronizacion
+    const syncTimeStr = timeAgo(dev.last_sync || dev.timestamp);
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="font-weight:600;color:var(--text)">${dev.device_id}</td>
+      <td>${dev.device_type || 'Desktop'}</td>
+      <td style="color:var(--text2)">${syncTimeStr}</td>
+      <td class="mono" style="font-size:12.5px;color:var(--text3)">${dev.last_ip || 'N/A'}</td>
+      <td><span class="badge ${statusClass}">${statusText}</span></td>
+      <td><button class="btn btn-ghost" onclick="loadDeviceDetail('${dev.device_id}')" style="font-size:11px;padding:3px 9px">Analizar \u2192</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Calcular tiempo transcurrido relativo ──
+function timeAgo(dateString) {
+  if (!dateString) return 'Nunca';
+  try {
+    let s = dateString;
+    if (s.includes(' ') && !s.includes('T')) {
+      s = s.replace(' ', 'T');
+    }
+    const date = new Date(s);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 5) return 'Justo ahora';
+    if (seconds < 60) return `Hace ${seconds}s`;
+    
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Hace ${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
+    
+    return date.toLocaleDateString();
+  } catch (e) {
+    return dateString;
+  }
+}
+
+// ── Actualizar Tarjetas KPIs del Dashboard ──
+function updateDashboardKPIs() {
+  const totalCards = document.querySelectorAll('.kpi-card');
+  if (totalCards.length < 5) return;
+  
+  const total = fleetDevices.length;
+  const online = fleetDevices.filter(d => d.status === 'Online').length;
+  const offline = total - online;
+  const alerts = fleetDevices.filter(d => d.cause_root).length;
+  
+  // Datos reales de la flota
+  totalCards[0].querySelector('.kpi-value').textContent = total;
+  totalCards[0].querySelector('.kpi-delta').textContent = total === 1 ? "Equipo registrado" : "Equipos registrados";
+  
+  totalCards[1].querySelector('.kpi-value').textContent = online;
+  const pctOnline = total > 0 ? ((online/total)*100).toFixed(0) : 0;
+  totalCards[1].querySelector('.kpi-delta').innerHTML = `<span class="up">\u25b2 ${pctOnline}%</span> disponibilidad`;
+  
+  totalCards[2].querySelector('.kpi-value').textContent = offline;
+  const pctOff = total > 0 ? ((offline/total)*100).toFixed(0) : 0;
+  totalCards[2].querySelector('.kpi-delta').innerHTML = offline === 0 ? "Todos conectados" : `<span class="down">\u25bc ${pctOff}%</span> de la flota`;
+  
+  totalCards[3].querySelector('.kpi-value').textContent = alerts;
+  totalCards[3].querySelector('.kpi-delta').textContent = alerts === 0 ? "Sin alertas activas" : `${alerts} alerta${alerts > 1 ? 's' : ''} activa${alerts > 1 ? 's' : ''}`;
+  
+  // KPI 5: Promedio CPU/RAM
+  const avgCPU = total > 0 ? (fleetDevices.reduce((s,d) => s + (d.cpu_usage || 0), 0) / total).toFixed(0) : 0;
+  const avgRAM = total > 0 ? (fleetDevices.reduce((s,d) => s + (d.ram_usage || 0), 0) / total).toFixed(0) : 0;
+  totalCards[4].querySelector('.kpi-label').textContent = 'Promedio Recursos';
+  totalCards[4].querySelector('.kpi-value').textContent = `${avgCPU}/${avgRAM}%`;
+  totalCards[4].querySelector('.kpi-delta').textContent = `CPU ${avgCPU}% \u00b7 RAM ${avgRAM}%`;
+  totalCards[4].querySelector('.kpi-icon-bg').textContent = '\u26a1';
+  
+  // Actualizar grafica de metricas promedio
+  updateMetricsChart();
+}
+
+// ── Grafica Metricas Promedio con datos reales (INTERACTIVA) ──
+let _chartData = { cpu: [], ram: [], disk: [], times: [], visible: {cpu:true, ram:true, disk:true} };
+
+function toggleChartSeries(series) {
+  _chartData.visible[series] = !_chartData.visible[series];
+  const item = document.querySelector(`.chart-legend-item[data-series="${series}"]`);
+  if (item) {
+    if (_chartData.visible[series]) {
+      item.classList.add('active');
+      item.style.opacity = '1';
+      item.style.borderColor = 'transparent';
+    } else {
+      item.classList.remove('active');
+      item.style.opacity = '0.4';
+      item.style.borderColor = 'rgba(148,163,184,0.2)';
+    }
+  }
+  updateMetricsChart();
+}
+
+function updateMetricsChart() {
+  const svg = document.getElementById('metricsChart');
+  if (!svg) return;
+  
+  const n = fleetDevices.length || 1;
+  const avgCPU = fleetDevices.reduce((s,d) => s + (d.cpu_usage || 0), 0) / n;
+  const avgRAM = fleetDevices.reduce((s,d) => s + (d.ram_usage || 0), 0) / n;
+  const avgDisk = fleetDevices.reduce((s,d) => s + (d.disk_free_gb || 0), 0) / n;
+  
+  const W = 560, H = 160;
+  const numPoints = 24; // More points = smoother
+  const vis = _chartData.visible;
+  
+  // Generate data points
+  _chartData.cpu = []; _chartData.ram = []; _chartData.disk = []; _chartData.times = [];
+  const now = new Date();
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    const hoursAgo = (1 - t) * 24;
+    const time = new Date(now - hoursAgo * 3600000);
+    _chartData.times.push(time);
+    
+    // Simulate variation around real values
+    const seed = i * 2.7;
+    const cpuNoise = Math.sin(seed) * 12 + Math.cos(seed * 0.6) * 6;
+    const ramNoise = Math.sin(seed * 1.3 + 1) * 8 + Math.cos(seed * 0.4) * 4;
+    const diskNoise = Math.sin(seed * 0.9 + 2) * 3;
+    
+    _chartData.cpu.push(Math.max(1, Math.min(99, avgCPU + cpuNoise)));
+    _chartData.ram.push(Math.max(1, Math.min(99, avgRAM + ramNoise)));
+    _chartData.disk.push(Math.max(0.1, avgDisk + diskNoise));
+  }
+  
+  function valuesToPath(values, isPercent) {
+    let points = values.map((v, i) => {
+      const x = (i / numPoints) * W;
+      const pct = isPercent ? v : Math.min(100, (1 - v / 500) * 100);
+      const y = H - pct / 100 * (H - 25) - 12;
+      return {x, y: Math.max(5, Math.min(H - 5, y))};
+    });
+    let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+    for (let i = 1; i < points.length; i++) {
+      const p = points[i-1], c = points[i];
+      const cpx = (p.x + c.x) / 2;
+      d += ` C${cpx.toFixed(1)},${p.y.toFixed(1)} ${cpx.toFixed(1)},${c.y.toFixed(1)} ${c.x.toFixed(1)},${c.y.toFixed(1)}`;
+    }
+    return {d, points};
+  }
+  
+  let content = '';
+  
+  // Grid
+  for (let p = 0; p <= 100; p += 25) {
+    const y = H - p / 100 * (H - 25) - 12;
+    content += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(99,120,180,0.08)" stroke-dasharray="3"/>`;
+    if (p > 0) content += `<text x="4" y="${y-3}" fill="rgba(148,163,184,0.4)" font-size="8" font-family="JetBrains Mono">${p}%</text>`;
+  }
+  
+  // Time labels
+  for (let i = 0; i < 6; i++) {
+    const idx = Math.floor(i / 5 * numPoints);
+    const t = _chartData.times[Math.min(idx, _chartData.times.length - 1)];
+    if (t) {
+      const label = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+      content += `<text x="${(i/5)*W + 5}" y="${H-1}" fill="rgba(148,163,184,0.5)" font-size="8" font-family="JetBrains Mono">${label}</text>`;
+    }
+  }
+  
+  // Series with animation
+  const series = [
+    {data: _chartData.cpu, color: '#3B82F6', grad: 'gc', vis: vis.cpu, w: 2.5, dash: false},
+    {data: _chartData.ram, color: '#10B981', grad: 'gg', vis: vis.ram, w: 2.5, dash: false},
+    {data: _chartData.disk, color: '#F59E0B', grad: 'ga', vis: vis.disk, w: 2, dash: true, isGb: true}
+  ];
+  
+  series.forEach((s, si) => {
+    if (!s.vis) return;
+    const {d, points} = valuesToPath(s.data, !s.isGb);
+    const totalLen = W * 2; // approximate
+    
+    // Line with draw animation
+    content += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w}" stroke-linecap="round"${s.dash ? ' stroke-dasharray="6 3"' : ''} class="chart-line" style="stroke-dasharray:${totalLen};stroke-dashoffset:${totalLen};animation:drawLine 1.5s ease-out ${si*0.3}s forwards;filter:drop-shadow(0 0 4px ${s.color}40)"/>`;
+    // Gradient fill
+    if (s.grad) {
+      content += `<path d="${d} L${W},${H} L0,${H}Z" fill="url(#${s.grad})" class="chart-fill" style="opacity:0;animation:fadeIn 0.8s ease ${si*0.3+0.5}s forwards"/>`;
+    }
+    
+    // Interactive dots (hidden, shown on hover via CSS)
+    points.forEach((p, pi) => {
+      const val = s.isGb ? s.data[pi].toFixed(1) + 'GB' : s.data[pi].toFixed(0) + '%';
+      content += `<circle class="chart-dot" data-series="${si}" data-idx="${pi}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="0" fill="${s.color}" stroke="var(--bg)" stroke-width="2" style="transition:r 0.2s ease,filter 0.2s"><title>${val}</title></circle>`;
+    });
+  });
+  
+  // Crosshair line (hidden, moved by JS)
+  content += `<line id="chartCrosshair" x1="0" y1="0" x2="0" y2="${H}" stroke="rgba(148,163,184,0.3)" stroke-width="1" stroke-dasharray="3 2" style="display:none"/>`;
+  
+  // Per-device markers at right edge
+  fleetDevices.forEach((dev, i) => {
+    const x = W - 8;
+    if (!vis.cpu && !vis.ram) return;
+    if (vis.cpu) {
+      const cpuY = H - (dev.cpu_usage || 0) / 100 * (H - 25) - 12;
+      content += `<circle cx="${x}" cy="${cpuY}" r="5" fill="#3B82F6" stroke="var(--bg)" stroke-width="2" opacity="0.9" style="cursor:pointer;filter:drop-shadow(0 0 3px #3B82F680)" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')"><title>${dev.device_id}\nCPU: ${(dev.cpu_usage||0).toFixed(1)}%</title></circle>`;
+    }
+    if (vis.ram) {
+      const ramY = H - (dev.ram_usage || 0) / 100 * (H - 25) - 12;
+      content += `<circle cx="${x}" cy="${ramY}" r="5" fill="#10B981" stroke="var(--bg)" stroke-width="2" opacity="0.9" style="cursor:pointer;filter:drop-shadow(0 0 3px #10B98180)" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')"><title>${dev.device_id}\nRAM: ${(dev.ram_usage||0).toFixed(1)}%</title></circle>`;
+    }
+  });
+  
+  // Invisible hover rect for mouse tracking
+  content += `<rect id="chartHoverZone" x="0" y="0" width="${W}" height="${H}" fill="transparent" style="cursor:crosshair"/>`;
+  
+  // Preserve defs
+  const defs = svg.querySelector('defs');
+  svg.innerHTML = '';
+  if (defs) svg.appendChild(defs);
+  svg.insertAdjacentHTML('beforeend', content);
+  
+  // Attach hover events
+  const hoverZone = document.getElementById('chartHoverZone');
+  if (hoverZone) {
+    hoverZone.addEventListener('mousemove', onChartHover);
+    hoverZone.addEventListener('mouseleave', onChartLeave);
+  }
+  
+  // Update legend
+  const cpuLabel = document.getElementById('cpuAvgLabel');
+  const ramLabel = document.getElementById('ramAvgLabel');
+  const diskLabel = document.getElementById('diskAvgLabel');
+  if (cpuLabel) cpuLabel.textContent = `CPU avg ${avgCPU.toFixed(0)}%`;
+  if (ramLabel) ramLabel.textContent = `RAM avg ${avgRAM.toFixed(0)}%`;
+  if (diskLabel) diskLabel.textContent = `Disco libre ${avgDisk.toFixed(1)}GB`;
+}
+
+function onChartHover(e) {
+  const svg = document.getElementById('metricsChart');
+  const tooltip = document.getElementById('chartTooltip');
+  const crosshair = document.getElementById('chartCrosshair');
+  if (!svg || !tooltip) return;
+  
+  const rect = svg.getBoundingClientRect();
+  const scaleX = 560 / rect.width;
+  const mouseX = (e.clientX - rect.left) * scaleX;
+  const idx = Math.round(mouseX / 560 * 24);
+  const clampedIdx = Math.max(0, Math.min(24, idx));
+  
+  // Move crosshair
+  if (crosshair) {
+    crosshair.style.display = '';
+    crosshair.setAttribute('x1', (clampedIdx / 24 * 560).toFixed(1));
+    crosshair.setAttribute('x2', (clampedIdx / 24 * 560).toFixed(1));
+  }
+  
+  // Show dots at this index
+  svg.querySelectorAll('.chart-dot').forEach(dot => {
+    const di = parseInt(dot.getAttribute('data-idx'));
+    if (di === clampedIdx) {
+      dot.setAttribute('r', '5');
+      dot.style.filter = 'drop-shadow(0 0 6px currentColor)';
+    } else {
+      dot.setAttribute('r', '0');
+      dot.style.filter = '';
+    }
+  });
+  
+  // Update tooltip
+  const time = _chartData.times[clampedIdx];
+  const cpu = _chartData.cpu[clampedIdx];
+  const ram = _chartData.ram[clampedIdx];
+  const disk = _chartData.disk[clampedIdx];
+  
+  if (time) {
+    document.getElementById('ttTime').textContent = String(time.getHours()).padStart(2,'0') + ':' + String(time.getMinutes()).padStart(2,'0');
+  }
+  document.getElementById('ttCpu').textContent = cpu ? cpu.toFixed(1) + '%' : '--%';
+  document.getElementById('ttRam').textContent = ram ? ram.toFixed(1) + '%' : '--%';
+  document.getElementById('ttDisk').textContent = disk ? disk.toFixed(1) + 'GB' : '--GB';
+  
+  // Position tooltip
+  const chartArea = document.getElementById('metricsChartArea');
+  if (chartArea) {
+    const areaRect = chartArea.getBoundingClientRect();
+    let tx = e.clientX - areaRect.left + 15;
+    let ty = e.clientY - areaRect.top - 40;
+    if (tx + 160 > areaRect.width) tx = tx - 180;
+    if (ty < 0) ty = 10;
+    tooltip.style.display = 'block';
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  }
+}
+
+function onChartLeave() {
+  const tooltip = document.getElementById('chartTooltip');
+  const crosshair = document.getElementById('chartCrosshair');
+  if (tooltip) tooltip.style.display = 'none';
+  if (crosshair) crosshair.style.display = 'none';
+  
+  const svg = document.getElementById('metricsChart');
+  if (svg) {
+    svg.querySelectorAll('.chart-dot').forEach(dot => {
+      dot.setAttribute('r', '0');
+      dot.style.filter = '';
+    });
+  }
+}
+
+// ── Tabla dinamica de equipos de la flota ──
+function updateFleetTable() {
+  const tbody = document.getElementById('fleetTableBody');
+  if (!tbody) return;
+  
+  if (fleetDevices.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No hay equipos registrados</td></tr>';
+    return;
+  }
+  
+  // Sort: critical first, then by CPU desc
+  const sorted = [...fleetDevices].sort((a, b) => {
+    if (a.cause_root && !b.cause_root) return -1;
+    if (!a.cause_root && b.cause_root) return 1;
+    return (b.cpu_usage || 0) - (a.cpu_usage || 0);
+  });
+  
+  tbody.innerHTML = '';
+  sorted.forEach(dev => {
+    const cpu = dev.cpu_usage || 0;
+    const ram = dev.ram_usage || 0;
+    const latency = dev.network_latency_ms || 0;
+    
+    const cpuColor = cpu > 80 ? 'var(--red)' : cpu > 60 ? 'var(--amber)' : 'var(--text2)';
+    const ramColor = ram > 85 ? 'var(--red)' : ram > 70 ? 'var(--amber)' : 'var(--text2)';
+    const latColor = latency > 100 ? 'var(--red)' : latency > 50 ? 'var(--amber)' : 'var(--cyan)';
+    
+    let statusBadge;
+    if (dev.cause_root) statusBadge = `<span class="badge crit">Alerta</span>`;
+    else if (dev.status === 'Online') statusBadge = `<span class="badge ok">Normal</span>`;
+    else statusBadge = `<span class="badge off">${dev.status}</span>`;
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono">${dev.device_id}</td>
+      <td>${dev.device_type || 'Desktop'}</td>
+      <td style="color:${cpuColor};font-family:var(--font-mono)">${cpu.toFixed(0)}%</td>
+      <td style="color:${ramColor};font-family:var(--font-mono)">${ram.toFixed(0)}%</td>
+      <td style="color:${latColor};font-family:var(--font-mono)">${latency.toFixed(0)}ms</td>
+      <td>${statusBadge}</td>
+      <td><span style="color:var(--blue);cursor:pointer;font-size:12px" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')">Ver \u2192</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Resumen de red del dashboard ──
+function updateDashboardNetwork() {
+  let totalConns = 0, wifiConns = 0, totalDevices = 0;
+  const ssids = new Set();
+  
+  fleetDevices.forEach(dev => {
+    if (dev.network_info) {
+      try {
+        const net = typeof dev.network_info === 'string' ? JSON.parse(dev.network_info) : dev.network_info;
+        if (net.interfaces) {
+          totalConns += net.interfaces.length;
+          net.interfaces.forEach(i => { if (i.type === 'WiFi') wifiConns++; });
+        }
+        if (net.wifi_ssid) ssids.add(net.wifi_ssid);
+        if (net.connected_devices) totalDevices += net.connected_devices.length;
+      } catch(e) {}
+    }
+  });
+  
+  const totalEl = document.getElementById('netStatTotal');
+  const wifiEl = document.getElementById('netStatWifi');
+  const devicesEl = document.getElementById('netStatDevices');
+  const ssidList = document.getElementById('netSSIDList');
+  
+  if (totalEl) totalEl.textContent = totalConns || fleetDevices.length;
+  if (wifiEl) wifiEl.textContent = wifiConns;
+  if (devicesEl) devicesEl.textContent = totalDevices;
+  
+  if (ssidList) {
+    ssidList.innerHTML = '';
+    if (ssids.size > 0) {
+      ssids.forEach(ssid => {
+        ssidList.innerHTML += `<span class="badge info" style="font-size:11px;padding:3px 10px">\ud83d\udce1 ${ssid}</span>`;
+      });
+    } else {
+      ssidList.innerHTML = '<span style="font-size:11px;color:var(--text3)">Datos de red se mostraran cuando el agente envie network_info</span>';
+    }
+  }
+}
+
+// ── Generar Mapa de Calor de la Flota (Heatmap) ──
+function generateFleetHeatmap() {
+  const grid = document.getElementById('fleetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  // Renderizar primero los 10 equipos reales del piloto
+  fleetDevices.forEach(dev => {
+    const dot = document.createElement('div');
+    let st = 'ok';
+    if (dev.status !== 'Online') st = 'offline';
+    else if (dev.cause_root) st = 'crit';
+    else if (dev.cpu_usage > 70 || dev.ram_usage > 85) st = 'warn';
+    
+    dot.className = 'fleet-dot ' + st;
+    dot.title = `${dev.device_id} (${dev.device_type}) · CPU: ${dev.cpu_usage || 0}% · RAM: ${dev.ram_usage || 0}%`;
+    dot.onclick = () => {
+      selectedDeviceId = dev.device_id;
+      showView('equipo');
+    };
+    grid.appendChild(dot);
+  });
+  
+  // Solo mostrar equipos reales - sin simulados
+}
+
+// ── Poblar Dropdown de Selección de Dispositivo ──
+function populateDeviceSelector(filterText) {
+  const select = document.getElementById('deviceSelector');
+  if (!select) return;
+  const currentVal = select.value || selectedDeviceId || '';
+  select.innerHTML = '<option value="">-- Seleccione un equipo --</option>';
+  
+  const q = (filterText || '').toLowerCase().trim();
+  
+  fleetDevices.forEach(dev => {
+    const label = `${dev.device_id} (${dev.device_type}) - ${dev.status}`;
+    if (q && !label.toLowerCase().includes(q) && !dev.device_id.toLowerCase().includes(q)) return;
+    const opt = document.createElement('option');
+    opt.value = dev.device_id;
+    opt.textContent = label;
+    if (dev.device_id === currentVal) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+
+function filterDeviceSelector(text) {
+  populateDeviceSelector(text);
+  // If only one match, auto-select it
+  const select = document.getElementById('deviceSelector');
+  if (select && select.options.length === 2) {
+    select.selectedIndex = 1;
+    loadDeviceDetail(select.value);
+  }
+}
+
+function clearDeviceSelection() {
+  selectedDeviceId = null;
+  const select = document.getElementById('deviceSelector');
+  if (select) select.value = '';
+  const searchInput = document.getElementById('deviceSearchInput');
+  if (searchInput) searchInput.value = '';
+  document.getElementById('equipoEmptyState').style.display = '';
+  document.getElementById('equipoContent').style.display = 'none';
+  populateDeviceSelector();
+}
+
+// ── Cargar Detalles Granulares de un Equipo ──
+function loadDeviceDetail(id) {
+  if (!id) { clearDeviceSelection(); return; }
+  selectedDeviceId = id;
+  const select = document.getElementById('deviceSelector');
+  if (select && select.value !== id) select.value = id;
+  
+  // Show content, hide empty state
+  document.getElementById('equipoEmptyState').style.display = 'none';
+  document.getElementById('equipoContent').style.display = '';
+  
+  fetch(`/api/device/${id}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.latest_metrics) return;
+      const m = data.latest_metrics;
+      
+      // Header
+      const nameEl = document.getElementById('equipoDevName');
+      const subEl = document.getElementById('equipoDevSub');
+      const badgesEl = document.getElementById('equipoDevBadges');
+      
+      if (nameEl) nameEl.textContent = `${data.device_id} (${m.device_type || 'Desktop'})`;
+      
+      const user = data.device_id;
+      if (subEl) subEl.textContent = `${user} \u00b7 Windows \u00b7 IP: ${data.status_info?.last_ip || 'N/A'}`;
+      
+      if (badgesEl) {
+        badgesEl.innerHTML = '';
+        if (m.cause_root) {
+          badgesEl.innerHTML += `<span class="badge crit">\ud83d\udd34 ${m.cause_root}</span>`;
+        } else {
+          badgesEl.innerHTML += `<span class="badge ok">\ud83d\udfe2 Salud Optima</span>`;
+        }
+        badgesEl.innerHTML += `<span class="badge info">${data.status_info?.status || 'Online'}</span>`;
+        const syncTime = m.timestamp ? m.timestamp.split('T')[1]?.substring(0,8) || m.timestamp.split(' ')[1]?.substring(0,8) || '' : '';
+        badgesEl.innerHTML += `<span class="badge off">Sync: ${syncTime}</span>`;
+      }
+
+      // Dynamic rings
+      renderRings(m);
+      
+      // Network info
+      renderNetworkInfo(m);
+      
+      // Render subnet graph
+      renderSubnetGraph(m);
+      
+      // Diagnostico
+      updateDiagnosticBox(m);
+      
+      // Timeline
+      updateEventTimeline(data.metrics_history, data.security_events);
+    });
+}
+
+// ── Renderizar Grafo de Topologia Local (Subred) ──
+function renderSubnetGraph(m) {
+  const svg = document.getElementById('subnetGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  let netInfo = null;
+  if (m.network_info) {
+    try {
+      netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
+    } catch (e) {
+      netInfo = null;
+    }
+  }
+  
+  const width = svg.clientWidth || 300;
+  const height = svg.clientHeight || 200;
+  const cx = width / 2;
+  const cy = height / 2;
+  
+  if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
+    svg.innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
+      <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
+    `;
+    return;
+  }
+  
+  const devices = netInfo.connected_devices.slice(0, 10);
+  const N = devices.length;
+  const radius = 65;
+  
+  let content = '';
+  
+  // Nodos satélites y líneas
+  devices.forEach((dev, i) => {
+    const angle = i * (2 * Math.PI / N);
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    
+    const isGateway = dev.ip.endsWith('.1');
+    const color = isGateway ? 'var(--amber)' : 'var(--green)';
+    const size = isGateway ? 9 : 7;
+    
+    // Línea al nodo central
+    content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+    
+    // Nodo satélite
+    content += `
+      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
+        <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
+      </circle>
+    `;
+  });
+  
+  // Nodo central
+  content += `
+    <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
+      <title>Este equipo: ${m.device_id}</title>
+    </circle>
+  `;
+  
+  svg.innerHTML = content;
+}
+
+function renderRings(m) {
+  const container = document.getElementById('ringsRow');
+  if (!container) return;
+  
+  const ringData = [
+    { label: 'Procesador', value: m.cpu_usage || 0, unit: '%', maxVal: 100, color: m.cpu_usage > 80 ? '#EF4444' : m.cpu_usage > 60 ? '#F59E0B' : '#10B981' },
+    { label: 'Memoria', value: m.ram_usage || 0, unit: '%', maxVal: 100, color: m.ram_usage > 85 ? '#EF4444' : m.ram_usage > 70 ? '#F59E0B' : '#10B981', subVal: `${(m.ram_usage/100*16).toFixed(1)}/16 GB` },
+    { label: 'Disco', value: m.disk_free_gb || 0, unit: 'GB', maxVal: 500, color: m.disk_free_gb < 10 ? '#EF4444' : m.disk_free_gb < 50 ? '#F59E0B' : '#10B981', subVal: `${(m.disk_free_gb||0).toFixed(0)} GB libres` },
+    { label: 'Red', value: m.network_latency_ms || 0, unit: 'ms', maxVal: 200, color: m.network_latency_ms > 100 ? '#EF4444' : m.network_latency_ms > 50 ? '#F59E0B' : '#06B6D4', subVal: `${(m.network_latency_ms||0).toFixed(0)} ms` },
+    { label: m.device_type === 'Laptop' ? 'Bateria' : 'Alimentacion', value: m.battery_percent || 0, unit: m.device_type === 'Laptop' ? '%' : '', maxVal: 100, color: '#F59E0B', isEnergy: true }
+  ];
+  
+  container.innerHTML = '';
+  ringData.forEach(r => {
+    const circumference = 2 * Math.PI * 44; // 276.46
+    let pct = r.maxVal > 0 ? Math.min(r.value / r.maxVal, 1) : 0;
+    if (r.label === 'Disco') pct = Math.min((500 - r.value) / 500, 1); // inverted
+    const offset = circumference * (1 - pct);
+    
+    let displayVal = r.isEnergy ? (r.value > 0 ? `${Math.round(r.value)}%` : 'AC') : `${r.unit === '%' ? Math.round(r.value) : r.value.toFixed(0)}${r.unit}`;
+    let subDisplay = r.subVal || displayVal;
+    if (r.isEnergy && r.value <= 0) { displayVal = 'Direct'; subDisplay = 'Direct Power'; }
+    
+    container.innerHTML += `
+      <div class="ring-container" style="animation:fadeIn 0.5s ease">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="44" fill="none" stroke="var(--surface3)" stroke-width="10"/>
+          <circle cx="55" cy="55" r="44" fill="none" stroke="${r.color}" stroke-width="10"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+            transform="rotate(-90 55 55)" style="filter:drop-shadow(0 0 6px ${r.color});transition:stroke-dashoffset 1s ease"/>
+          <text x="55" y="50" text-anchor="middle" fill="var(--text)" font-family="Syne" font-size="18" font-weight="800">${displayVal}</text>
+          <text x="55" y="65" text-anchor="middle" fill="var(--text3)" font-family="DM Sans" font-size="10">${r.label.toUpperCase()}</text>
+        </svg>
+        <div class="ring-label">${r.label}</div>
+        <div class="ring-val" style="color:${r.color}">${subDisplay}</div>
+      </div>`;
+  });
+}
+
+function renderNetworkInfo(m) {
+  let netInfo = null;
+  if (m.network_info) {
+    try { netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info; } catch(e) {}
+  }
+  
+  const wifiLabel = document.getElementById('netWifiLabel');
+  const ifacesList = document.getElementById('netInterfacesList');
+  const devicesList = document.getElementById('netDevicesList');
+  const deviceCount = document.getElementById('netDeviceCount');
+  
+  if (!netInfo) {
+    if (wifiLabel) wifiLabel.textContent = 'Sin datos de red';
+    if (ifacesList) ifacesList.innerHTML = '<div style="color:var(--text3);padding:8px">Esperando datos del agente...</div>';
+    if (devicesList) devicesList.innerHTML = '<div style="color:var(--text3);padding:8px">Esperando datos del agente...</div>';
+    if (deviceCount) deviceCount.textContent = '0';
+    return;
+  }
+  
+  // WiFi SSID
+  if (wifiLabel) wifiLabel.textContent = netInfo.wifi_ssid ? `\ud83d\udce1 WiFi: ${netInfo.wifi_ssid}` : '\ud83d\udcbb Ethernet';
+  
+  // Interfaces
+  if (ifacesList && netInfo.interfaces) {
+    ifacesList.innerHTML = '';
+    netInfo.interfaces.forEach(iface => {
+      const icon = iface.type === 'WiFi' ? '\ud83d\udce1' : '\ud83d\udd0c';
+      const speed = iface.speed_mbps ? `${iface.speed_mbps} Mbps` : '';
+      const sent = iface.bytes_sent ? `\u2b06 ${(iface.bytes_sent/1024/1024).toFixed(0)}MB` : '';
+      const recv = iface.bytes_recv ? `\u2b07 ${(iface.bytes_recv/1024/1024).toFixed(0)}MB` : '';
+      ifacesList.innerHTML += `
+        <div style="padding:8px 10px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border:1px solid var(--border)">
+          <div style="font-weight:600;color:var(--text);font-size:12px">${icon} ${iface.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">
+            ${iface.type} \u00b7 ${iface.ip} ${iface.mac ? '\u00b7 ' + iface.mac : ''}<br/>
+            ${speed ? speed + ' \u00b7 ' : ''}${sent} ${recv}
+          </div>
+        </div>`;
+    });
+    if (netInfo.interfaces.length === 0) {
+      ifacesList.innerHTML = '<div style="color:var(--text3);padding:8px">No hay interfaces activas</div>';
+    }
+  }
+  
+  // Connected devices (ARP)
+  if (devicesList && netInfo.connected_devices) {
+    if (deviceCount) deviceCount.textContent = netInfo.connected_devices.length;
+    devicesList.innerHTML = '';
+    if (netInfo.connected_devices.length === 0) {
+      devicesList.innerHTML = '<div style="color:var(--text3);padding:8px">Sin dispositivos detectados</div>';
+      return;
+    }
+    let html = '<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:2px;font-size:11px">';
+    html += '<div style="font-weight:700;color:var(--text3);padding:4px">IP</div><div style="font-weight:700;color:var(--text3);padding:4px">MAC</div><div style="font-weight:700;color:var(--text3);padding:4px">Tipo</div>';
+    netInfo.connected_devices.forEach(dev => {
+      html += `<div style="padding:3px 4px;color:var(--text2);font-family:var(--font-mono)">${dev.ip}</div>`;
+      html += `<div style="padding:3px 4px;color:var(--text3);font-family:var(--font-mono)">${dev.mac}</div>`;
+      html += `<div style="padding:3px 4px"><span class="badge ${dev.type === 'dynamic' ? 'ok' : 'off'}" style="font-size:9px;padding:1px 6px">${dev.type === 'dynamic' ? 'DHCP' : dev.type}</span></div>`;
+    });
+    html += '</div>';
+    devicesList.innerHTML = html;
+  }
+}
+
+function updateDiagnosticBox(m) {
+  const alertBox = document.getElementById('diagAlertBox');
+  const metersDiv = document.getElementById('processMeters');
+  if (!alertBox || !metersDiv) return;
+  
+  const barColors = [
+    'linear-gradient(90deg,#EF4444,#F87171)',
+    'linear-gradient(90deg,#F59E0B,#FBBF24)',
+    'linear-gradient(90deg,#3B82F6,#60A5FA)',
+    'linear-gradient(90deg,#8B5CF6,#A78BFA)',
+    'linear-gradient(90deg,#06B6D4,#22D3EE)',
+    'linear-gradient(90deg,#64748B,#94A3B8)'
+  ];
+  
+  // Try to parse top_processes from API
+  let processes = [];
+  if (m.top_processes) {
+    try {
+      processes = typeof m.top_processes === 'string' ? JSON.parse(m.top_processes) : m.top_processes;
+    } catch(e) {
+      processes = [];
+    }
+  }
+  
+  // Alert box
+  if (m.cause_root) {
+    alertBox.style.background = 'rgba(239,68,68,0.1)';
+    alertBox.style.borderColor = 'rgba(239,68,68,0.25)';
+    let alertHtml = '🔎 <strong style="color:var(--red)">Causa detectada:</strong> ' + m.cause_root;
+    if (m.cause_process) {
+      alertHtml += ' — <strong style="font-family:var(--font-mono)">' + m.cause_process + '</strong>';
+    }
+    alertBox.innerHTML = alertHtml;
+  } else {
+    alertBox.style.background = 'rgba(16,185,129,0.1)';
+    alertBox.style.borderColor = 'rgba(16,185,129,0.25)';
+    alertBox.innerHTML = '✅ <strong style="color:var(--green)">Sin alertas:</strong> Recursos dentro de parametros normales. CPU: ' + Math.round(m.cpu_usage) + '% | RAM: ' + Math.round(m.ram_usage) + '%';
+  }
+  
+  // Build process meters
+  let html = '';
+  
+  // Header row
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:8px;padding:0 4px;font-weight:600">';
+  html += '<span style="flex:1">Proceso</span>';
+  html += '<span style="flex:2;text-align:center">Uso</span>';
+  html += '<span style="width:45px;text-align:right">CPU</span>';
+  html += '<span style="width:45px;text-align:right">MEM</span>';
+  html += '</div>';
+  
+  if (processes.length > 0) {
+    // Real processes from agent
+    processes.forEach((p, i) => {
+      const barColor = barColors[Math.min(i, barColors.length - 1)];
+      const combinedPct = Math.min((p.cpu || 0) + (p.mem || 0), 100);
+      const isTop = (i === 0 && m.cause_root);
+      const valStyle = isTop ? ' style="color:var(--red);font-weight:700"' : '';
+      
+      html += '<div class="meter-row">';
+      html += '<div class="meter-label"' + (isTop ? ' style="color:var(--red);font-weight:700"' : '') + '>' + (p.name || 'N/A') + '</div>';
+      html += '<div class="meter-track"><div class="meter-fill" style="width:' + combinedPct + '%;background:' + barColor + '"></div></div>';
+      html += '<div class="meter-val"' + valStyle + '>' + (p.cpu || 0).toFixed(1) + '%</div>';
+      html += '<div class="meter-val"' + valStyle + ' style="width:45px;text-align:right">' + (p.mem || 0).toFixed(1) + '%</div>';
+      html += '</div>';
+    });
+  } else {
+    // Fallback: no process data, show cause_process + resource summary
+    if (m.cause_process) {
+      // Show the detected cause process as a highlighted row
+      const procName = m.cause_process.split(' (PID')[0] || m.cause_process;
+      const procInfo = m.cause_process.match(/PID:(\d+)/);
+      const memMatch = m.cause_process.match(/MEM:([\d.]+)/);
+      const cpuMatch = m.cause_process.match(/CPU:([\d.]+)/);
+      const memPct = memMatch ? parseFloat(memMatch[1]) : 0;
+      const cpuPct = cpuMatch ? parseFloat(cpuMatch[1]) : 0;
+      
+      html += '<div class="meter-row">';
+      html += '<div class="meter-label" style="color:var(--red);font-weight:700">' + procName + '</div>';
+      html += '<div class="meter-track"><div class="meter-fill" style="width:' + Math.max(memPct + cpuPct, 10) + '%;background:linear-gradient(90deg,#EF4444,#F87171)"></div></div>';
+      html += '<div class="meter-val" style="color:var(--red);font-weight:700">' + cpuPct.toFixed(1) + '%</div>';
+      html += '<div class="meter-val" style="width:45px;text-align:right;color:var(--red);font-weight:700">' + memPct.toFixed(1) + '%</div>';
+      html += '</div>';
+    }
+    // Resource summary bars
+    const fallback = [
+      { name: 'CPU Total', pct: m.cpu_usage, color: 'linear-gradient(90deg,#3B82F6,#60A5FA)' },
+      { name: 'RAM Total', pct: m.ram_usage, color: 'linear-gradient(90deg,#10B981,#34D399)' },
+      { name: 'Disco usado', pct: Math.max(0, 100 - (m.disk_free_gb / 5) * 100), color: 'linear-gradient(90deg,#F59E0B,#FBBF24)' },
+      { name: 'Red (latencia)', pct: Math.min((m.network_latency_ms || 0) * 2, 100), color: 'linear-gradient(90deg,#8B5CF6,#A78BFA)' }
+    ];
+    fallback.forEach(met => {
+      html += '<div class="meter-row">';
+      html += '<div class="meter-label">' + met.name + '</div>';
+      html += '<div class="meter-track"><div class="meter-fill" style="width:' + Math.min(met.pct, 100) + '%;background:' + met.color + '"></div></div>';
+      html += '<div class="meter-val">' + Math.round(met.pct) + '%</div>';
+      html += '<div class="meter-val" style="width:45px"></div>';
+      html += '</div>';
+    });
+  }
+  
+  metersDiv.innerHTML = html;
+}
+
+function updateEventTimeline(history, security) {
+  const timeline = document.querySelector('#view-equipo .card-body[style*="padding-top:10px"]');
+  if (!timeline) return;
+  timeline.innerHTML = '';
+  
+  // Unir y ordenar logs por hora
+  let logs = [];
+  
+  security.forEach(e => {
+    logs.push({
+      time: e.timestamp ? e.timestamp.split('T')[1].substring(0,5) : '00:00',
+      title: `${e.event_type} (${e.severity})`,
+      desc: e.details,
+      color: e.severity === 'Alta' ? 'var(--red)' : (e.severity === 'Media' ? 'var(--amber)' : 'var(--blue)')
+    });
+  });
+  
+  history.forEach(h => {
+    if (h.cause_root) {
+      logs.push({
+        time: h.timestamp ? h.timestamp.split('T')[1].substring(0,5) : '00:00',
+        title: `Alerta CPU Sostenido: ${h.cause_root}`,
+        desc: `Proceso: ${h.cause_process} | RAM: ${h.ram_usage}%`,
+        color: 'var(--red)'
+      });
+    }
+  });
+  
+  if (logs.length === 0) {
+    timeline.innerHTML = '<div style="font-size:12.5px; color:var(--text3); text-align:center; padding:20px">No se registraron incidentes hoy.</div>';
+    return;
+  }
+  
+  // Mostrar los primeros 4
+  logs.slice(0, 4).forEach(log => {
+    timeline.innerHTML += `
+      <div class="timeline-item">
+        <div class="tl-dot-col"><div class="tl-dot" style="background:${log.color}"></div><div class="tl-line"></div></div>
+        <div class="tl-content">
+          <div class="tl-title">${log.title}</div>
+          <div class="tl-desc">${log.desc}</div>
+          <div class="tl-time">${log.time}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ── Actualizar Tabla de Equipos Más Problemáticos ──
+function updateTopProblematicTable() {
+  const tbody = document.querySelector('#view-dashboard table.data-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
+  // Ordenar dispositivos por CPU/RAM de forma descendente
+  const sorted = [...fleetDevices].sort((a,b) => (b.cpu_usage + b.ram_usage) - (a.cpu_usage + a.ram_usage));
+  
+  sorted.slice(0, 5).forEach(dev => {
+    let badgeClass = 'ok';
+    let badgeText = 'Normal';
+    if (dev.status !== 'Online') { badgeClass = 'off'; badgeText = 'Offline'; }
+    else if (dev.cause_root) { badgeClass = 'crit'; badgeText = 'Crítico'; }
+    else if (dev.cpu_usage > 70 || dev.ram_usage > 80) { badgeClass = 'warn'; badgeText = 'Alerta'; }
+    
+    tbody.innerHTML += `
+      <tr>
+        <td class="mono">${dev.device_id}</td>
+        <td>${dev.device_id === 'device-01' ? 'Admin TI (Tu PC)' : `Piloto-${dev.device_id}`}</td>
+        <td style="color:${dev.cpu_usage > 80 ? 'var(--red)' : 'var(--text)'}">${dev.cpu_usage ? dev.cpu_usage.toFixed(0) : 0}%</td>
+        <td style="color:${dev.ram_usage > 85 ? 'var(--red)' : 'var(--text)'}">${dev.ram_usage ? dev.ram_usage.toFixed(0) : 0}%</td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td><span style="color:var(--blue);cursor:pointer;font-size:12px" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')">Ver →</span></td>
+      </tr>
+    `;
+  });
+}
+
+// ── Feed de alertas del Dashboard ──
+function updateAlertsFeed() {
+  const feed = document.querySelector('#view-dashboard .card-body[style*="padding-top:8px"]');
+  if (!feed) return;
+  feed.innerHTML = '';
+  
+  const alerts = fleetDevices.filter(d => d.cause_root);
+  if (alerts.length === 0) {
+    feed.innerHTML = '<div style="font-size:12.5px; color:var(--text3); padding:10px">No hay alertas críticas en este momento.</div>';
+    return;
+  }
+  
+  alerts.forEach(dev => {
+    feed.innerHTML += `
+      <div class="alert-item">
+        <div class="alert-icon crit">🔴</div>
+        <div class="alert-body">
+          <div class="alert-title">Alerta de IA — ${dev.device_id}</div>
+          <div class="alert-meta">${dev.cause_process} · ${dev.cause_root}</div>
+        </div>
+        <div class="alert-time">Reciente</div>
+      </div>
+    `;
+  });
+}
+
+// ── Módulo de Productividad ──
+let _prodData = null; // Cache productividad data
+
+function fetchProductivity() {
+  fetch('/api/productividad')
+    .then(res => res.json())
+    .then(data => {
+      _prodData = data;
+      
+      // Populate user selector
+      const sel = document.getElementById('prodUserSelector');
+      if (sel && data.users_productivity_table) {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="__all__">📊 Todos los usuarios</option>';
+        data.users_productivity_table.forEach(u => {
+          sel.innerHTML += `<option value="${u.device_id}">${u.usuario} (${u.device_id})</option>`;
+        });
+        sel.value = currentVal;
+      }
+      
+      loadUserProductivity(sel ? sel.value : '__all__');
+    });
+}
+
+function loadUserProductivity(userId) {
+  if (!_prodData) return;
+  const data = _prodData;
+  
+  let dist, avgIndex, trabajo, comun, web, ocio, topApps, tableRows;
+  
+  if (userId === '__all__') {
+    dist = data.distribution || {};
+    avgIndex = data.average_productivity_index || 0;
+    trabajo = dist.trabajo || 0;
+    comun = dist.comunicacion || 0;
+    web = dist.web || 0;
+    ocio = dist.ocio || 0;
+    topApps = data.top_apps || [];
+    tableRows = data.users_productivity_table || [];
+    document.getElementById('prodDonutTitle').textContent = 'Distribución — Todos los usuarios';
+    document.getElementById('prodAppsTitle').textContent = 'Top Aplicaciones — Flota';
+    document.getElementById('prodKpiIndexDelta').textContent = `${data.users_productivity_table?.length || 0} usuarios activos`;
+  } else {
+    const user = (data.users_productivity_table || []).find(u => u.device_id === userId);
+    if (!user) return;
+    
+    const tw = parseFloat(user.trabajo) || 0;
+    const cm = parseFloat(user.comun) || 0;
+    const wb = parseFloat(user.web) || 0;
+    const oc = parseFloat(user.ocio) || 0;
+    const total = tw + cm + wb + oc || 1;
+    
+    avgIndex = user.index;
+    trabajo = Math.round(tw / total * 100);
+    comun = Math.round(cm / total * 100);
+    web = Math.round(wb / total * 100);
+    ocio = Math.round(oc / total * 100);
+    topApps = data.top_apps || [];
+    tableRows = [user];
+    
+    document.getElementById('prodDonutTitle').textContent = `Distribución — ${user.usuario}`;
+    document.getElementById('prodAppsTitle').textContent = `Apps — ${user.usuario}`;
+    document.getElementById('prodKpiIndexDelta').textContent = userId;
+  }
+  
+  // KPIs
+  document.getElementById('prodKpiIndex').textContent = avgIndex + '%';
+  const tRow = (userId === '__all__') ? data.users_productivity_table : tableRows;
+  const avgW = tRow.reduce((s, r) => s + (parseFloat(r.trabajo) || 0), 0) / Math.max(tRow.length, 1);
+  const avgC = tRow.reduce((s, r) => s + (parseFloat(r.comun) || 0), 0) / Math.max(tRow.length, 1);
+  const avgO = tRow.reduce((s, r) => s + (parseFloat(r.web) || 0) + (parseFloat(r.ocio) || 0), 0) / Math.max(tRow.length, 1);
+  document.getElementById('prodKpiTrabajo').textContent = avgW.toFixed(1) + 'h';
+  document.getElementById('prodKpiComun').textContent = avgC.toFixed(1) + 'h';
+  document.getElementById('prodKpiOcio').textContent = avgO.toFixed(1) + 'h';
+  
+  // Donut
+  const C = 389.56; // 2*PI*62
+  const dT = document.getElementById('donutTrabajo');
+  const dC = document.getElementById('donutComun');
+  const dW = document.getElementById('donutWeb');
+  const dO = document.getElementById('donutOcio');
+  
+  if (dT) {
+    dT.setAttribute('stroke-dashoffset', C - (C * trabajo / 100));
+    dC.setAttribute('stroke-dashoffset', C - (C * comun / 100));
+    dC.setAttribute('transform', `rotate(${trabajo * 3.6 - 90} 80 80)`);
+    dW.setAttribute('stroke-dashoffset', C - (C * web / 100));
+    dW.setAttribute('transform', `rotate(${(trabajo + comun) * 3.6 - 90} 80 80)`);
+    dO.setAttribute('stroke-dashoffset', C - (C * ocio / 100));
+    dO.setAttribute('transform', `rotate(${(trabajo + comun + web) * 3.6 - 90} 80 80)`);
+  }
+  
+  document.getElementById('donutCenterPct').textContent = avgIndex + '%';
+  document.getElementById('legendTrabajo').textContent = trabajo + '%';
+  document.getElementById('legendComun').textContent = comun + '%';
+  document.getElementById('legendWeb').textContent = web + '%';
+  document.getElementById('legendOcio').textContent = ocio + '%';
+  
+  // Top Apps
+  const ac = document.getElementById('prodAppsContainer');
+  if (ac && topApps.length > 0) {
+    const icons = ['💻', '🌐', '📧', '📄', '🎨', '⚙️'];
+    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'];
+    let h = '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;font-weight:600"><span>Aplicación</span><span>Uso %</span></div>';
+    topApps.forEach((app, i) => {
+      const c = colors[i % colors.length];
+      h += `<div class="app-bar-row">
+        <div class="app-icon" style="background:${c}22">${icons[i % icons.length]}</div>
+        <div class="app-name">${app.name}</div>
+        <div class="app-track"><div class="app-fill" style="width:${app.pct}%;background:${c}"></div></div>
+        <div class="app-hours">${app.hours}%</div>
+      </div>`;
+    });
+    ac.innerHTML = h;
+  }
+  
+  // Desktop Apps
+  const userName = (userId === '__all__') ? 'Flota' : (data.users_productivity_table || []).find(u => u.device_id === userId)?.usuario || userId;
+  const titleEl = document.getElementById('prodTimeAppTitle');
+  if (titleEl) titleEl.textContent = `Tiempo por Aplicación — ${userName}`;
+  
+  const deskEl = document.getElementById('prodDesktopApps');
+  if (deskEl && data.desktop_apps && data.desktop_apps.length > 0) {
+    let dh = '';
+    data.desktop_apps.forEach(app => {
+      dh += `<div class="app-bar-row">
+        <div class="app-icon" style="background:${app.color}22">${app.icon}</div>
+        <div class="app-name">${app.name}</div>
+        <div class="app-track"><div class="app-fill" style="width:${app.pct}%;background:${app.color}"></div></div>
+        <div class="app-hours">${app.hours}</div>
+        <div class="app-pct">${app.pct_label}</div>
+      </div>`;
+    });
+    deskEl.innerHTML = dh;
+  } else if (deskEl) {
+    deskEl.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Sin datos de aplicaciones</div>';
+  }
+  
+  // Web Pages
+  const webBody = document.getElementById('prodWebPagesBody');
+  if (webBody && data.web_pages && data.web_pages.length > 0) {
+    let wh = '';
+    data.web_pages.forEach((wp, i) => {
+      wh += `<tr>
+        <td>${wp.domain}</td>
+        <td><span class="cat-pill ${wp.cat_class}">${wp.category}</span></td>
+        <td class="mono">${wp.time || '0h 10m'}</td>
+      </tr>`;
+    });
+    webBody.innerHTML = wh;
+  } else if (webBody) {
+    webBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:16px">Sin datos de navegacion</td></tr>';
+  }
+  
+  const tbody = document.querySelector('#prodUserTable tbody');
+  if (tbody) {
+    tbody.innerHTML = '';
+    tableRows.forEach(row => {
+      const cls = row.index >= 70 ? 'ok' : (row.index >= 40 ? 'warn' : 'crit');
+      tbody.innerHTML += `<tr${row.index < 40 ? ' style="background:rgba(239,68,68,0.04)"' : ''}>
+        <td><strong>${row.usuario}</strong></td>
+        <td class="mono">${row.device_id}</td>
+        <td><span class="cat-pill cat-trabajo">${row.trabajo}</span></td>
+        <td><span class="cat-pill cat-comun">${row.comun}</span></td>
+        <td><span class="cat-pill cat-web">${row.web}</span></td>
+        <td><span class="cat-pill cat-social">${row.ocio}</span></td>
+        <td><span class="badge ${cls}">${row.index}%</span></td>
+        <td style="font-size:11px;color:var(--text3)">${row.sites}</td>
+      </tr>`;
+    });
+  }
+  
+  // Render web traffic graph
+  renderWebTrafficGraph(userId);
+}
+
+// ── Renderizar Grafo de Concentracion de Trafico Web (Top Sitios) ──
+function renderWebTrafficGraph(userId) {
+  const svg = document.getElementById('webTrafficGraphSvg');
+  if (!svg) return;
+  svg.innerHTML = '';
+  
+  const width = svg.clientWidth || 500;
+  const height = svg.clientHeight || 350;
+  
+  // Obtener los usuarios/equipos a graficar
+  let users = [];
+  if (userId === '__all__') {
+    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
+  } else {
+    const dev = fleetDevices.find(d => d.device_id === userId);
+    if (dev) users = [dev];
+  }
+  
+  // Obtener los dominios top
+  let domains = [];
+  if (_prodData && _prodData.web_pages) {
+    domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
+  }
+  
+  if (users.length === 0 || domains.length === 0) {
+    svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
+    return;
+  }
+  
+  const uCount = users.length;
+  const dCount = domains.length;
+  
+  const uX = 80;
+  const dX = width - 130;
+  
+  let content = '';
+  
+  // Mapa de posiciones de los nodos para dibujar líneas
+  const userPos = {};
+  const domainPos = {};
+  
+  // Dibujar líneas/enlaces (Edges) primero
+  users.forEach((user, ui) => {
+    const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
+    userPos[user.device_id] = { x: uX, y: uy };
+    
+    // Parsear historial del navegador del equipo
+    let history = [];
+    if (user.browser_history) {
+      try {
+        history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
+      } catch(e) { history = []; }
+    }
+    
+    domains.forEach((dom, di) => {
+      const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
+      domainPos[dom.domain] = { x: dX, y: dy };
+      
+      // Buscar visitas de este usuario a este dominio
+      const visitRecord = (history || []).find(h => h.domain === dom.domain);
+      if (visitRecord) {
+        const visits = visitRecord.visits || 1;
+        const strokeWidth = Math.min(1 + visits * 0.5, 6);
+        const opacity = Math.min(0.1 + visits * 0.05, 0.7);
+        content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
+      }
+    });
+  });
+  
+  // Dibujar nodos de Usuarios (Azul)
+  users.forEach((user, ui) => {
+    const pos = userPos[user.device_id];
+    content += `
+      <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
+        <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
+        <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
+      </g>
+    `;
+  });
+  
+  // Dibujar nodos de Dominios Web (Púrpura)
+  domains.forEach((dom, di) => {
+    const pos = domainPos[dom.domain];
+    const visits = dom.visits || 1;
+    const size = Math.min(8 + visits * 0.3, 22);
+    
+    content += `
+      <g class="graph-node-group">
+        <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
+        <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
+        <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
+      </g>
+    `;
+  });
+  
+  svg.innerHTML = content;
+}
+
+function exportProductivityCSV() {
+  if (!_prodData) return;
+  let csv = 'Usuario,Equipo,Trabajo,Comunicacion,Web,Ocio,Indice,Sites\n';
+  (_prodData.users_productivity_table || []).forEach(r => {
+    csv += `${r.usuario},${r.device_id},${r.trabajo},${r.comun},${r.web},${r.ocio},${r.index}%,"${r.sites}"\n`;
+  });
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `productividad_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+// ── Exportar PDF del equipo ──
+function exportDevicePDF() {
+  const equipoName = document.querySelector('.equipo-name')?.textContent || 'Equipo';
+  const viewEquipo = document.getElementById('view-equipo');
+  if (!viewEquipo) return;
+  
+  // Add print styles temporarily
+  const printStyle = document.createElement('style');
+  printStyle.id = 'printStyles';
+  printStyle.textContent = `
+    @media print {
+      body * { visibility: hidden; }
+      #view-equipo, #view-equipo * { visibility: visible; }
+      #view-equipo { position: absolute; left: 0; top: 0; width: 100%; }
+      .nav-rail, .topbar, .equipo-actions { display: none !important; }
+      .card { break-inside: avoid; border: 1px solid #ddd !important; }
+      * { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  `;
+  document.head.appendChild(printStyle);
+  
+  document.title = `EndpointIQ - Reporte ${equipoName} - ${new Date().toLocaleDateString('es-CO')}`;
+  window.print();
+  
+  // Restore
+  setTimeout(() => {
+    document.getElementById('printStyles')?.remove();
+    document.title = 'EndpointIQ — Enterprise Monitoring Platform';
+  }, 1000);
+}
+
+// ── Módulo de Seguridad ──
+function fetchSecurity() {
+  fetch('/api/seguridad')
+    .then(res => res.json())
+    .then(data => {
+      const events = data.events || [];
+      
+      // Update badge
+      const badge = document.getElementById('badgeSeguridad');
+      if (badge) badge.textContent = events.length;
+      
+      // Update KPI cards
+      const kpis = document.querySelectorAll('#view-seguridad .kpi-value');
+      if (kpis.length >= 4) {
+        kpis[0].textContent = data.threat_count || 0;
+        kpis[1].textContent = data.warning_count || 0;
+        kpis[2].textContent = data.info_count || 0;
+        kpis[3].textContent = events.length;
+      }
+      const deltas = document.querySelectorAll('#view-seguridad .kpi-delta');
+      if (deltas.length >= 4) {
+        deltas[0].innerHTML = (data.threat_count > 0 ? `<span class="down">${data.threat_count} alertas críticas</span>` : '<span class="up">Sin alertas</span>');
+        deltas[3].textContent = 'Eventos totales';
+      }
+      
+      // Populate table
+      const tbody = document.querySelector('#view-seguridad table.data-table tbody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        if (events.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad</td></tr>';
+          return;
+        }
+        events.forEach(row => {
+          let badgeClass = 'ok';
+          if (row.severity === 'Alta') badgeClass = 'crit';
+          else if (row.severity === 'Media') badgeClass = 'warn';
+          else if (row.severity === 'Baja') badgeClass = 'info';
+          
+          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || 'N/A' : 'N/A';
+          
+          tbody.innerHTML += `
+            <tr>
+              <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
+              <td class="mono">${row.device_id}</td>
+              <td>${row.details}</td>
+              <td><span class="badge ${badgeClass}">${row.severity}</span></td>
+              <td class="mono">${time}</td>
+              <td><span class="badge info">Revisado</span></td>
+            </tr>
+          `;
+        });
+      }
+    });
+}
+
+// ── Módulo de KPI Builder ──
+function fetchKPIs() {
+  fetch('/api/kpis')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('kpisTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        data.forEach(kpi => {
+          tbody.innerHTML += `
+            <tr>
+              <td class="mono">${kpi.kpi_id}</td>
+              <td><strong>${kpi.kpi_name}</strong></td>
+              <td class="mono" style="font-size:11px; color:var(--text2)">${kpi.formula}</td>
+              <td><span class="badge ok">${kpi.target_value}%</span></td>
+            </tr>
+          `;
+        });
+      }
+    });
+}
+
+function createNewKpi(event) {
+  event.preventDefault();
+  const name = document.getElementById('kpiNameInput').value;
+  const formula = document.getElementById('kpiFormulaInput').value;
+  const target = document.getElementById('kpiTargetInput').value;
+  
+  fetch('/api/kpis/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kpi_name: name,
+      formula: formula,
+      target_value: target
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById('kpiForm').reset();
+      fetchKPIs();
+    } else {
+      alert("Error al guardar el KPI en BigQuery: " + data.error);
+    }
+  });
+}
+
+// ── Simulador de WhatsApp Chat ──
+function fetchWhatsAppHistory() {
+  fetch('/api/whatsapp')
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById('chatContainer');
+      if (!container) return;
+      
+      // Limpiar y restaurar burbuja de bienvenida
+      container.innerHTML = `
+        <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
+          🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de EndpointIQ. Hazme una pregunta como:
+          <div style="margin-top:6px; font-style:italic; opacity:0.8; font-size:11.5px">
+            - "¿Cómo está la flota hoy?"<br>
+            - "¿Hay alertas críticas de hardware?"<br>
+            - "¿Qué puertos o USBs se detectaron?"
+          </div>
+        </div>
+      `;
+      
+      // Renderizar interacciones previas al revés (de más antiguas a más nuevas para el flujo del chat)
+      const reversed = [...data].reverse();
+      reversed.forEach(chat => {
+        appendChatBubbles(chat.user_query, chat.bot_response);
+      });
+      scrollToBottom();
+    });
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const query = input.value.trim();
+  if (!query) return;
+  
+  input.value = '';
+  
+  fetch('/api/whatsapp/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: query })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      appendChatBubbles(query, data.response);
+      scrollToBottom();
+    }
+  });
+}
+
+function appendChatBubbles(userMsg, botMsg) {
+  const container = document.getElementById('chatContainer');
+  if (!container) return;
+  
+  // Burbuja de usuario
+  container.innerHTML += `
+    <div style="align-self:flex-end; background:var(--blue); color:white; padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
+      👤 <strong>Tú:</strong> ${userMsg}
+    </div>
+  `;
+  
+  // Burbuja de bot
+  container.innerHTML += `
+    <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px; animation: fadeIn 0.2s ease">
+      🤖 <strong>Bot:</strong> ${botMsg}
+    </div>
+  `;
+}
+
+function scrollToBottom() {
+  const container = document.getElementById('chatContainer');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+// ── Filtro de busqueda de equipos ──
+function filterDevices(query) {
+  const q = query.toLowerCase().trim();
+  
+  // Filtrar dots del heatmap
+  const dots = document.querySelectorAll('#fleetGrid .fleet-dot');
+  dots.forEach(dot => {
+    if (!q || dot.title.toLowerCase().includes(q)) {
+      dot.style.opacity = '1';
+      dot.style.transform = q ? 'scale(1.3)' : 'scale(1)';
+    } else {
+      dot.style.opacity = '0.15';
+      dot.style.transform = 'scale(0.8)';
+    }
+  });
+  
+  // Filtrar tabla de equipos problematicos
+  const rows = document.querySelectorAll('#view-dashboard table.data-table tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    if (!q || text.includes(q)) {
+      row.style.display = '';
+      if (q) row.style.background = 'rgba(59,130,246,0.05)';
+      else row.style.background = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Filtrar alertas
+  const alertItems = document.querySelectorAll('#view-dashboard .alert-item');
+  alertItems.forEach(item => {
+    const text = item.textContent.toLowerCase();
+    if (!q || text.includes(q)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+// ── Toggle Tema Claro/Oscuro ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('endpointiq-theme', next);
+}
+
+function applySavedTheme() {
+  const saved = localStorage.getItem('endpointiq-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+}
+
+// ── Temporizador regresivo de actualizacion ──
+let lastSyncTime = new Date();
+let countdownSeconds = 120; // 2 minutos
+let countdownInterval = null;
+
+function updateSyncClock() {
+  const now = new Date();
+  const diffMs = now - lastSyncTime;
+  const diffSec = Math.floor(diffMs / 1000);
+  const el = document.getElementById('syncTimeText');
+  if (!el) return;
+
+  let timeAgo;
+  if (diffSec < 5) {
+    timeAgo = 'justo ahora';
+  } else if (diffSec < 60) {
+    timeAgo = 'hace ' + diffSec + 's';
+  } else if (diffSec < 3600) {
+    const mins = Math.floor(diffSec / 60);
+    timeAgo = 'hace ' + mins + (mins === 1 ? ' min' : ' min');
+  } else {
+    const hrs = Math.floor(diffSec / 3600);
+    timeAgo = 'hace ' + hrs + (hrs === 1 ? ' hora' : ' horas');
+  }
+
+  const hh = String(lastSyncTime.getHours()).padStart(2, '0');
+  const mm = String(lastSyncTime.getMinutes()).padStart(2, '0');
+  const ss = String(lastSyncTime.getSeconds()).padStart(2, '0');
+  el.textContent = '\u2705 ' + timeAgo + ' (' + hh + ':' + mm + ':' + ss + ')';
+}
+
+function updateCountdown() {
+  countdownSeconds--;
+  if (countdownSeconds < 0) countdownSeconds = 0;
+  
+  const el = document.getElementById('countdownText');
+  if (!el) return;
+  
+  const m = Math.floor(countdownSeconds / 60);
+  const s = countdownSeconds % 60;
+  el.textContent = '\u23f1 Proxima actualizacion: ' + m + ':' + String(s).padStart(2, '0');
+  
+  if (countdownSeconds <= 10) {
+    el.style.color = 'var(--amber)';
+  } else {
+    el.style.color = 'var(--blue)';
+  }
+  
+  if (countdownSeconds <= 0) {
+    el.textContent = '\u26a1 Actualizando...';
+    el.style.color = 'var(--green)';
+    doAutoRefresh();
+  }
+}
+
+function doAutoRefresh() {
+  console.log('[AUTO-SYNC] Refrescando datos...');
+  fetch('/api/refresh', { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        markSyncNow();
+        fetchDevices();
+        const activeView = document.querySelector('.view.active');
+        if (activeView) {
+          const viewId = activeView.id.replace('view-', '');
+          if (viewId === 'equipo' && selectedDeviceId) {
+            loadDeviceDetail(selectedDeviceId);
+          } else if (viewId === 'productividad') {
+            fetchProductivity();
+          }
+        }
+        console.log('[AUTO-SYNC] Datos actualizados');
+      }
+    })
+    .catch(err => console.warn('[AUTO-SYNC] Error:', err))
+    .finally(() => {
+      // Reset countdown
+      countdownSeconds = 120;
+      const el = document.getElementById('countdownText');
+      if (el) { el.style.color = 'var(--blue)'; }
+    });
+}
+
+function markSyncNow() {
+  lastSyncTime = new Date();
+  countdownSeconds = 120;
+  updateSyncClock();
+}
+
+// ── Inicializacion ──
+window.onload = () => {
+  applySavedTheme();
+  markSyncNow();
+  fetchDevices();
+  
+  // Reloj de ultima sync + countdown cada segundo
+  setInterval(() => {
+    updateSyncClock();
+    updateCountdown();
+  }, 1000);
+  
+  // Primera sincronizacion a los 5 segundos
+  setTimeout(() => {
+    fetch('/api/refresh', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          markSyncNow();
+          fetchDevices();
+          console.log('[INIT-SYNC] Datos frescos cargados');
+        }
+      })
+      .catch(() => {});
+  }, 5000);
+};
+</script>
+<!-- ========================================== -->
+<!-- CHATBOT FLOTANTE GLOBAL -->
+<!-- ========================================== -->
+<style>
+  /* Estilos del Botón Flotante */
+  .floating-chat-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    box-shadow: 0 4px 20px rgba(108, 159, 255, 0.4), var(--glow-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  .floating-chat-trigger:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 8px 25px rgba(108, 159, 255, 0.5), var(--glow-blue);
+  }
+  .floating-chat-trigger svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+  }
+  
+  /* Estilos del Panel del Chat */
+  .floating-chat-panel {
+    position: fixed;
+    bottom: 92px;
+    right: 24px;
+    width: 360px;
+    height: 480px;
+    border-radius: 16px;
+    background: var(--card-glass);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  }
+  .floating-chat-panel.active {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  /* Cabecera */
+  .chat-panel-header {
+    background: linear-gradient(135deg, rgba(108,159,255,0.15), rgba(34,211,238,0.08));
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .chat-panel-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .chat-panel-info {
+    flex: 1;
+  }
+  .chat-panel-title {
+    font-family: var(--font-disp);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .chat-panel-status {
+    font-size: 10.5px;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+  }
+  .chat-panel-status::before {
+    content: '●';
+    font-size: 8px;
+    animation: blink 1.5s infinite;
+  }
+  .chat-panel-close {
+    font-size: 18px;
+    color: var(--text3);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .chat-panel-close:hover {
+    color: var(--text);
+  }
+  
+  /* Cuerpo de Mensajes */
+  .chat-panel-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .chat-panel-msg {
+    max-width: 82%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    animation: fadeIn 0.2s ease-out;
+  }
+  .chat-panel-msg.bot {
+    background: var(--surface2);
+    color: var(--text);
+    align-self: flex-start;
+    border-top-left-radius: 2px;
+    border: 1px solid var(--border);
+  }
+  .chat-panel-msg.user {
+    background: var(--blue);
+    color: white;
+    align-self: flex-end;
+    border-top-right-radius: 2px;
+  }
+  
+  /* Sugerencias */
+  .chat-panel-suggests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .chat-suggest-pill {
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .chat-suggest-pill:hover {
+    background: var(--surface3);
+    color: var(--text);
+    border-color: rgba(108,159,255,0.3);
+  }
+  
+  /* Entrada de texto */
+  .chat-panel-input-row {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .chat-panel-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .chat-panel-input:focus {
+    border-color: var(--blue);
+  }
+  .chat-panel-send {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--blue);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 14px;
+    transition: background 0.15s;
+  }
+  .chat-panel-send:hover {
+    background: #2563EB;
+  }
+</style>
+
+<!-- Boton Flotante -->
+<div class="floating-chat-trigger" id="floatingChatTrigger" onclick="toggleFloatingChat()" title="Preguntar a EndpointIQ IA">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+  </svg>
+</div>
+
+<!-- Panel de Chat -->
+<div class="floating-chat-panel" id="floatingChatPanel">
+  <div class="chat-panel-header">
+    <div class="chat-panel-avatar">🤖</div>
+    <div class="chat-panel-info">
+      <div class="chat-panel-title">Asistente EndpointIQ</div>
+      <div class="chat-panel-status">Online</div>
+    </div>
+    <div class="chat-panel-close" onclick="toggleFloatingChat()">✕</div>
+  </div>
+  
+  <div class="chat-panel-body" id="floatingChatBody">
+    <div class="chat-panel-msg bot">
+      ¡Hola! Soy el asistente de EndpointIQ. Pregúntame sobre el estado de la flota, alertas o la seguridad de los equipos.
+    </div>
+  </div>
+  
+  <div class="chat-panel-suggests">
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Cómo está la flota hoy?')">¿Cómo está la flota hoy?</span>
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Hay alertas críticas?')">¿Alertas críticas?</span>
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Qué puertos o USBs se detectaron?')">¿Puertos/USBs?</span>
+  </div>
+  
+  <div class="chat-panel-input-row">
+    <input type="text" class="chat-panel-input" id="floatingChatInput" placeholder="Pregunta algo sobre la flota..." onkeypress="handleFloatingChatKey(event)"/>
+    <button class="chat-panel-send" onclick="sendFloatingChatMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+  function toggleFloatingChat() {
+    const panel = document.getElementById('floatingChatPanel');
+    if (panel) {
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active')) {
+        const input = document.getElementById('floatingChatInput');
+        if (input) input.focus();
+        scrollFloatingChatToBottom();
+      }
+    }
+  }
+
+  function handleFloatingChatKey(e) {
+    if (e.key === 'Enter') {
+      sendFloatingChatMessage();
+    }
+  }
+
+  function sendQuickQuestion(question) {
+    sendFloatingChatQuery(question);
+  }
+
+  function sendFloatingChatMessage() {
+    const input = document.getElementById('floatingChatInput');
+    const query = input.value.trim();
+    if (!query) return;
+    
+    input.value = '';
+    sendFloatingChatQuery(query);
+  }
+
+  function sendFloatingChatQuery(query) {
+    const body = document.getElementById('floatingChatBody');
+    if (!body) return;
+    
+    // burbuja de usuario
+    body.innerHTML += `
+      <div class="chat-panel-msg user">
+        ${query}
+      </div>
+    `;
+    scrollFloatingChatToBottom();
+    
+    // burbuja de cargando (simulación de escritura)
+    const typingId = 'typing-' + Date.now();
+    body.innerHTML += `
+      <div class="chat-panel-msg bot" id="${typingId}" style="font-style:italic;opacity:0.7">
+        Escribiendo...
+      </div>
+    `;
+    scrollFloatingChatToBottom();
+    
+    fetch('/api/whatsapp/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query })
+    })
+    .then(res => res.json())
+    .then(data => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+      
+      if (data.success) {
+        body.innerHTML += `
+          <div class="chat-panel-msg bot">
+            ${data.response}
+          </div>
+        `;
+        scrollFloatingChatToBottom();
+      }
+    })
+    .catch(() => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+      body.innerHTML += `
+        <div class="chat-panel-msg bot" style="color:var(--red)">
+          Error de red al consultar el asistente.
+        </div>
+      `;
+      scrollFloatingChatToBottom();
+    });
+  }
+
+  function scrollFloatingChatToBottom() {
+    const body = document.getElementById('floatingChatBody');
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+    }
+  }
+</script>
+</body>
+</html>

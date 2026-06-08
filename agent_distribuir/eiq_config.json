@@ -1,0 +1,12 @@
+{
+    "device_id": "auto",
+    "project_id": "endpointiq",
+    "dataset": "endpointiq",
+    "interval_seconds": 300,
+    "offline_buffer_max": 1000,
+    "credentials_file": "eiq_credentials.json",
+    "ping_target": "8.8.8.8",
+    "log_file": "eiq_agent.log",
+    "version": "2.0.0",
+    "update_server": "https://endpointiq-175647544738.us-central1.run.app"
+}

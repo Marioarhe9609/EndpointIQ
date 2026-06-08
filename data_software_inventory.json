@@ -1,0 +1,42 @@
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-01", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-01", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-01", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-01", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-02", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-02", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-02", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-02", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-03", "app_name": "uTorrent", "version": "3.6.0", "vendor": "BitTorrent Inc.", "install_date": "2026-05-12"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-04", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-04", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-04", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-04", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-05", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-05", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-05", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-05", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-06", "app_name": "uTorrent", "version": "3.6.0", "vendor": "BitTorrent Inc.", "install_date": "2026-05-12"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-07", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-07", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-07", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-07", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-08", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-08", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-08", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-08", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-09", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-09", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-09", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-09", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-10", "app_name": "VS Code", "version": "1.85.0", "vendor": "Microsoft", "install_date": "2026-01-15"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-10", "app_name": "Chrome", "version": "120.0.6099", "vendor": "Google", "install_date": "2026-02-10"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-10", "app_name": "Slack", "version": "4.35.121", "vendor": "Slack Technologies", "install_date": "2026-03-01"}
+{"timestamp": "2026-06-02T00:03:25.970445", "device_id": "device-10", "app_name": "Office 365", "version": "16.0.17126", "vendor": "Microsoft", "install_date": "2026-01-20"}

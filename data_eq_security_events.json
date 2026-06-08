@@ -1,0 +1,15 @@
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 55639 en escucha", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 50128 en escucha", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 49676 en escucha", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 49669 en escucha", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 49668 en escucha", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Dispositivo USB Conectado", "details": "Dispositivo PnP detectado: Concentrador ra\u00c3\u00adz USB (USB 3.0)", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Dispositivo USB Conectado", "details": "Dispositivo PnP detectado: Controlador de host eXtensible Intel(R) USB 3.10 - 1.20 (Microsoft)", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Dispositivo USB Conectado", "details": "Dispositivo PnP detectado: Concentrador ra\u00c3\u00adz USB (USB 3.0)", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Dispositivo USB Conectado", "details": "Dispositivo PnP detectado: Dispositivo compuesto USB", "severity": "Baja"}
+{"timestamp": "2026-06-02T00:27:29.099608+00:00", "device_id": "device-01", "event_type": "Dispositivo USB Conectado", "details": "Dispositivo PnP detectado: Controlador de host eXtensible Intel(R) USB 3.20 - 1.20 (Microsoft)", "severity": "Baja"}
+{"timestamp": "2026-06-01T20:27:29.099608+00:00", "device_id": "device-03", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 445 (SMB) abierto al exterior", "severity": "Media"}
+{"timestamp": "2026-06-01T22:27:29.099608+00:00", "device_id": "device-04", "event_type": "Dispositivo USB Conectado", "details": "Unidad de almacenamiento USB gen\u00e9rica conectada", "severity": "Baja"}
+{"timestamp": "2026-06-01T20:27:29.099608+00:00", "device_id": "device-06", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 445 (SMB) abierto al exterior", "severity": "Media"}
+{"timestamp": "2026-06-01T22:27:29.099608+00:00", "device_id": "device-08", "event_type": "Dispositivo USB Conectado", "details": "Unidad de almacenamiento USB gen\u00e9rica conectada", "severity": "Baja"}
+{"timestamp": "2026-06-01T20:27:29.099608+00:00", "device_id": "device-09", "event_type": "Puerto Abierto Detectado", "details": "Puerto TCP 445 (SMB) abierto al exterior", "severity": "Media"}

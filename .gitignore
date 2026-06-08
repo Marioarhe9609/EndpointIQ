@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archives and large source backups
+source.tgz
+agent_distribuir.zip
+
+# IDE/Editor config
+.vscode/
+.idea/
+
+# Local query temp files
+temp_query_*.json
+temp_insert_*.json
+test_chatbot.py
+
+# Credentials and private keys
+*credentials.json

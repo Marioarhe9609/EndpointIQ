@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EndpointIQ — Manual de Usuario de la Plataforma</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════ RESET & BASE ═══════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{
+  background:#f5f3ef;
+  color:#0a0b0e;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  line-height:1.7;
+}
+
+/* ═══════════════════════ DESIGN TOKENS ═══════════════════════ */
+:root{
+  --ink:       #0a0b0e;
+  --ink2:      #2a2d35;
+  --ink3:      #6b7280;
+  --paper:     #f5f3ef;
+  --paper2:    #ece9e3;
+  --paper3:    #ddd9d0;
+  --white:     #ffffff;
+  --gold:      #b8933a;
+  --gold-l:    #f7f0e0;
+  --gold-d:    #8c6e28;
+  --accent:    #1a3a5c;
+  --accent-l:  #e8f0f8;
+  --teal:      #0d5c52;
+  --teal-l:    #e0f2ee;
+  --plum:      #4a1d6e;
+  --plum-l:    #f0e8f8;
+  --green:     #117a55;
+  --green-l:   #e2f0eb;
+  --red:       #c0392b;
+  --red-l:     #fceae9;
+  --rule:      rgba(10,11,14,0.09);
+  --serif:     'DM Serif Display',Georgia,serif;
+  --mono:      'Fira Code','Cascadia Code',monospace;
+  --sans:      'Plus Jakarta Sans',system-ui,sans-serif;
+}
+
+/* ═══════════════════════ LAYOUT ═══════════════════════ */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR DE CONTROL DE LECTURA */
+.sidebar {
+  width: 280px;
+  background: var(--paper2);
+  border-right: 1px solid var(--paper3);
+  padding: 40px 24px;
+  position: fixed;
+  top: 0; bottom: 0; left: 0;
+  overflow-y: auto;
+  z-index: 10;
+}
+.logo-area {
+  margin-bottom: 30px;
+}
+.logo-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--ink);
+}
+.logo-subtitle {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.nav-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nav-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ink3);
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+.nav-link {
+  font-size: 13.5px;
+  color: var(--ink2);
+  text-decoration: none;
+  display: block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover {
+  background: var(--paper3);
+  color: var(--ink);
+  padding-left: 16px;
+}
+.nav-link.active {
+  background: var(--white);
+  color: var(--accent);
+  border-left-color: var(--gold);
+  font-weight: 600;
+}
+
+/* CONTENIDOR PRINCIPAL */
+.main-content {
+  margin-left: 280px;
+  flex: 1;
+  padding: 60px 50px 80px;
+  max-width: 960px;
+}
+
+/* ═══════════════════════ TYPOGRAPHY ═══════════════════════ */
+h1 {
+  font-family: var(--serif);
+  font-size: 46px;
+  line-height: 1.15;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+h1 em {
+  color: var(--gold);
+  font-style: italic;
+}
+.lead {
+  font-size: 16px;
+  color: var(--ink2);
+  margin-bottom: 40px;
+  line-height: 1.8;
+}
+h2 {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--accent);
+  margin-top: 50px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--paper3);
+  padding-bottom: 10px;
+}
+h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 30px;
+  margin-bottom: 14px;
+}
+p {
+  font-size: 14px;
+  color: var(--ink2);
+  margin-bottom: 20px;
+}
+ul, ol {
+  margin-bottom: 20px;
+  padding-left: 24px;
+}
+li {
+  font-size: 14px;
+  color: var(--ink2);
+  margin-bottom: 8px;
+}
+
+/* ═══════════════════════ COMPONENTS ═══════════════════════ */
+/* ALERTA DE PLATAFORMA EXISTENTE */
+.platform-alert {
+  background: var(--accent-l);
+  border: 1px solid rgba(26,58,92,0.15);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 40px;
+  border-left: 4px solid var(--accent);
+}
+.platform-alert h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.platform-alert p {
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  color: var(--ink2);
+}
+.platform-alert .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  background: var(--white);
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(26,58,92,0.25);
+  transition: all 0.2s;
+}
+.platform-alert .btn-link:hover {
+  background: var(--accent);
+  color: var(--white);
+}
+
+/* NOTAS INFORMATIVAS */
+.info-box {
+  background: var(--gold-l);
+  border-left: 4px solid var(--gold);
+  padding: 20px;
+  border-radius: 4px;
+  margin: 24px 0;
+}
+.info-box.danger {
+  background: var(--red-l);
+  border-left-color: var(--red);
+}
+.info-box.teal {
+  background: var(--teal-l);
+  border-left-color: var(--teal);
+}
+.info-box h5 {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
+
+/* COMPONENT CARDS */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 30px 0;
+}
+.feature-card {
+  background: var(--white);
+  border: 1px solid var(--paper3);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+}
+.feature-card h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.feature-card p {
+  font-size: 13px;
+  margin-bottom: 0;
+  color: var(--ink3);
+}
+
+/* CODE BLOCKS */
+pre {
+  background: var(--ink);
+  color: var(--white);
+  padding: 16px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+code {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--paper3);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* SEPARATOR */
+hr {
+  border: none;
+  height: 1px;
+  background: var(--paper3);
+  margin: 40px 0;
+}
+
+@media(max-width:768px){
+  .sidebar {
+    display: none;
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 30px 20px;
+  }
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════════ SIDEBAR (MENÚ DE CONTENIDOS) ══════════════ -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-title">EndpointIQ</div>
+      <div class="logo-subtitle">Manual de Usuario</div>
+    </div>
+    
+    <nav class="nav-menu">
+      <div class="nav-section-title">Primeros Pasos</div>
+      <li><a href="#introduccion" class="nav-link active" onclick="activateLink(this)">1. Introducción</a></li>
+      <li><a href="#acceso" class="nav-link" onclick="activateLink(this)">2. Acceso a la Plataforma</a></li>
+      
+      <div class="nav-section-title">Módulos del Tablero</div>
+      <li><a href="#dashboard" class="nav-link" onclick="activateLink(this)">3. Dashboard General</a></li>
+      <li><a href="#por-equipo" class="nav-link" onclick="activateLink(this)">4. Detalle Por Equipo</a></li>
+      <li><a href="#productividad" class="nav-link" onclick="activateLink(this)">5. Productividad y Apps</a></li>
+      <li><a href="#seguridad" class="nav-link" onclick="activateLink(this)">6. Seguridad y Auditoría</a></li>
+      <li><a href="#mesa-ayuda" class="nav-link" onclick="activateLink(this)">7. Mesa de Ayuda (Tickets)</a></li>
+      
+      <div class="nav-section-title">Canales Avanzados</div>
+      <li><a href="#motores-ia" class="nav-link" onclick="activateLink(this)">8. Motores e Inteligencia IA</a></li>
+      <li><a href="#whatsapp" class="nav-link" onclick="activateLink(this)">9. Canal de WhatsApp Bot</a></li>
+    </nav>
+  </aside>
+
+  <!-- ══════════════ CONTENIDO PRINCIPAL ══════════════ -->
+  <main class="main-content">
+    
+    <!-- ENCABEZADO -->
+    <header class="anim-0">
+      <div class="logo-subtitle" style="margin-bottom:8px">Guía Técnica Corporativa</div>
+      <h1>Manual de Usuario de la Plataforma <em>EndpointIQ</em></h1>
+      <p class="lead">
+        Esta documentación proporciona las directrices operativas para navegar, analizar y configurar la plataforma de administración inteligente de activos **EndpointIQ (v1.1)**. Conoce la arquitectura de tableros, el funcionamiento de alertas y las interacciones conversacionales.
+      </p>
+    </header>
+
+    <!-- ALERTA DE PLATAFORMA EXISTENTE -->
+    <section class="platform-alert">
+      <h4>💻 Plataforma y Tableros Ya Disponibles</h4>
+      <p>
+        ¡Confirmado! Ya se encuentra creado un prototipo interactivo de alta fidelidad con todos los tableros de control y módulos de la plataforma en tu directorio local de trabajo. Puedes abrirlo de forma inmediata en cualquier navegador web para interactuar con él (cambiar de pestañas, ver el mapa de calor de la flota y probar las alertas de IA).
+      </p>
+      <a href="file:///C:/Users/Usuario/.gemini/antigravity-ide/scratch/EndpointIQ/EndpointIQ_Mockup.html" class="btn-link" target="_blank">
+        🌐 Abrir Plataforma Local (EndpointIQ_Mockup.html)
+      </a>
+    </section>
+
+    <!-- INTRODUCCIÓN -->
+    <section id="introduccion">
+      <h2>1. Introducción</h2>
+      <p>
+        **EndpointIQ** es una solución de monitoreo empresarial que unifica la telemetría de hardware, la auditoría pasiva de seguridad de red y el análisis constructivo de productividad en un panel único de control de TI. 
+      </p>
+      <p>
+        A diferencia de las herramientas clásicas de inventario, EndpointIQ incorpora **14 micro-agentes cognitivos (basados en Vertex AI)** que analizan el estado de la flota para encontrar causas raíz de lentitud (ej. excesos de pestañas en navegadores vs escaneos de antivirus) y autogenerar tickets de remediación antes de que el usuario reporte la falla.
+      </p>
+    </section>
+
+    <!-- ACCESO -->
+    <section id="acceso">
+      <h2>2. Acceso a la Plataforma</h2>
+      <p>
+        El acceso administrativo a la plataforma se realiza mediante dos canales sincronizados en tiempo real:
+      </p>
+      <ol>
+        <li>
+          <strong>Tablero Web de Control (Consola de Administrador):</strong> Acceso seguro a través del navegador web local en [EndpointIQ_Mockup.html](file:///C:/Users/Usuario/.gemini/antigravity-ide/scratch/EndpointIQ/EndpointIQ_Mockup.html) con perfil de **Admin TI**.
+        </li>
+        <li>
+          <strong>Asistente Conversacional WhatsApp Business:</strong> Vinculado al número de celular corporativo del departamento de infraestructura de TI para consultas en lenguaje natural en tiempo real.
+        </li>
+      </ol>
+      <div class="info-box teal">
+        <h5>🔒 Seguridad en el Acceso de Telemetría</h5>
+        El agente recopila exclusivamente datos de comportamiento del sistema (CPU, RAM, espacio libre, red, puertos abiertos y firmas de procesos). Conforme a la política de privacidad, no se registran URLs específicas visitadas, contenidos de pantalla ni se leen documentos privados.
+      </div>
+    </section>
+
+    <!-- DASHBOARD GENERAL -->
+    <section id="dashboard">
+      <h2>3. Dashboard General (Panel de Control Principal)</h2>
+      <p>
+        Es la pantalla por defecto del administrador al ingresar al sistema. Permite evaluar en 5 segundos la salud global de toda la flota de computadores.
+      </p>
+      
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h4>📊 Tarjetas de KPIs Generales</h4>
+          <p>Muestra de forma destacada el conteo total de equipos registrados, la cantidad online (con porcentaje de disponibilidad), equipos offline, alertas activas de hardware y tickets pendientes en la Mesa de Ayuda.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🗺 Mapa de Calor de Flota (Heatmap)</h4>
+          <p>Una cuadrícula interactiva de 160 nodos donde cada nodo representa un dispositivo de la flota corporativa. El color indica su estado crítico: Verde (Normal), Amarillo (Alerta), Rojo (Falla Crítica), Gris oscuro (Fuera de línea).</p>
+        </div>
+        <div class="feature-card">
+          <h4>⚡ Feed de Alertas Recientes</h4>
+          <p>Un listado cronológico en vivo que muestra notificaciones preventivas disparadas por los micro-agentes (ej. "RAM crítica en LAPTOP-MROJAS", "Disco al 91% en PC-JGOMEZ").</p>
+        </div>
+        <div class="feature-card">
+          <h4>📈 Gráficos Promedio de Flota</h4>
+          <p>Curvas de tendencias históricas de las últimas 24 horas del uso promedio de CPU, RAM y latencia de red de toda la organización.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DETALLE POR EQUIPO -->
+    <section id="por-equipo">
+      <h2>4. Detalle Por Equipo</h2>
+      <p>
+        Al hacer clic en cualquier dispositivo o alerta en la plataforma, el sistema despliega el módulo **Por Equipo**, permitiendo realizar un diagnóstico granular a distancia:
+      </p>
+      <ul>
+        <li><strong>Anillos de Recursos en Tiempo Real:</strong> Porcentaje gráfico de uso de CPU, ocupación de RAM (ej: 15.1/16 GB), espacio en disco (ej: 300/512 GB), latencia de red y temperatura del procesador.</li>
+        <li><strong>Análisis de Causa Raíz:</strong> Un diagnóstico directo del agente (ej. <em>"Causa: chrome.exe consume el 61% de la memoria debido a 23 pestañas activas"</em>) que evita que el personal de TI pase horas analizando el Administrador de Tareas.</li>
+        <li><strong>Historial de Eventos (Timeline):</strong> Logs del comportamiento del terminal ordenados por hora (ej. logins exitosos, picos de CPU, alertas de software no autorizado).</li>
+      </ul>
+      <div class="info-box">
+        <h5>🔋 Soporte para Laptops y Computadores de Escritorio</h5>
+        El sistema detecta automáticamente la firma física de la máquina (WMI ChassisType). Si es un <strong>Portátil</strong>, despliega métricas dinámicas de carga y descarga de batería. Si es un equipo de <strong>Escritorio</strong>, el campo de batería reporta <code>N/A</code> y se establece de forma automática en estado <code>Direct Power</code>.
+      </div>
+    </section>
+
+    <!-- PRODUCTIVIDAD -->
+    <section id="productividad">
+      <h2>5. Productividad y Uso de Aplicaciones</h2>
+      <p>
+        Este módulo analiza el uso del tiempo laboral activo de los equipos en la red para optimizar recursos de licenciamiento y software:
+      </p>
+      <ul>
+        <li><strong>Clasificación de Uso (Donut Chart):</strong> Divide las horas del dispositivo en categorías parametrizadas: Trabajo (herramientas corporativas), Comunicación (Teams, Outlook), Web general y Ocio (Tiktok, Instagram).</li>
+        <li><strong>Top Aplicaciones:</strong> Registro de las aplicaciones de escritorio más utilizadas de la semana con barra de porcentaje de tiempo activo.</li>
+        <li><strong>Productividad por Usuario:</strong> Tabla centralizada con el desglose de horas diarias por categoría, el Índice de Productividad general y los principales sitios web frecuentados.</li>
+      </ul>
+    </section>
+
+    <!-- SEGURIDAD -->
+    <section id="seguridad">
+      <h2>6. Seguridad y Auditoría Pasiva</h2>
+      <p>
+        Inspecciona el entorno del sistema de forma no intrusiva y sin interferir con las tareas del usuario final:
+      </p>
+      <ul>
+        <li><strong>Puertos en Escucha:</strong> Identifica puertos TCP inusuales expuestos en el terminal (ej: Puerto 445/SMB expuesto a Internet) para prevenir riesgos de ataque lateral.</li>
+        <li><strong>Dispositivos USB Conectados:</strong> Registra la marca y tipo de periféricos de almacenamiento conectados a los puertos físicos.</li>
+        <li><strong>Mapa de Conexiones (IPs):</strong> Visualización geográfica de los pings de sincronización del agente. Detecta accesos anómalos o sospechosos (ej. pings de sincronización desde ubicaciones extranjeras como Venezuela o Ecuador).</li>
+      </ul>
+      <div class="info-box danger">
+        <h5>🛡 Mitigación de Antivirus (Falsos Positivos)</h5>
+        Para evitar bloqueos de Windows Defender, SentinelOne o CrowdStrike, el agente ligero evita por completo el uso de subprocesos o scripts de consola <code>powershell.exe</code>. En su lugar, el binario del agente invoca directamente llamadas a la API nativa de Windows (ej: <code>GetSystemPowerStatus</code>, <code>GetExtendedTcpTable</code>), eliminando la heurística sospechosa y garantizando compatibilidad 100% segura.
+      </div>
+    </section>
+
+    <!-- MESA DE AYUDA -->
+    <section id="mesa-ayuda">
+      <h2>7. Mesa de Ayuda (Tickets Autogenerados)</h2>
+      <p>
+        El sistema está integrado directamente con un flujo de trabajo de resolución de incidentes:
+      </p>
+      <ol>
+        <li><strong>Auto-Creación de Incidentes:</strong> Cuando un computador de la flota supera los umbrales críticos de recursos por más de 10 minutos (ej. CPU al 95%), el motor de IA abre automáticamente un ticket (ej. #INC-2851).</li>
+        <li><strong>Snapshots de Diagnóstico:</strong> Almacena el estado de los recursos y el top de procesos causa raíz en el preciso momento en que ocurrió el problema.</li>
+        <li><strong>Notificaciones al Usuario (Toast Notifications):</strong> Envía una sugerencia proactiva en pantalla al usuario para resolver el problema (ej: <em>"Chrome consume el 94% de tu RAM, ¿deseas que cerremos las pestañas inactivas?"</em>).</li>
+      </ol>
+    </section>
+
+    <!-- MOTORES IA -->
+    <section id="motores-ia">
+      <h2>8. Motores e Inteligencia IA</h2>
+      <p>
+        El módulo de **Agentes Inteligentes** consolida el estado operativo de los 14 motores cognitivos integrados:
+      </p>
+      <ul>
+        <li><strong>Centinela de Seguridad:</strong> Inspecciona intentos fallidos e IPs extranjeras.</li>
+        <li><strong>Predictor de Fallas:</strong> Analiza tendencias para advertir qué hardware podría fallar en los siguientes 5 o 7 días.</li>
+        <li><strong>Auto-Ticket Engine:</strong> Encargado de automatizar la mesa de ayuda con una tasa de precisión del 97.8%.</li>
+        <li><strong>Graph Analyzer:</strong> Agrupa dispositivos por comportamiento similar para identificar problemas en bloques de red o departamentos enteros.</li>
+      </ul>
+    </section>
+
+    <!-- WHATSAPP -->
+    <section id="whatsapp">
+      <h2>9. Canal de WhatsApp Bot</h2>
+      <p>
+        El asistente de inteligencia artificial está disponible 24/7 en WhatsApp para permitir que la gerencia y el equipo de soporte TI pregunten en lenguaje natural por la salud de la infraestructura sin abrir el portal web.
+      </p>
+      
+      <h3>Ejemplos de Consultas Comunes por Chat:</h3>
+      <pre><code>Usuario: ¿Cómo está la disponibilidad de la flota hoy?
+Bot: La disponibilidad actual es del 95.1% (1,187 de 1,248 equipos están online). Hay 61 offline.
+
+Usuario: ¿Hay alertas críticas de hardware en este momento?
+Bot: Sí, se detecta 1 alerta crítica activa: LAPTOP-MROJAS reporta un 94% de uso de memoria RAM (causa: Chrome.exe con 23 pestañas).
+
+Usuario: ¿Qué puertos expuestos o USBs no autorizados se detectaron en el piloto?
+Bot: Se detectaron puertos abiertos en 3 equipos piloto (device-03, device-06 y device-09) exponiendo el puerto TCP 445 (SMB) con severidad Media. No hay USBs de almacenamiento sospechosos hoy.</code></pre>
+
+      <div class="info-box teal">
+        <h5>💡 Integración Corporativa Directa</h5>
+        Todas las interacciones de WhatsApp se consolidan en la tabla segura de base de datos <code>eq_whatsapp_interactions</code> en la nube, garantizando un registro de auditoría completo y permitiendo analizar la efectividad de las respuestas del asistente.
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <hr>
+    <footer style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center">
+      Confidencial · Manual de Usuario Oficial · EndpointIQ v1.1
+    </footer>
+
+  </main>
+</div>
+
+<script>
+// Función para cambiar de estado activo en el menú de navegación lateral
+function activateLink(element) {
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+  });
+  element.classList.add('active');
+}
+
+// Sincronización automática de scroll con el menú activo
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('section');
+  const navLinks = document.querySelectorAll('.nav-link');
+  
+  let currentId = '';
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop;
+    if (window.pageYOffset >= sectionTop - 100) {
+      currentId = section.getAttribute('id');
+    }
+  });
+
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === `#${currentId}`) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>
