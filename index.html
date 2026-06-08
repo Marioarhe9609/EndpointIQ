@@ -6,70 +6,6 @@
 <title>EndpointIQ — Enterprise Monitoring Platform</title>
 <meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
-<script>
-// TEMPORARY DEBUG v2: Always-visible DOM inspector
-(function(){
-  window.__dbgErrs = [];
-  var errs = window.__dbgErrs;
-  window.onerror = function(msg, src, line, col, err) {
-    errs.push('JS_ERR L' + line + ' ' + msg);
-    showDbg();
-  };
-  window.onunhandledrejection = function(e) {
-    errs.push('PROMISE_ERR: ' + (e.reason ? (e.reason.message || e.reason) : '?'));
-    showDbg();
-  };
-  
-  function showDbg() {
-    var d = document.getElementById('__dbg');
-    if (!d) {
-      d = document.createElement('div');
-      d.id = '__dbg';
-      d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#0f0;font:11px monospace;padding:8px;max-height:250px;overflow:auto;border-top:3px solid #e94560';
-      if (document.body) document.body.appendChild(d); 
-      else document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(d); });
-    }
-    d.innerHTML = errs.join('<br>');
-  window.__dbgPush = function(msg) { errs.push(msg); showDbg(); };}
-
-  // Periodic DOM check every 2 seconds
-  setInterval(function(){
-    var info = [];
-    var vs = document.getElementById('view-seguridad');
-    var vp = document.getElementById('view-productividad');
-    
-    if (vs) {
-      var style = window.getComputedStyle(vs);
-      info.push('SEC: class="' + vs.className + '" display=' + style.display + ' children=' + vs.children.length + ' height=' + vs.offsetHeight);
-      var secScore = document.getElementById('secScore');
-      if (secScore) info.push('secScore.text="' + secScore.textContent + '"');
-      var tbody = document.getElementById('secEventsBody');
-      if (tbody) info.push('secEventsBody.rows=' + tbody.children.length);
-    } else {
-      info.push('SEC: view-seguridad NOT FOUND');
-    }
-    
-    if (vp) {
-      var style2 = window.getComputedStyle(vp);
-      info.push('PROD: class="' + vp.className + '" display=' + style2.display + ' children=' + vp.children.length);
-    } else {
-      info.push('PROD: view-productividad NOT FOUND');
-    }
-    
-    if (errs.length > 0) info.push('--- ERRORS ---');
-    errs.forEach(function(e){ info.push(e); });
-    
-    var d = document.getElementById('__dbg');
-    if (!d) {
-      d = document.createElement('div');
-      d.id = '__dbg';
-      d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#0f0;font:11px monospace;padding:8px;max-height:250px;overflow:auto;border-top:3px solid #e94560';
-      document.body.appendChild(d);
-    }
-    d.innerHTML = info.join('<br>');
-  }, 2000);
-})();
-</script>
 <style>
   /* ══ THEME: DARK ══════════════════════════════════════════════ */
   [data-theme="dark"] {
@@ -2251,16 +2187,15 @@ function fetchDevices() {
     .then(res => res.json())
     .then(data => {
       fleetDevices = data;
-      try { updateDashboardKPIs(); } catch(e) { if(window.__dbgPush) window.__dbgPush('KPIs: '+e.message); }
-      try { generateFleetHeatmap(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Heatmap: '+e.message); }
-      try { updateTopProblematicTable(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Table: '+e.message); }
-      try { populateDeviceSelector(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Selector: '+e.message); }
-      try { updateAlertsFeed(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Alerts: '+e.message); }
-      try { updateFleetTable(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Fleet: '+e.message); }
-      try { updateDashboardNetwork(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Network: '+e.message); }
-      try { updateEquipoReport(); } catch(e) { if(window.__dbgPush) window.__dbgPush('Report: '+e.message); }
-    })
-    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchDevices CATCH: ' + (err.message||err)); });
+      updateDashboardKPIs();
+      generateFleetHeatmap();
+      updateTopProblematicTable();
+      populateDeviceSelector();
+      updateAlertsFeed();
+      updateFleetTable();
+      updateDashboardNetwork();
+      updateEquipoReport();
+    });
 }
 
 // ── Actualizar Tarjetas KPIs del Dashboard ──
@@ -3164,8 +3099,7 @@ function fetchProductivity() {
       }
       
       loadUserProductivity(sel ? sel.value : '__all__');
-    })
-    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchProductivity CATCH: ' + (err.message||err)); });
+    });
 }
 
 function loadUserProductivity(userId) {
@@ -3466,7 +3400,6 @@ function loadUserProductivity(userId) {
       </tr>`;
     });
   }
-  try { renderWebTrafficGraph(userId); } catch(e) { console.error('WebTrafficGraph error:', e); }
 }
 
 function exportProductivityCSV() {
@@ -3566,30 +3499,30 @@ function fetchSecurity() {
         tbody.innerHTML = '';
         if (events.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad — Todo en orden</td></tr>';
-        } else {
-          events.forEach(row => {
-            let badgeClass = 'ok';
-            if (row.severity === 'Alta') badgeClass = 'crit';
-            else if (row.severity === 'Media') badgeClass = 'warn';
-            else if (row.severity === 'Baja') badgeClass = 'info';
-            
-            const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
-            const devName = row.device_name || row.device_id || '—';
-            const icon = row.icon || '🔐';
-            const cat = row.category || 'general';
-            const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
-            
-            tbody.innerHTML += `<tr>
-              <td style="font-size:18px;text-align:center">${icon}</td>
-              <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
-              <td style="font-weight:600">${devName}</td>
-              <td style="font-size:12px">${row.details}</td>
-              <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
-              <td class="mono">${time}</td>
-              <td><span class="badge ${badgeClass}">${row.severity}</span></td>
-            </tr>`;
-          });
+          return;
         }
+        events.forEach(row => {
+          let badgeClass = 'ok';
+          if (row.severity === 'Alta') badgeClass = 'crit';
+          else if (row.severity === 'Media') badgeClass = 'warn';
+          else if (row.severity === 'Baja') badgeClass = 'info';
+          
+          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
+          const devName = row.device_name || row.device_id || '—';
+          const icon = row.icon || '🔐';
+          const cat = row.category || 'general';
+          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
+          
+          tbody.innerHTML += `<tr>
+            <td style="font-size:18px;text-align:center">${icon}</td>
+            <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
+            <td style="font-weight:600">${devName}</td>
+            <td style="font-size:12px">${row.details}</td>
+            <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
+            <td class="mono">${time}</td>
+            <td><span class="badge ${badgeClass}">${row.severity}</span></td>
+          </tr>`;
+        });
       }
       
       // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
@@ -3606,8 +3539,6 @@ function fetchSecurity() {
         mapCanvas.width = W * 2; mapCanvas.height = H * 2;
         mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
         const ctx = mapCanvas.getContext('2d');
-        if (!ctx) { console.warn('Canvas 2d context unavailable'); }
-        else {
         ctx.scale(2, 2);
 
         // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
@@ -3707,7 +3638,6 @@ function fetchSecurity() {
         ctx.fillText('90°N', 4, 14);
         ctx.fillText('0° EC', 4, H * 0.5 + 14);
         ctx.fillText('90°S', 4, H - 4);
-        } // close else (ctx available)
       }
 
       // Render pins on SVG overlay
@@ -3828,7 +3758,7 @@ function fetchSecurity() {
         catPanel.innerHTML = cp;
       }
     })
-    .catch(err => { if(window.__dbgPush) window.__dbgPush('fetchSecurity CATCH: ' + (err.message||err)); });
+    .catch(err => console.error('Error fetching security:', err));
 }
 
 // ── Módulo de KPI Builder ──
@@ -4002,14 +3932,14 @@ function toggleTheme() {
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  try { localStorage.setItem('endpointiq-theme', next); } catch(e) {}
+  localStorage.setItem('endpointiq-theme', next);
 }
 
 function applySavedTheme() {
-  try {
-    const saved = localStorage.getItem('endpointiq-theme');
-    if (saved) { document.documentElement.setAttribute('data-theme', saved); }
-  } catch(e) {}
+  const saved = localStorage.getItem('endpointiq-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
 }
 
 // ── Temporizador regresivo de actualizacion ──
