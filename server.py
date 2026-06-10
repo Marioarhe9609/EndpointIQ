@@ -530,7 +530,7 @@ def refresh_cache_from_bigquery():
     
     # 3. Obtener todo el historial de métricas
     try:
-        all_m = run_bq_query("SELECT timestamp, device_id, cpu_usage, ram_usage, disk_free_gb, network_latency_ms, cause_root, cause_process, device_type, battery_percent, battery_status, top_processes, browser_history, network_info FROM endpointiq.eq_hardware_metrics ORDER BY timestamp DESC LIMIT 200")
+        all_m = run_bq_query("SELECT timestamp, device_id, cpu_usage, ram_usage, disk_free_gb, network_latency_ms, cause_root, cause_process, device_type, battery_percent, battery_status, top_processes, browser_history, network_info FROM endpointiq.eq_hardware_metrics ORDER BY timestamp DESC LIMIT 2000")
         if all_m:
             enrich_metrics_with_mock(all_m)
             with cache_lock:
@@ -1626,7 +1626,7 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
             sorted_desktop = sorted(
                 [(k, v) for k, v in apps.items() if not any(s in k.lower() for s in system_procs)],
                 key=lambda x: x[1], reverse=True
-            )[:8]
+            )[:20]
             if not sorted_desktop:
                 continue
             max_desk = sorted_desktop[0][1]
@@ -1646,7 +1646,7 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                     "pct_label": f"{int(dval/total_desk*100)}%"
                 })
             # Also build top_apps for this device
-            sorted_top = sorted(apps.items(), key=lambda x: x[1], reverse=True)[:6]
+            sorted_top = sorted(apps.items(), key=lambda x: x[1], reverse=True)[:10]
             max_u = sorted_top[0][1] if sorted_top else 1
             top = [{"name": a[0], "hours": round(a[1] * 0.5, 1), "pct": int(a[1] / max_u * 100)} for a in sorted_top]
             result[d_id] = {"desktop_apps": device_apps, "top_apps": top}
@@ -1700,7 +1700,7 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                 continue
             
             total_visits = sum(device_domains.values())
-            sorted_bd = sorted(device_domains.items(), key=lambda x: x[1], reverse=True)[:10]
+            sorted_bd = sorted(device_domains.items(), key=lambda x: x[1], reverse=True)[:25]
             pages = []
             for domain, visits in sorted_bd:
                 cat, cls = "Web", "cat-web"
