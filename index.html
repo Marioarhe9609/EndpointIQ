@@ -1523,6 +1523,18 @@
                 <div style="color:var(--text3);font-size:13px;padding:12px">Cargando...</div>
               </div>
             </div>
+            </div>
+
+            <!-- Real-time Processes Row (new) -->
+            <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px;display:none" id="prodRealtimeProcessesWrapper">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase">⚙️ Consumo de Recursos en Tiempo Real</div>
+                <div style="font-size:10px;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:4px;border:1px solid var(--border)">Actualización: Cada latido</div>
+              </div>
+              <div id="prodRealtimeProcesses" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="color:var(--text3);font-size:13px;padding:12px">Cargando procesos...</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -3525,6 +3537,54 @@ function loadUserProductivity(userId) {
     deskEl.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px">Sin datos de aplicaciones</div>';
   }
   
+  // === REALTIME PROCESSES ===
+  const procWrapper = document.getElementById('prodRealtimeProcessesWrapper');
+  const procContainer = document.getElementById('prodRealtimeProcesses');
+  if (procWrapper && procContainer) {
+    if (userId !== '__all__') {
+      procWrapper.style.display = 'block';
+      const d = fleetDevices.find(x => x.device_id === userId);
+      if (d && d.top_processes) {
+        try {
+          let pList = typeof d.top_processes === 'string' ? JSON.parse(d.top_processes) : d.top_processes;
+          pList = pList.filter(p => !p.name.includes('Sistema + Otros') && p.pid !== 0 && p.name !== 'System Idle Process').sort((a,b) => (b.cpu + b.mem) - (a.cpu + a.mem)).slice(0,6);
+          if (pList.length > 0) {
+            const pColors = ['#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#06B6D4', '#10B981'];
+            let ph = '';
+            pList.forEach((p, i) => {
+              const isAlert = p.cpu > 50 || p.mem > 50;
+              ph += `<div style="background:var(--surface2);border:1px solid ${isAlert ? 'var(--red)' : 'var(--border)'};border-radius:8px;padding:10px 14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-size:12px;font-weight:600;color:var(--text);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+                  <span style="font-size:10px;color:var(--text3);min-width:50px;text-align:right">PID: ${p.pid}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px"><span>CPU</span><span style="color:${p.cpu>50?'var(--red)':'var(--text2)'};font-weight:600">${p.cpu.toFixed(1)}%</span></div>
+                    <div style="height:4px;background:var(--surface1);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(100,p.cpu)}%;background:${pColors[i%pColors.length]}"></div></div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px"><span>RAM</span><span style="color:${p.mem>50?'var(--red)':'var(--text2)'};font-weight:600">${p.mem.toFixed(1)}%</span></div>
+                    <div style="height:4px;background:var(--surface1);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(100,p.mem)}%;background:${pColors[i%pColors.length]}"></div></div>
+                  </div>
+                </div>
+              </div>`;
+            });
+            procContainer.innerHTML = ph;
+          } else {
+            procContainer.innerHTML = '<div style="color:var(--text3);font-size:13px;grid-column:1/-1;padding:12px">No hay procesos que reportar</div>';
+          }
+        } catch(e) {
+          procContainer.innerHTML = '<div style="color:var(--text3);font-size:13px;grid-column:1/-1;padding:12px">Error al procesar datos</div>';
+        }
+      } else {
+        procContainer.innerHTML = '<div style="color:var(--text3);font-size:13px;grid-column:1/-1;padding:12px">Sin datos de procesos en tiempo real para este equipo.</div>';
+      }
+    } else {
+      procWrapper.style.display = 'none';
+    }
+  }
+
   const tbody = document.querySelector('#prodUserTable tbody');
   if (tbody) {
     tbody.innerHTML = '';
