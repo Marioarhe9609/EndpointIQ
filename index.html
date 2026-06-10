@@ -983,7 +983,6 @@
           </div>
         </div>
 
-        </div>
 
         <!-- Heatmap + Alertas -->
         <div class="col-7-3">
@@ -1488,7 +1487,7 @@
                 <div style="color:var(--text3);font-size:13px;padding:12px">Cargando...</div>
               </div>
             </div>
-            </div>
+          </div>
         </div>
 
 <!-- 3.8 Grafo de Concentracion de Trafico Web -->
@@ -2243,9 +2242,6 @@ function updateDashboardKPIs() {
   
   // Actualizar grafica de metricas promedio
   updateMetricsChart();
-  // Render fleet charts
-  try { renderFleetStatusDonut(); } catch(e) { console.warn('Fleet donut error:', e); }
-  try { renderSyncTimeline(); } catch(e) { console.warn('Sync timeline error:', e); }
 }
 
 // ── Grafica Metricas Promedio con datos reales (INTERACTIVA) ──
@@ -2566,100 +2562,7 @@ function updateDashboardNetwork() {
   }
 }
 
-// ── Fleet Status Donut ──
-function renderFleetStatusDonut() {
-  const C = 389.56;
-  const total = fleetDevices.length;
-  if (total === 0) return;
-  
-  const online = fleetDevices.filter(d => d.status === 'Online' && (d.cpu_usage || 0) < 90 && (d.ram_usage || 0) < 92).length;
-  const warn = fleetDevices.filter(d => d.status === 'Online' && ((d.cpu_usage || 0) >= 90 || (d.ram_usage || 0) >= 92)).length;
-  const offline = total - online - warn;
-  
-  const onlinePct = online / total;
-  const warnPct = warn / total;
-  const offPct = offline / total;
-  
-  const dOnline = document.getElementById('fleetDonutOnline');
-  const dWarn = document.getElementById('fleetDonutWarn');
-  const dOff = document.getElementById('fleetDonutOff');
-  
-  if (dOnline) {
-    dOnline.setAttribute('stroke-dashoffset', C - C * onlinePct);
-    dOnline.setAttribute('transform', 'rotate(-90 80 80)');
-  }
-  if (dWarn) {
-    const warnStart = onlinePct * 360 - 90;
-    dWarn.setAttribute('stroke-dashoffset', C - C * warnPct);
-    dWarn.setAttribute('transform', `rotate(${warnStart} 80 80)`);
-  }
-  if (dOff) {
-    const offStart = (onlinePct + warnPct) * 360 - 90;
-    dOff.setAttribute('stroke-dashoffset', C - C * offPct);
-    dOff.setAttribute('transform', `rotate(${offStart} 80 80)`);
-  }
-  
-  const center = document.getElementById('fleetDonutCenter');
-  if (center) center.textContent = total;
-  
-  const nOn = document.getElementById('fleetDonutOnlineN');
-  const nWn = document.getElementById('fleetDonutWarnN');
-  const nOf = document.getElementById('fleetDonutOffN');
-  if (nOn) nOn.textContent = online;
-  if (nWn) nWn.textContent = warn;
-  if (nOf) nOf.textContent = offline;
-}
 
-// ── Sync Timeline ──
-function renderSyncTimeline() {
-  const container = document.getElementById('syncTimelineContainer');
-  if (!container) return;
-  
-  const now = new Date();
-  const devices = [...fleetDevices].sort((a, b) => {
-    const ta = a.timestamp || a.last_sync || null;
-    const tb = b.timestamp || b.last_sync || null;
-    return (tb ? new Date(tb) : new Date(0)) - (ta ? new Date(ta) : new Date(0));
-  });
-  
-  let html = '';
-  devices.forEach(d => {
-    const rawTs = d.timestamp || d.last_sync || null;
-    const lastSeen = rawTs ? new Date(rawTs) : null;
-    const diffMs = lastSeen ? (now - lastSeen) : Infinity;
-    const diffMin = Math.floor(diffMs / 60000);
-    
-    let timeLabel, barColor, barPct;
-    if (!lastSeen || diffMin > 60) {
-      timeLabel = lastSeen ? `hace ${Math.floor(diffMin/60)}h ${diffMin%60}m` : 'Sin datos';
-      barColor = '#64748B';
-      barPct = 10;
-    } else if (diffMin > 10) {
-      timeLabel = `hace ${diffMin}m`;
-      barColor = '#F59E0B';
-      barPct = Math.max(30, 100 - diffMin);
-    } else {
-      timeLabel = diffMin < 1 ? 'Justo ahora' : `hace ${diffMin}m`;
-      barColor = '#10B981';
-      barPct = 100;
-    }
-    
-    const statusDot = d.status === 'Online' 
-      ? '<div style="width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 6px rgba(16,185,129,0.5)"></div>'
-      : '<div style="width:8px;height:8px;border-radius:50%;background:#64748B"></div>';
-    
-    html += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0">
-      ${statusDot}
-      <span style="font-size:12px;font-weight:600;color:var(--text);min-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.device_id}</span>
-      <div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${barPct}%;background:${barColor};border-radius:3px;transition:width 0.8s ease"></div>
-      </div>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);min-width:75px;text-align:right">${timeLabel}</span>
-    </div>`;
-  });
-  
-  container.innerHTML = html || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Sin dispositivos</div>';
-}
 
 // ── Generar Mapa de Calor de la Flota (Heatmap) ──
 function generateFleetHeatmap() {
