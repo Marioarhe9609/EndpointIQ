@@ -337,14 +337,18 @@ def enrich_metrics_with_mock(metrics_list):
                     {"domain": "slack.com", "visits": 30},
                     {"domain": "google.com", "visits": 40}
                 ]
-            else:
+            elif dev_id.startswith("device-"):
                 history = [
                     {"domain": "google.com", "visits": 25},
                     {"domain": "outlook.com", "visits": 18},
                     {"domain": "whatsapp.com", "visits": 35},
                     {"domain": "youtube.com", "visits": 22}
                 ]
-            m["browser_history"] = json.dumps(history)
+            else:
+                history = None
+                
+            if history:
+                m["browser_history"] = json.dumps(history)
 
         # Enriquecer con network_info si no existe o está vacío
         net = m.get("network_info")
