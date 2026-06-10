@@ -3291,6 +3291,8 @@ function loadUserProductivity(userId) {
     var filteredDesktopApps = deviceApps.desktop_apps || [];
     var filteredWebPages = (data.per_device_web || {})[userId] || [];
     
+    console.log('[PROD] Filter changed to:', userId, '| webPages:', filteredWebPages.length, '| desktopApps:', filteredDesktopApps.length, '| per_device_web keys:', Object.keys(data.per_device_web || {}));
+    
     document.getElementById('prodDonutTitle').textContent = `Distribución — ${user.usuario}`;
     document.getElementById('prodAppsTitle').textContent = `Apps — ${user.usuario}`;
     document.getElementById('prodKpiIndexDelta').textContent = userId;
