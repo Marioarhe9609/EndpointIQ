@@ -87,6 +87,7 @@ cache_lock = threading.Lock()
 # ══════════════════════════════════════════════════════════════
 sessions = {}  # token -> {user_id, email, role, full_name, avatar, expires}
 sessions_lock = threading.Lock()
+VERSION = "2.2.0"  # Bumped: filter None BQ fields, idle_seconds tracking
 users_cache = []  # In-memory cache of users from BigQuery
 users_cache_lock = threading.Lock()
 
@@ -1049,9 +1050,22 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                             "visits": visits
                         })
                 
-                # Distribution
+                # Average idle time (from latest metrics if available)
+                idle_values = []
+                for m in cache.get("latest_metrics", []):
+                    iv = m.get("idle_seconds")
+                    if iv is not None:
+                        try: idle_values.append(float(iv))
+                        except: pass
+                avg_idle = round(sum(idle_values) / len(idle_values), 1) if idle_values else None
+
+                # Period dates
+                from datetime import timezone, timedelta
+                now_dt = datetime.datetime.now(timezone.utc)
+                period_start = (now_dt - timedelta(days=7)).strftime("%Y-%m-%d")
+                period_end = now_dt.strftime("%Y-%m-%d")
+
                 grand_total = max(total_work + total_comm + total_web + total_ocio, 0.1)
-                
                 self.send_json({
                     "average_productivity_index": avg_prod,
                     "avg_hours": round((total_work + total_comm + total_web + total_ocio) / n_users, 1),
@@ -1068,7 +1082,10 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                         "comunicacion": int(total_comm / grand_total * 100),
                         "web": int(total_web / grand_total * 100),
                         "ocio": int(total_ocio / grand_total * 100)
-                    }
+                    },
+                    "avg_idle_seconds": avg_idle,
+                    "period_start": period_start,
+                    "period_end": period_end
                 })
             
         elif path == "/api/seguridad":
@@ -1257,7 +1274,7 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/agent-version":
             # Return current agent version and file hash for update check
             import hashlib
-            agent_version = "2.1.0"
+            agent_version = "2.2.0"
             base_dir = os.path.join(os.path.dirname(__file__), "agent")
             agent_path = os.path.join(base_dir, "eiq_agent.py")
             updater_path = os.path.join(base_dir, "eiq_updater.py")

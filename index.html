@@ -1319,7 +1319,7 @@
           </div>
         </div>
 
-        <!-- Banner de período evaluado + inactividad -->
+        <!-- Banner de período evaluado + estado inactividad -->
         <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;background:linear-gradient(90deg,rgba(108,159,255,0.08),rgba(34,211,238,0.04));border:1px solid rgba(108,159,255,0.15);border-radius:10px;margin-bottom:14px;flex-wrap:wrap">
           <span style="font-size:15px">📅</span>
           <div>
@@ -1327,12 +1327,12 @@
             <span style="font-size:12.5px;color:var(--text);font-weight:700" id="prodPeriodLabel">Cargando...</span>
           </div>
           <div style="margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:5px">
-              <span style="font-size:10px;color:var(--text3)">Inactividad:</span>
-              <span style="font-size:11px;font-weight:700;padding:2px 8px;background:rgba(16,185,129,0.12);color:var(--green);border-radius:4px">✓ Incluida</span>
+            <div style="display:flex;align-items:center;gap:5px" title="El agente mide los segundos sin movimiento de mouse/teclado. La columna idle_seconds se agrega a BigQuery con la próxima actualización de esquema.">
+              <span style="font-size:10px;color:var(--text3)">Inactividad por usuario:</span>
+              <span style="font-size:11px;font-weight:700;padding:2px 8px;background:rgba(245,158,11,0.12);color:var(--amber);border-radius:4px" id="prodIdleStatus">⏳ Activando...</span>
             </div>
             <div style="display:flex;align-items:center;gap:5px">
-              <span style="font-size:10px;color:var(--text3)">Registros:</span>
+              <span style="font-size:10px;color:var(--text3)">Usuarios:</span>
               <span style="font-size:11px;font-weight:700;color:var(--blue);font-family:var(--font-mono)" id="prodDataPoints">—</span>
             </div>
           </div>
@@ -1771,7 +1771,7 @@
       ════════════════════════════════════════════ -->
       <div class="view" id="view-seguridad">
         <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="kpi-card blue"><div class="kpi-label">Score de Seguridad</div><div class="kpi-value" id="secScore">—</div><div class="kpi-delta" id="secScoreDelta">Calculando...</div><div class="kpi-icon-bg">🛡️</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Score de Seguimiento</div><div class="kpi-value" id="secScore">—</div><div class="kpi-delta" id="secScoreDelta">Calculando...</div><div class="kpi-icon-bg">🔍</div></div>
           <div class="kpi-card red"><div class="kpi-label">Alertas Críticas</div><div class="kpi-value" id="secThreats">0</div><div class="kpi-delta" id="secThreatsDelta">—</div><div class="kpi-icon-bg">🚨</div></div>
           <div class="kpi-card amber"><div class="kpi-label">Advertencias</div><div class="kpi-value" id="secWarnings">0</div><div class="kpi-delta" id="secWarningsDelta">—</div><div class="kpi-icon-bg">⚠️</div></div>
           <div class="kpi-card green"><div class="kpi-label">Equipos Monitoreados</div><div class="kpi-value" id="secDevices">0</div><div class="kpi-delta" id="secDevicesDelta">—</div><div class="kpi-icon-bg">💻</div></div>
@@ -1779,7 +1779,7 @@
 
         <div class="two-col">
           <div class="card">
-            <div class="card-header"><span>🔐</span><span class="card-title">Eventos de Seguridad — Tiempo Real</span></div>
+            <div class="card-header"><span>🔍</span><span class="card-title">Eventos de Monitoreo — Tiempo Real</span></div>
             <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
               <table class="data-table" id="secEventsTable">
                 <thead><tr><th></th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>Categoría</th><th>Hora</th><th>Severidad</th></tr></thead>
@@ -1848,7 +1848,7 @@
                 <div style="font-size:22px">🚨</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
-              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Centinela de Seguridad</div>
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px">Centinela de Monitoreo</div>
               <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta intentos fallidos, IPs extranjeras y equipos inactivos</div>
               <div style="display:flex;justify-content:space-between;font-size:12px">
                 <div style="color:var(--text3)">Alertas hoy</div><div style="color:var(--red);font-weight:700">4</div>
@@ -2117,7 +2117,7 @@ const titles = {
   equipo:        'Detalle por Equipo',
   productividad: 'Productividad y Uso de Apps',
   mesa:          'Mesa de Ayuda',
-  seguridad:     'Seguridad',
+  seguridad:     'Monitoreo y Seguimiento',
   agentes:       'Agentes Inteligentes IA',
   kpibuilder:    'KPI Builder Asistido por IA',
   usuarios:      'Gestión de Usuarios'
@@ -3170,6 +3170,24 @@ function fetchProductivity() {
       if (pointsEl) {
         const count = (data.users_productivity_table || []).length;
         pointsEl.textContent = count > 0 ? `${count} usuario${count !== 1 ? 's' : ''}` : '—';
+      }
+
+      // Mostrar estado REAL de inactividad
+      const idleEl = document.getElementById('prodIdleStatus');
+      if (idleEl) {
+        const avgIdle = data.avg_idle_seconds;  // viene del servidor si ya hay datos
+        if (avgIdle !== null && avgIdle !== undefined) {
+          const mins = Math.floor(avgIdle / 60);
+          const secs = Math.round(avgIdle % 60);
+          const label = mins > 0 ? `~${mins}m inactivo/medición` : `~${secs}s inactivo/medición`;
+          idleEl.textContent = '✓ ' + label;
+          idleEl.style.background = 'rgba(16,185,129,0.12)';
+          idleEl.style.color = 'var(--green)';
+        } else {
+          idleEl.textContent = '⏳ Activando en próxima sync';
+          idleEl.style.background = 'rgba(245,158,11,0.12)';
+          idleEl.style.color = 'var(--amber)';
+        }
       }
 
       // Poblar selector de usuarios
