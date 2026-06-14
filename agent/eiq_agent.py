@@ -1,6 +1,13 @@
 """
-EndpointIQ Agent v1.0.0
-=======================
+Onyx Agent v1.3.0
+=================
+Monitoring agent for Windows that collects hardware metrics
+and sends them to BigQuery. Works online and offline with SQLite buffer.
+Includes automatic reconnection with exponential backoff.
+
+Usage: python eiq_agent.py [--once] [--verbose]
+  --once    Run a single collection cycle (for Scheduled Task)
+  --verbose Show detailed output in console
 Monitoring agent for Windows that collects hardware metrics
 and sends them to BigQuery. Works online and offline with SQLite buffer.
 
@@ -223,8 +230,10 @@ def cleanup_old_records(conn, max_records):
 # ===========================================================================
 _bq_client = None
 
-def get_bq_client():
+def get_bq_client(force_reset=False):
     global _bq_client
+    if force_reset:
+        _bq_client = None
     if _bq_client is not None:
         return _bq_client
     if not HAS_BQ:
@@ -240,10 +249,8 @@ def get_bq_client():
         log.warning("[BQ] Could not initialize BigQuery: %s", e)
         return None
 
-def bq_insert_row(table_name, row_dict):
-    client = get_bq_client()
-    if client is None:
-        return False
+def bq_insert_row(table_name, row_dict, retries=3):
+    """Insert a row into BigQuery with retry and client reset on failure."""
     dataset = CONFIG.get("dataset", "endpointiq")
     full_table = dataset + "." + table_name
 
@@ -264,14 +271,23 @@ def bq_insert_row(table_name, row_dict):
     val_str = ", ".join(vals)
     query = "INSERT INTO `%s` (%s) VALUES (%s)" % (full_table, col_str, val_str)
 
-    try:
-        job = client.query(query)
-        job.result()  # Wait for completion
-        log.info("[BQ] Record sent to %s.%s", dataset, table_name)
-        return True
-    except Exception as e:
-        log.warning("[BQ] Failed to send to %s: %s", table_name, e)
-        return False
+    for attempt in range(retries):
+        client = get_bq_client(force_reset=(attempt > 0))  # reset client on retry
+        if client is None:
+            return False
+        try:
+            job = client.query(query)
+            job.result()  # Wait for completion
+            log.info("[BQ] Record sent to %s.%s", dataset, table_name)
+            return True
+        except Exception as e:
+            log.warning("[BQ] Attempt %d/%d failed for %s: %s", attempt+1, retries, table_name, e)
+            if attempt < retries - 1:
+                wait = 2 ** attempt  # exponential backoff: 1s, 2s, 4s
+                log.info("[BQ] Retrying in %ds...", wait)
+                time.sleep(wait)
+    log.error("[BQ] All %d attempts failed for %s. Saving to buffer.", retries, table_name)
+    return False
 
 def bq_upsert_sync(sync_row):
     """MERGE (upsert) into eq_sync_status to keep only 1 row per device."""
@@ -493,23 +509,34 @@ def collect_metrics():
 # Sync pending buffer
 # ===========================================================================
 def sync_pending(conn):
+    """Sync all pending buffered records to BigQuery when reconnected."""
     pending = get_pending_count(conn)
     if pending == 0:
         return
-    log.info("[SYNC] %d pending records in buffer. Syncing...", pending)
-    records = get_pending_records(conn, limit=50)
-    synced_ids = []
-    for rec_id, table_name, payload_json in records:
-        try:
-            payload = json.loads(payload_json)
-            success = bq_insert_row(table_name, payload)
-            if success:
-                synced_ids.append(rec_id)
-        except Exception as e:
-            log.error("[SYNC] Error syncing record %d: %s", rec_id, e)
-    if synced_ids:
-        mark_synced(conn, synced_ids)
-        log.info("[SYNC] %d/%d records synced successfully.", len(synced_ids), len(records))
+    log.info("[SYNC] %d pending records in buffer. Flushing to BigQuery...", pending)
+    # Flush all in batches of 50
+    total_synced = 0
+    while True:
+        records = get_pending_records(conn, limit=50)
+        if not records:
+            break
+        synced_ids = []
+        for rec_id, table_name, payload_json in records:
+            try:
+                payload = json.loads(payload_json)
+                success = bq_insert_row(table_name, payload, retries=2)
+                if success:
+                    synced_ids.append(rec_id)
+            except Exception as e:
+                log.error("[SYNC] Error syncing record %d: %s", rec_id, e)
+        if synced_ids:
+            mark_synced(conn, synced_ids)
+            total_synced += len(synced_ids)
+        # If we couldn't sync any in this batch, stop trying
+        if len(synced_ids) < len(records):
+            break
+    remaining = get_pending_count(conn)
+    log.info("[SYNC] Flushed %d records. %d remaining in buffer.", total_synced, remaining)
 
 # ===========================================================================
 # Main cycle
@@ -551,15 +578,24 @@ def run_once():
 
 def run_loop():
     interval = CONFIG.get("interval_seconds", 300)
-    log.info("[START] EndpointIQ Agent v%s started (interval: %ds)", CONFIG.get('version', '1.0'), interval)
+    log.info("[START] Onyx Agent v%s started (interval: %ds)", CONFIG.get('version', '1.0'), interval)
     log.info("[START] Device ID: %s", DEVICE_ID)
+    consecutive_failures = 0
     while True:
         try:
             run_once()
+            consecutive_failures = 0  # reset on success
         except Exception as e:
-            log.error("[LOOP] Error: %s", e, exc_info=True)
-        log.info("[WAIT] Next collection in %d seconds...", interval)
-        time.sleep(interval)
+            consecutive_failures += 1
+            log.error("[LOOP] Error (failure #%d): %s", consecutive_failures, e, exc_info=True)
+            # After 3 consecutive failures, reset BQ client to force reconnect
+            if consecutive_failures >= 3:
+                log.warning("[LOOP] 3 consecutive failures — resetting BigQuery client for reconnect...")
+                get_bq_client(force_reset=True)
+                consecutive_failures = 0
+        wait = interval
+        log.info("[WAIT] Next collection in %d seconds...", wait)
+        time.sleep(wait)
 
 # ===========================================================================
 # Entry Point
@@ -570,7 +606,7 @@ if __name__ == "__main__":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
     print("+----------------------------------------------+")
-    print("|  EndpointIQ Agent v%-8s                 |" % CONFIG.get('version', '1.0.0'))
+    print("|  Onyx Agent v%-8s                      |" % CONFIG.get('version', '1.0.0'))
     print("|  Device: %-35s |" % DEVICE_ID)
     bq_label = "Available" if HAS_BQ else "Not available"
     print("|  BigQuery: %-33s |" % bq_label)

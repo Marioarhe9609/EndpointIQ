@@ -1257,7 +1257,7 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/agent-version":
             # Return current agent version and file hash for update check
             import hashlib
-            agent_version = "2.0.0"
+            agent_version = "2.1.0"
             base_dir = os.path.join(os.path.dirname(__file__), "agent")
             agent_path = os.path.join(base_dir, "eiq_agent.py")
             updater_path = os.path.join(base_dir, "eiq_updater.py")
@@ -1331,6 +1331,20 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(content)
                 except Exception:
                     self.send_error(500, "Error serving index.html")
+                return
+            # Serve Onyx logo
+            if path == "/onyx_logo.jpeg":
+                logo_path = os.path.join(os.path.dirname(__file__), "onyx_logo.jpeg")
+                try:
+                    with open(logo_path, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'image/jpeg')
+                    self.send_header('Cache-Control', 'public, max-age=86400')
+                    self.end_headers()
+                    self.wfile.write(content)
+                except Exception:
+                    self.send_error(404, "Logo not found")
                 return
             return super().do_GET()
 

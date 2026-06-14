@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>EndpointIQ — Enterprise Monitoring Platform</title>
-<meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
+<title>EndpointIQ â€” Enterprise Monitoring Platform</title>
+<meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatizaciÃ³n de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 <style>
-  /* ══ THEME: DARK ══════════════════════════════════════════════ */
+  /* â•â• THEME: DARK â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   [data-theme="dark"] {
     --bg:        #06080F;
     --surface:   #0C1221;
@@ -37,7 +37,7 @@
     --glow-blue: 0 0 20px rgba(108,159,255,0.15);
   }
 
-  /* ══ THEME: LIGHT ═════════════════════════════════════════════ */
+  /* â•â• THEME: LIGHT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   [data-theme="light"] {
     --bg:        #F0F4FA;
     --surface:   #FFFFFF;
@@ -84,10 +84,10 @@
     transition: background 0.35s ease, color 0.35s ease;
   }
 
-  /* ── LAYOUT ─────────────────────────────────────────────────── */
+  /* â”€â”€ LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .app { display: flex; min-height: 100vh; }
 
-  /* ── SIDEBAR ─────────────────────────────────────────────────── */
+  /* â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .sidebar {
     width: 240px;
     min-width: 240px;
@@ -188,10 +188,10 @@
   .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
   .user-role { font-size: 11px; color: var(--text3); }
 
-  /* ── MAIN ────────────────────────────────────────────────────── */
+  /* â”€â”€ MAIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; transition: margin-left 0.3s; }
 
-  /* ── TOPBAR ──────────────────────────────────────────────────── */
+  /* â”€â”€ TOPBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .topbar {
     height: 62px;
     background: var(--topbar-glass);
@@ -245,7 +245,7 @@
     animation: pulse-glow 2s infinite;
   }
 
-  /* ── THEME TOGGLE ───────────────────────────────────────────── */
+  /* â”€â”€ THEME TOGGLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .theme-toggle {
     width: 36px; height: 36px;
     border-radius: 10px;
@@ -265,7 +265,7 @@
   [data-theme="light"] .theme-toggle .sun  { opacity: 0; transform: rotate(90deg) scale(0); }
   [data-theme="light"] .theme-toggle .moon { opacity: 1; transform: rotate(0deg); }
 
-  /* ── TABS ────────────────────────────────────────────────────── */
+  /* â”€â”€ TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .tabs {
     display: flex; gap: 2px;
     padding: 12px 28px 0;
@@ -291,12 +291,12 @@
     font-weight: 600;
   }
 
-  /* ── CONTENT ─────────────────────────────────────────────────── */
+  /* â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .content { padding: 24px 28px; flex: 1; }
   .view { display: none; }
   .view.active { display: block; }
 
-  /* ── KPI GRID ────────────────────────────────────────────────── */
+  /* â”€â”€ KPI GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -338,13 +338,13 @@
     font-size: 30px; opacity: 0.1;
   }
 
-  /* ── TWO COL GRID ─────────────────────────────────────────────── */
+  /* â”€â”€ TWO COL GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .col-7-3 { display: grid; grid-template-columns: 7fr 3fr; gap: 16px; margin-bottom: 16px; }
   .col-4-8 { display: grid; grid-template-columns: 4fr 8fr; gap: 16px; margin-bottom: 16px; }
 
-  /* ── CARD ────────────────────────────────────────────────────── */
+  /* â”€â”€ CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -362,7 +362,7 @@
   .card-sub { font-size: 12px; color: var(--text3); margin-left: auto; }
   .card-body { padding: 18px 20px; }
 
-  /* ── FLEET HEATMAP ────────────────────────────────────────────── */
+  /* â”€â”€ FLEET HEATMAP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .fleet-grid {
     display: grid;
     grid-template-columns: repeat(40, 1fr);
@@ -386,11 +386,11 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text3); }
   .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 
-  /* ── CHART AREA ───────────────────────────────────────────────── */
+  /* â”€â”€ CHART AREA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .chart-area { position: relative; height: 180px; padding: 0 4px; }
   .chart-svg { width: 100%; height: 100%; }
 
-  /* ── TABLE ────────────────────────────────────────────────────── */
+  /* â”€â”€ TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .data-table { width: 100%; border-collapse: collapse; }
   .data-table th {
     padding: 10px 14px;
@@ -413,7 +413,7 @@
   .data-table tr:hover td { background: rgba(59,130,246,0.04); }
   .data-table .mono { font-family: var(--font-mono); font-size: 12px; color: var(--text2); }
 
-  /* ── BADGES ──────────────────────────────────────────────────── */
+  /* â”€â”€ BADGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 9px; border-radius: 999px;
@@ -425,19 +425,19 @@
   .badge.info   { background: rgba(59,130,246,0.15);  color: var(--blue); }
   .badge.off    { background: rgba(71,85,105,0.3);    color: var(--text3); }
   .badge.purple { background: rgba(139,92,246,0.15);  color: var(--purple); }
-  .badge::before { content: '●'; font-size: 8px; }
+  .badge::before { content: 'â—'; font-size: 8px; }
 
-  /* ── METER ────────────────────────────────────────────────────── */
+  /* â”€â”€ METER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .meter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .meter-label { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; }
   .meter-track { flex: 1; height: 6px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
   .meter-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
   .meter-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); width: 40px; text-align: right; }
 
-  /* ── SPARK ────────────────────────────────────────────────────── */
+  /* â”€â”€ SPARK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .spark { display: inline-block; }
 
-  /* ── ALERT FEED ───────────────────────────────────────────────── */
+  /* â”€â”€ ALERT FEED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .alert-item {
     display: flex; gap: 12px; align-items: flex-start;
     padding: 12px 0;
@@ -458,7 +458,7 @@
   .alert-meta  { font-size: 11.5px; color: var(--text3); }
   .alert-time  { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
 
-  /* ── PROGRESS RING (Premium) ──────────────────────────────────── */
+  /* â”€â”€ PROGRESS RING (Premium) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .ring-container {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     padding: 14px 12px 10px; border-radius: 16px;
@@ -517,7 +517,7 @@
   }
   .net-device-row:hover { background: rgba(255,255,255,0.03); }
 
-  /* ── APP TIME BARS ─────────────────────────────────────────────── */
+  /* â”€â”€ APP TIME BARS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .app-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .app-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
   .app-name { font-size: 13px; font-weight: 500; color: var(--text); width: 110px; flex-shrink: 0; }
@@ -526,7 +526,7 @@
   .app-hours { font-family: var(--font-mono); font-size: 12px; color: var(--text2); width: 45px; text-align: right; }
   .app-pct   { font-size: 11px; color: var(--text3); width: 32px; text-align: right; }
 
-  /* ── TICKET CARD ──────────────────────────────────────────────── */
+  /* â”€â”€ TICKET CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .ticket-card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -550,7 +550,7 @@
   .ticket-priority.p2 { background: var(--amber); }
   .ticket-priority.p3 { background: var(--blue); }
 
-  /* ── DETAIL PANEL ─────────────────────────────────────────────── */
+  /* â”€â”€ DETAIL PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .detail-panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -572,7 +572,7 @@
   .detail-val { font-size: 13px; color: var(--text); font-weight: 600; }
   .detail-val.mono { font-family: var(--font-mono); font-size: 12px; }
 
-  /* ── BTN ─────────────────────────────────────────────────────── */
+  /* â”€â”€ BTN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 16px; border-radius: 8px;
@@ -589,12 +589,12 @@
   .btn-red:hover    { background: rgba(239,68,68,0.25); }
   .btn-green  { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
 
-  /* ── MINI STAT ────────────────────────────────────────────────── */
+  /* â”€â”€ MINI STAT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .mini-stat { text-align: center; padding: 14px; background: var(--surface2); border-radius: 10px; }
   .mini-stat-val { font-family: var(--font-disp); font-size: 24px; font-weight: 800; margin-bottom: 4px; }
   .mini-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.7px; }
 
-  /* ── TIMELINE ─────────────────────────────────────────────────── */
+  /* â”€â”€ TIMELINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .timeline-item { display: flex; gap: 12px; margin-bottom: 14px; }
   .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
   .tl-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
@@ -604,7 +604,7 @@
   .tl-desc  { font-size: 12px; color: var(--text3); margin-top: 2px; }
   .tl-time  { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
-  /* ── EQUIPO DETAIL ────────────────────────────────────────────── */
+  /* â”€â”€ EQUIPO DETAIL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .equipo-header {
     background: linear-gradient(135deg, var(--surface2), var(--surface3));
     border: 1px solid var(--border);
@@ -625,18 +625,18 @@
   .equipo-badges { display: flex; gap: 8px; margin-top: 10px; }
   .equipo-actions { margin-left: auto; display: flex; gap: 8px; }
 
-  /* ── RING SVG ─────────────────────────────────────────────────── */
+  /* â”€â”€ RING SVG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .rings-row {
     display: flex; justify-content: center; gap: 12px;
     padding: 16px 8px 10px; flex-wrap: wrap;
   }
 
-  /* ── SCROLLBAR ────────────────────────────────────────────────── */
+  /* â”€â”€ SCROLLBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
 
-  /* ── TOAST ────────────────────────────────────────────────────── */
+  /* â”€â”€ TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .toast-preview {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -658,7 +658,7 @@
   .toast-btn.primary { background: var(--blue); color: white; }
   .toast-btn.ghost   { background: var(--surface3); color: var(--text2); }
 
-  /* ── GRAPH ────────────────────────────────────────────────────── */
+  /* â”€â”€ GRAPH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .graph-canvas { position: relative; height: 320px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
   .graph-node {
     position: absolute;
@@ -688,7 +688,7 @@
     pointer-events: none;
   }
 
-  /* ── CATEGORY PILL ────────────────────────────────────────────── */
+  /* â”€â”€ CATEGORY PILL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .cat-pill {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 999px;
@@ -700,19 +700,19 @@
   .cat-social   { background: rgba(239,68,68,0.15);   color: var(--red); }
   .cat-otro     { background: rgba(71,85,105,0.3);    color: var(--text3); }
 
-  /* ── ANIM ─────────────────────────────────────────────────────── */
+  /* â”€â”€ ANIM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
   @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   .view.active { animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1); }
 
-  /* ── SECTION LABEL ─────────────────────────────────────────────── */
+  /* â”€â”€ SECTION LABEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .section-label {
     font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--text3);
     margin-bottom: 14px;
   }
 
-  /* ── DONUT ────────────────────────────────────────────────────── */
+  /* â”€â”€ DONUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .donut-wrap { display: flex; align-items: center; gap: 24px; }
   .donut-legend { display: flex; flex-direction: column; gap: 10px; }
   .donut-legend-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text2); transition: transform 0.2s ease; cursor: default; }
@@ -720,7 +720,7 @@
   .donut-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .donut-legend-pct { font-family: var(--font-mono); font-size: 12px; color: var(--text); margin-left: auto; min-width: 35px; text-align: right; font-weight: 600; }
 
-  /* ── STATUS GLOW ──────────────────────────────────────────────── */
+  /* â”€â”€ STATUS GLOW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .status-glow {
     display: inline-block;
     width: 8px; height: 8px; border-radius: 50%;
@@ -730,7 +730,7 @@
   .status-glow.red   { background: var(--red);   box-shadow: 0 0 6px var(--red); animation: blink 1.2s infinite; }
   .status-glow.gray  { background: #475569; }
 
-  /* ── CHART ANIMATIONS ──────────────────────────────────────── */
+  /* â”€â”€ CHART ANIMATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   @keyframes drawLine {
     to { stroke-dashoffset: 0; }
   }
@@ -759,7 +759,7 @@
     filter: brightness(1.05);
   }
 
-  /* ══ LOGIN SCREEN ═══════════════════════════════════════════ */
+  /* â•â• LOGIN SCREEN â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   .login-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: linear-gradient(135deg, #06080F 0%, #0C1221 30%, #121B32 60%, #1A2544 100%);
@@ -790,7 +790,7 @@
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
   .login-footer { text-align: center; margin-top: 24px; color: var(--text3); font-size: 11px; }
 
-/* ── GRAPH ────────────────────────────────────────────────────── */
+/* â”€â”€ GRAPH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .graph-canvas { position: relative; height: 320px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
   .graph-node {
     position: absolute;
@@ -823,19 +823,12 @@
 </head>
 <body>
 
-<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• LOGIN SCREEN â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <div class="login-logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="none" stroke="white" stroke-width="1.8"/>
-          <path d="M8 20h8M12 17v3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <path d="M8.5 9.5l2 2 5-5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="18" cy="7" r="3" fill="#22D3EE" stroke="white" stroke-width="1"/>
-        </svg>
-      </div>
-      <h1>EndpointIQ</h1>
+      <img src="/onyx_logo.jpeg" alt="Onyx" style="width:180px;height:auto;margin-bottom:8px;border-radius:8px;">
+      <h1 style="display:none">Onyx</h1>
       <p>Intelligent Monitoring Platform</p>
     </div>
     <div class="login-error" id="loginError"></div>
@@ -845,66 +838,54 @@
         <input type="email" id="loginEmail" placeholder="admin@endpointiq.local" required autocomplete="email" />
       </div>
       <div class="login-field">
-        <label>Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+        <label>ContraseÃ±a</label>
+        <input type="password" id="loginPassword" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required autocomplete="current-password" />
       </div>
-      <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
+      <button type="submit" class="login-btn" id="loginBtn">ðŸ” Iniciar SesiÃ³n</button>
     </form>
-    <div class="login-footer">EndpointIQ v2.0 · Powered by Google Cloud</div>
+    <div class="login-footer">Onyx v2.0 Â· Powered by Google Cloud</div>
   </div>
 </div>
 
 <div class="app" id="appContainer" style="display:none">
 
-  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="none" stroke="white" stroke-width="1.8"/>
-          <path d="M8 20h8M12 17v3" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <path d="M8.5 9.5l2 2 5-5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="18" cy="7" r="3" fill="#22D3EE" stroke="white" stroke-width="1"/>
-          <path d="M17.3 6.5l.7.7 1.3-1.3" fill="none" stroke="white" stroke-width="0.8" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div>
-        <div class="logo-text">EndpointIQ</div>
-        <div class="logo-sub">Intelligent Monitoring</div>
-      </div>
+    <div class="sidebar-logo" style="padding:12px 16px">
+      <img src="/onyx_logo.jpeg" alt="Onyx" style="width:110px;height:auto;border-radius:6px;">
     </div>
 
     <div class="nav-section">Principal</div>
     <a class="nav-item active" onclick="showView('dashboard')">
-      <span class="nav-icon">⬡</span> Dashboard General
+      <span class="nav-icon">â¬¡</span> Dashboard General
     </a>
     <a class="nav-item" onclick="showView('equipo')">
-      <span class="nav-icon">💻</span> Por Equipo
+      <span class="nav-icon">ðŸ’»</span> Por Equipo
     </a>
 
-    <div class="nav-section">Analítica</div>
+    <div class="nav-section">AnalÃ­tica</div>
     <a class="nav-item" onclick="showView('productividad')">
-      <span class="nav-icon">📊</span> Productividad
+      <span class="nav-icon">ðŸ“Š</span> Productividad
     </a>
     <a class="nav-item" onclick="showView('seguridad')" data-requires="seguridad">
-      <span class="nav-icon">🔒</span> Seguridad <span class="nav-badge" id="badgeSeguridad">4</span>
+      <span class="nav-icon">ðŸ”’</span> Seguridad <span class="nav-badge" id="badgeSeguridad">4</span>
     </a>
     <a class="nav-item" onclick="showView('kpibuilder')" data-requires="kpibuilder">
-      <span class="nav-icon">🛠</span> KPI Builder
+      <span class="nav-icon">ðŸ› </span> KPI Builder
     </a>
 
     <div class="nav-section">Soporte</div>
     <a class="nav-item" onclick="showView('mesa')" data-requires="mesa">
-      <span class="nav-icon">🎫</span> Mesa de Ayuda <span class="nav-badge" id="badgeMesa">12</span>
+      <span class="nav-icon">ðŸŽ«</span> Mesa de Ayuda <span class="nav-badge" id="badgeMesa">12</span>
     </a>
     <a class="nav-item" onclick="showView('agentes')" data-requires="agentes">
-      <span class="nav-icon">🤖</span> Agentes IA
+      <span class="nav-icon">ðŸ¤–</span> Agentes IA
     </a>
 
     <div class="nav-section">Reportes</div>
-    <a class="nav-item" data-requires="informes"><span class="nav-icon">📈</span> Informes</a>
-    <a class="nav-item" onclick="showView('usuarios')" data-requires="usuarios"><span class="nav-icon">👥</span> Gestión Usuarios</a>
-    <a class="nav-item" href="EndpointIQ_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
+    <a class="nav-item" data-requires="informes"><span class="nav-icon">ðŸ“ˆ</span> Informes</a>
+    <a class="nav-item" onclick="showView('usuarios')" data-requires="usuarios"><span class="nav-icon">ðŸ‘¥</span> GestiÃ³n Usuarios</a>
+    <a class="nav-item" href="EndpointIQ_Manual_Usuario.html" target="_blank"><span class="nav-icon">ðŸ“–</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
       <div class="user-avatar">
@@ -914,29 +895,29 @@
           <div class="user-role" id="sidebarUserRole">-</div>
         </div>
       </div>
-      <button onclick="handleLogout()" style="width:100%;margin-top:10px;padding:8px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px;color:#F87171;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-ui);transition:all 0.2s" onmouseover="this.style.background='rgba(248,113,113,0.2)'" onmouseout="this.style.background='rgba(248,113,113,0.1)'">🚪 Cerrar Sesión</button>
+      <button onclick="handleLogout()" style="width:100%;margin-top:10px;padding:8px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px;color:#F87171;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-ui);transition:all 0.2s" onmouseover="this.style.background='rgba(248,113,113,0.2)'" onmouseout="this.style.background='rgba(248,113,113,0.1)'">ðŸšª Cerrar SesiÃ³n</button>
     </div>
   </nav>
 
-  <!-- ══════════════ MAIN ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div class="main">
     <div class="topbar">
       <div>
         <div class="topbar-title" id="pageTitle">Dashboard General</div>
-        <div class="topbar-sub" id="syncStatusLabel"><span class="pulse-dot"></span> <span id="syncTimeText">Cargando...</span> · <span id="countdownText" style="color:var(--blue);font-family:var(--font-mono);font-size:11px">⏱ --:--</span></div>
+        <div class="topbar-sub" id="syncStatusLabel"><span class="pulse-dot"></span> <span id="syncTimeText">Cargando...</span> Â· <span id="countdownText" style="color:var(--blue);font-family:var(--font-mono);font-size:11px">â± --:--</span></div>
       </div>
       <div class="topbar-spacer"></div>
       <div class="search-box">
-        <span>🔍</span>
+        <span>ðŸ”</span>
         <input type="text" id="dashboardSearch" onkeyup="filterDevices(this.value)" placeholder="Buscar equipo..."/>
       </div>
       <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">
-        <span class="sun">☀️</span>
-        <span class="moon">🌙</span>
+        <span class="sun">â˜€ï¸</span>
+        <span class="moon">ðŸŒ™</span>
       </div>
-      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
-      <div class="icon-btn" id="btnSync" onclick="syncBigQuery()" title="Sincronizar con BigQuery">⟳</div>
-      <div class="icon-btn">⋮</div>
+      <div class="icon-btn">ðŸ””<div class="notif-dot"></div></div>
+      <div class="icon-btn" id="btnSync" onclick="syncBigQuery()" title="Sincronizar con BigQuery">âŸ³</div>
+      <div class="icon-btn">â‹®</div>
     </div>
 
     <!-- TABS -->
@@ -944,9 +925,9 @@
 
     <div class="content">
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 1: DASHBOARD GENERAL
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view active" id="view-dashboard">
 
         <!-- KPIs -->
@@ -955,31 +936,31 @@
             <div class="kpi-label">Total Equipos</div>
             <div class="kpi-value">1,248</div>
             <div class="kpi-delta">Flota registrada</div>
-            <div class="kpi-icon-bg">💻</div>
+            <div class="kpi-icon-bg">ðŸ’»</div>
           </div>
           <div class="kpi-card green">
             <div class="kpi-label">Online</div>
             <div class="kpi-value">1,187</div>
-            <div class="kpi-delta"><span class="up">▲ 95.1%</span> disponibilidad</div>
-            <div class="kpi-icon-bg">🟢</div>
+            <div class="kpi-delta"><span class="up">â–² 95.1%</span> disponibilidad</div>
+            <div class="kpi-icon-bg">ðŸŸ¢</div>
           </div>
           <div class="kpi-card gray">
             <div class="kpi-label">Offline</div>
             <div class="kpi-value">61</div>
-            <div class="kpi-delta"><span class="down">▼ 4.9%</span> de la flota</div>
-            <div class="kpi-icon-bg">⚫</div>
+            <div class="kpi-delta"><span class="down">â–¼ 4.9%</span> de la flota</div>
+            <div class="kpi-icon-bg">âš«</div>
           </div>
           <div class="kpi-card amber">
             <div class="kpi-label">Alertas Activas</div>
             <div class="kpi-value">14</div>
-            <div class="kpi-delta"><span class="down">▲ +3</span> vs ayer</div>
-            <div class="kpi-icon-bg">⚠️</div>
+            <div class="kpi-delta"><span class="down">â–² +3</span> vs ayer</div>
+            <div class="kpi-icon-bg">âš ï¸</div>
           </div>
           <div class="kpi-card red">
             <div class="kpi-label">Tickets Abiertos</div>
             <div class="kpi-value">7</div>
-            <div class="kpi-delta">2 críticos sin atender</div>
-            <div class="kpi-icon-bg">🎫</div>
+            <div class="kpi-delta">2 crÃ­ticos sin atender</div>
+            <div class="kpi-icon-bg">ðŸŽ«</div>
           </div>
         </div>
 
@@ -988,8 +969,8 @@
           <!-- Donut: Fleet Status -->
           <div class="card">
             <div class="card-header">
-              <span>🍩</span>
-              <span class="card-title">Estado de Flota — Distribución</span>
+              <span>ðŸ©</span>
+              <span class="card-title">Estado de Flota â€” DistribuciÃ³n</span>
             </div>
             <div class="card-body" style="display:flex;align-items:center;justify-content:center;gap:24px;padding:14px 20px">
               <svg id="fleetDonutSvg" viewBox="0 0 160 160" width="110" height="110" style="flex-shrink:0">
@@ -1011,8 +992,8 @@
           <!-- Sync Timeline -->
           <div class="card">
             <div class="card-header">
-              <span>⏱️</span>
-              <span class="card-title">Última Sincronización por Equipo</span>
+              <span>â±ï¸</span>
+              <span class="card-title">Ãšltima SincronizaciÃ³n por Equipo</span>
             </div>
             <div class="card-body" style="padding:10px 16px">
               <div id="syncTimelineContainer" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>
@@ -1024,63 +1005,63 @@
         <div class="col-7-3">
           <div class="card">
             <div class="card-header">
-              <span>🗺</span>
-              <span class="card-title">Mapa de Estado — Flota Completa</span>
+              <span>ðŸ—º</span>
+              <span class="card-title">Mapa de Estado â€” Flota Completa</span>
               <span class="card-sub">Hover para detalle</span>
             </div>
             <div class="fleet-grid" id="fleetGrid"></div>
             <div class="legend">
               <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Online OK</div>
               <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Alerta</div>
-              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Crítico</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> CrÃ­tico</div>
               <div class="legend-item"><div class="legend-dot" style="background:#1E293B;border:1px solid #334155"></div> Offline</div>
             </div>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <span>⚡</span>
+              <span>âš¡</span>
               <span class="card-title">Alertas Recientes</span>
-              <span class="card-sub" style="cursor:pointer;color:var(--blue)" onclick="showView('seguridad')">Ver todas →</span>
+              <span class="card-sub" style="cursor:pointer;color:var(--blue)" onclick="showView('seguridad')">Ver todas â†’</span>
             </div>
             <div class="card-body" style="padding-top:8px">
               <div class="alert-item">
-                <div class="alert-icon crit">🔴</div>
+                <div class="alert-icon crit">ðŸ”´</div>
                 <div class="alert-body">
-                  <div class="alert-title">RAM crítica — LAPTOP-MROJAS</div>
-                  <div class="alert-meta">Chrome · 94% RAM · Ticket auto-creado</div>
+                  <div class="alert-title">RAM crÃ­tica â€” LAPTOP-MROJAS</div>
+                  <div class="alert-meta">Chrome Â· 94% RAM Â· Ticket auto-creado</div>
                 </div>
                 <div class="alert-time">hace 2 min</div>
               </div>
               <div class="alert-item">
-                <div class="alert-icon warn">🟡</div>
+                <div class="alert-icon warn">ðŸŸ¡</div>
                 <div class="alert-body">
-                  <div class="alert-title">Disco al 91% — PC-JGOMEZ</div>
-                  <div class="alert-meta">C:\ · 14.2 GB libres</div>
+                  <div class="alert-title">Disco al 91% â€” PC-JGOMEZ</div>
+                  <div class="alert-meta">C:\ Â· 14.2 GB libres</div>
                 </div>
                 <div class="alert-time">hace 8 min</div>
               </div>
               <div class="alert-item">
-                <div class="alert-icon sec">🔐</div>
+                <div class="alert-icon sec">ðŸ”</div>
                 <div class="alert-body">
-                  <div class="alert-title">5 intentos fallidos — PC-BSANCHEZ</div>
-                  <div class="alert-meta">Seguridad · IP: 192.168.1.44</div>
+                  <div class="alert-title">5 intentos fallidos â€” PC-BSANCHEZ</div>
+                  <div class="alert-meta">Seguridad Â· IP: 192.168.1.44</div>
                 </div>
                 <div class="alert-time">hace 15 min</div>
               </div>
               <div class="alert-item">
-                <div class="alert-icon warn">🟡</div>
+                <div class="alert-icon warn">ðŸŸ¡</div>
                 <div class="alert-body">
-                  <div class="alert-title">CPU sostenido >85% — LAPTOP-CPEREZ</div>
-                  <div class="alert-meta">Antivirus MsMpEng · 12 min</div>
+                  <div class="alert-title">CPU sostenido >85% â€” LAPTOP-CPEREZ</div>
+                  <div class="alert-meta">Antivirus MsMpEng Â· 12 min</div>
                 </div>
                 <div class="alert-time">hace 22 min</div>
               </div>
               <div class="alert-item">
-                <div class="alert-icon info">🔵</div>
+                <div class="alert-icon info">ðŸ”µ</div>
                 <div class="alert-body">
-                  <div class="alert-title">Equipo offline 6 días — PC-LMENDEZ</div>
-                  <div class="alert-meta">Último encendido: 2025-05-25</div>
+                  <div class="alert-title">Equipo offline 6 dÃ­as â€” PC-LMENDEZ</div>
+                  <div class="alert-meta">Ãšltimo encendido: 2025-05-25</div>
                 </div>
                 <div class="alert-time">hace 1 h</div>
               </div>
@@ -1088,12 +1069,12 @@
           </div>
         </div>
 
-        <!-- Métricas promedio + Top equipos -->
+        <!-- MÃ©tricas promedio + Top equipos -->
         <div class="two-col">
           <div class="card">
             <div class="card-header">
-              <span>📉</span>
-              <span class="card-title">Métricas Promedio Flota — 24h</span>
+              <span>ðŸ“‰</span>
+              <span class="card-title">MÃ©tricas Promedio Flota â€” 24h</span>
             </div>
             <div class="card-body">
               <div class="chart-area" style="position:relative" id="metricsChartArea">
@@ -1137,8 +1118,8 @@
 
           <div class="card">
             <div class="card-header">
-              <span>🔥</span>
-              <span class="card-title">Equipos — Estado de Flota</span>
+              <span>ðŸ”¥</span>
+              <span class="card-title">Equipos â€” Estado de Flota</span>
             </div>
             <div style="overflow-x:auto">
               <table class="data-table">
@@ -1155,8 +1136,8 @@
           <!-- Network Overview -->
           <div class="card">
             <div class="card-header">
-              <span>🌐</span>
-              <span class="card-title">Resumen de Red — Flota</span>
+              <span>ðŸŒ</span>
+              <span class="card-title">Resumen de Red â€” Flota</span>
             </div>
             <div class="card-body" id="dashboardNetworkBody">
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="netOverviewGrid">
@@ -1184,9 +1165,9 @@
 
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 2: DETALLE POR EQUIPO
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-equipo">
         <div style="margin-bottom:20px; display:flex; gap:12px; align-items:center; background:var(--surface); padding:12px 20px; border-radius:10px; border:1px solid var(--border); flex-wrap:wrap">
           <span style="font-weight:600; color:var(--text2)">Diagnostico de Dispositivo:</span>
@@ -1194,7 +1175,7 @@
           <select id="deviceSelector" onchange="loadDeviceDetail(this.value)" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-family:var(--font-ui); outline:none; min-width:220px">
             <option value="">-- Seleccione un equipo --</option>
           </select>
-          <button class="btn btn-ghost" onclick="clearDeviceSelection()" style="font-size:12px;padding:4px 10px">✕ Limpiar</button>
+          <button class="btn btn-ghost" onclick="clearDeviceSelection()" style="font-size:12px;padding:4px 10px">âœ• Limpiar</button>
         </div>
 
         <!-- Empty state (default) -->
@@ -1217,8 +1198,8 @@
 
           <div class="card" style="margin-bottom:16px">
             <div class="card-header">
-              <span>📊</span>
-              <span class="card-title">Estado de Sincronización de Equipos</span>
+              <span>ðŸ“Š</span>
+              <span class="card-title">Estado de SincronizaciÃ³n de Equipos</span>
               <span class="card-sub" style="font-size:12px;color:var(--text3)">Flota Piloto Activa</span>
             </div>
             <div class="card-body" style="padding:0">
@@ -1228,10 +1209,10 @@
                     <tr>
                       <th>Dispositivo</th>
                       <th>Tipo</th>
-                      <th>Última Sincronización</th>
-                      <th>Dirección IP</th>
+                      <th>Ãšltima SincronizaciÃ³n</th>
+                      <th>DirecciÃ³n IP</th>
                       <th>Estado</th>
-                      <th>Acción</th>
+                      <th>AcciÃ³n</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1248,23 +1229,23 @@
         <div id="equipoContent" style="display:none">
 
         <div class="equipo-header">
-          <div class="equipo-avatar">💻</div>
+          <div class="equipo-avatar">ðŸ’»</div>
           <div>
-            <div class="equipo-name" id="equipoDevName">—</div>
-            <div class="equipo-sub" id="equipoDevSub">—</div>
+            <div class="equipo-name" id="equipoDevName">â€”</div>
+            <div class="equipo-sub" id="equipoDevSub">â€”</div>
             <div class="equipo-badges" id="equipoDevBadges"></div>
           </div>
           <div class="equipo-actions">
-            <button class="btn btn-ghost" onclick="exportDevicePDF()">📤 Exportar PDF</button>
-            <button class="btn btn-ghost">💬 Mensaje</button>
-            <button class="btn btn-red">🎫 Abrir Ticket</button>
+            <button class="btn btn-ghost" onclick="exportDevicePDF()">ðŸ“¤ Exportar PDF</button>
+            <button class="btn btn-ghost">ðŸ’¬ Mensaje</button>
+            <button class="btn btn-red">ðŸŽ« Abrir Ticket</button>
           </div>
         </div>
 
         <!-- Anillos de metricas en tiempo real -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
-            <span>⚡</span>
+            <span>âš¡</span>
             <span class="card-title">Recursos en Tiempo Real</span>
             <span class="card-sub" style="font-family:var(--font-mono);font-size:11px">Actualiza cada 2 min</span>
           </div>
@@ -1276,16 +1257,16 @@
         <!-- Informacion de Red (Premium) -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
-            <span>🌐</span>
+            <span>ðŸŒ</span>
             <span class="card-title">Informacion de Red</span>
-            <span class="card-sub" id="netWifiLabel" style="color:var(--cyan)">—</span>
+            <span class="card-sub" id="netWifiLabel" style="color:var(--cyan)">â€”</span>
           </div>
           <div class="card-body" id="networkInfoBody">
             <!-- Stats row -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px" id="netStatsRow">
               <div class="net-stat-card" style="--ring-glow:#3B82F6">
                 <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Conexion</div>
-                <div style="font-size:20px;font-weight:800;font-family:var(--font-disp);color:var(--blue)" id="netStatType">—</div>
+                <div style="font-size:20px;font-weight:800;font-family:var(--font-disp);color:var(--blue)" id="netStatType">â€”</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px" id="netStatSSID">Sin datos</div>
               </div>
               <div class="net-stat-card">
@@ -1313,7 +1294,7 @@
               </div>
               <!-- Mapa de Topologia Local -->
               <div>
-                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Mapa de Topología Local (Subred)</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Mapa de TopologÃ­a Local (Subred)</div>
                 <div id="subnetGraphCanvas" style="position:relative;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
                   <svg id="subnetGraphSvg" style="width:100%;height:100%"></svg>
                 </div>
@@ -1325,10 +1306,10 @@
         <div class="two-col">
           <!-- Top procesos -->
           <div class="card">
-            <div class="card-header"><span>🔬</span><span class="card-title">Top Procesos — Causa Raiz</span></div>
+            <div class="card-header"><span>ðŸ”¬</span><span class="card-title">Top Procesos â€” Causa Raiz</span></div>
             <div class="card-body" id="topProcessesBody">
               <div id="diagAlertBox" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)">
-                ✅ <strong style="color:var(--green)">Sin alertas:</strong> Todos los recursos dentro de parametros normales.
+                âœ… <strong style="color:var(--green)">Sin alertas:</strong> Todos los recursos dentro de parametros normales.
               </div>
               <div id="processMeters">
                 <div style="font-size:12.5px;color:var(--text3);text-align:center;padding:16px 0">Seleccione un equipo para ver procesos activos</div>
@@ -1338,7 +1319,7 @@
 
           <!-- Historial de eventos -->
           <div class="card">
-            <div class="card-header"><span>📋</span><span class="card-title">Historial de Eventos — Hoy</span></div>
+            <div class="card-header"><span>ðŸ“‹</span><span class="card-title">Historial de Eventos â€” Hoy</span></div>
             <div class="card-body" style="padding-top:10px">
               <div style="font-size:12.5px;color:var(--text3);text-align:center;padding:16px 0">Seleccione un equipo</div>
             </div>
@@ -1348,21 +1329,21 @@
         </div><!-- /equipoContent -->
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 3: PRODUCTIVIDAD Y USO DE APPS
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-productividad">
 
         <!-- 1. Selector de Usuario -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:16px 20px;flex-wrap:wrap">
-            <span style="font-size:18px">👤</span>
+            <span style="font-size:18px">ðŸ‘¤</span>
             <div>
-              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.8px">Análisis de Productividad</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.8px">AnÃ¡lisis de Productividad</div>
               <div style="font-size:13px;color:var(--text2);margin-top:2px">Seleccione un usuario para ver su actividad</div>
             </div>
             <select id="prodUserSelector" onchange="loadUserProductivity(this.value)" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-family:var(--font-ui);min-width:220px;cursor:pointer">
-              <option value="__all__">📊 Todos los usuarios</option>
+              <option value="__all__">ðŸ“Š Todos los usuarios</option>
             </select>
           </div>
         </div>
@@ -1370,35 +1351,35 @@
         <!-- 2. KPIs del usuario -->
         <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
           <div class="kpi-card blue">
-            <div class="kpi-label">Índice Productivo</div>
-            <div class="kpi-value" id="prodKpiIndex">—</div>
+            <div class="kpi-label">Ãndice Productivo</div>
+            <div class="kpi-value" id="prodKpiIndex">â€”</div>
             <div class="kpi-delta" id="prodKpiIndexDelta">Cargando...</div>
-            <div class="kpi-icon-bg">📊</div>
+            <div class="kpi-icon-bg">ðŸ“Š</div>
           </div>
           <div class="kpi-card green">
             <div class="kpi-label">Horas Trabajo</div>
-            <div class="kpi-value" id="prodKpiTrabajo">—</div>
-            <div class="kpi-delta">Ofimática + Código</div>
-            <div class="kpi-icon-bg">💼</div>
+            <div class="kpi-value" id="prodKpiTrabajo">â€”</div>
+            <div class="kpi-delta">OfimÃ¡tica + CÃ³digo</div>
+            <div class="kpi-icon-bg">ðŸ’¼</div>
           </div>
           <div class="kpi-card amber">
-            <div class="kpi-label">Comunicación</div>
-            <div class="kpi-value" id="prodKpiComun">—</div>
+            <div class="kpi-label">ComunicaciÃ³n</div>
+            <div class="kpi-value" id="prodKpiComun">â€”</div>
             <div class="kpi-delta">Email + Chat</div>
-            <div class="kpi-icon-bg">💬</div>
+            <div class="kpi-icon-bg">ðŸ’¬</div>
           </div>
           <div class="kpi-card red">
             <div class="kpi-label">Web / Ocio</div>
-            <div class="kpi-value" id="prodKpiOcio">—</div>
-            <div class="kpi-delta">Navegación + Redes</div>
-            <div class="kpi-icon-bg">🌐</div>
+            <div class="kpi-value" id="prodKpiOcio">â€”</div>
+            <div class="kpi-delta">NavegaciÃ³n + Redes</div>
+            <div class="kpi-icon-bg">ðŸŒ</div>
           </div>
         </div>
 
         <!-- 3. Donut + Top Apps -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div class="card">
-            <div class="card-header"><span>🍩</span><span class="card-title" id="prodDonutTitle">Distribucion de Actividad</span></div>
+            <div class="card-header"><span>ðŸ©</span><span class="card-title" id="prodDonutTitle">Distribucion de Actividad</span></div>
             <div class="card-body" style="display:flex;align-items:center;justify-content:center;padding:28px;gap:32px">
               <div style="position:relative">
                 <svg width="160" height="160" viewBox="0 0 160 160" id="prodDonutSvg" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15))">
@@ -1425,7 +1406,7 @@
                   <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradComun)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutComun" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
                   <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradWeb)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutWeb" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
                   <circle cx="80" cy="80" r="62" fill="none" stroke="url(#donutGradOcio)" stroke-width="10" stroke-dasharray="389.56" stroke-dashoffset="389.56" stroke-linecap="round" id="donutOcio" style="transition:stroke-dashoffset 0.8s ease, transform 0.8s ease"/>
-                  <text x="80" y="76" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="800" font-family="var(--font-disp)" id="donutCenterPct">—</text>
+                  <text x="80" y="76" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="800" font-family="var(--font-disp)" id="donutCenterPct">â€”</text>
                   <text x="80" y="94" text-anchor="middle" fill="var(--text3)" font-size="10" font-family="var(--font-ui)" font-weight="600" letter-spacing="0.5px" style="text-transform:uppercase">Productivo</text>
                 </svg>
               </div>
@@ -1446,45 +1427,45 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><span>🏆</span><span class="card-title" id="prodAppsTitle">Top Aplicaciones</span></div>
+            <div class="card-header"><span>ðŸ†</span><span class="card-title" id="prodAppsTitle">Top Aplicaciones</span></div>
             <div class="card-body" style="padding-top:10px" id="prodAppsContainer">
               <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando datos...</div>
             </div>
           </div>
         </div>
 
-        <!-- 3.5. Actividad Web & Aplicaciones — Premium Visualization -->
+        <!-- 3.5. Actividad Web & Aplicaciones â€” Premium Visualization -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span>🌐</span><span class="card-title" id="prodTimeAppTitle">Actividad Web & Aplicaciones</span></div>
+          <div class="card-header"><span>ðŸŒ</span><span class="card-title" id="prodTimeAppTitle">Actividad Web & Aplicaciones</span></div>
           <div class="card-body">
             <div style="display:grid;grid-template-columns:300px 1fr;gap:28px">
               
               <!-- LEFT: Category Time Blocks -->
               <div>
-                <div id="prodDesktopTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:16px">⏱️ Tiempo por Categoría</div>
+                <div id="prodDesktopTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:16px">â±ï¸ Tiempo por CategorÃ­a</div>
                 
                 <!-- Category blocks -->
                 <div id="webCategoryBlocks" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
                   <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(108,159,255,0.08),rgba(108,159,255,0.02));border:1px solid rgba(108,159,255,0.15)">
-                    <div style="font-size:22px;margin-bottom:4px">💼</div>
+                    <div style="font-size:22px;margin-bottom:4px">ðŸ’¼</div>
                     <div id="catBlockTrabajo" style="font-size:20px;font-weight:800;color:#6C9FFF;font-family:var(--font-mono)">0h</div>
                     <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Trabajo</div>
                     <div id="catBlockTrabajoCount" style="font-size:9px;color:#6C9FFF88;margin-top:2px">0 sitios</div>
                   </div>
                   <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,0.08),rgba(52,211,153,0.02));border:1px solid rgba(52,211,153,0.15)">
-                    <div style="font-size:22px;margin-bottom:4px">💬</div>
+                    <div style="font-size:22px;margin-bottom:4px">ðŸ’¬</div>
                     <div id="catBlockComun" style="font-size:20px;font-weight:800;color:#34D399;font-family:var(--font-mono)">0h</div>
-                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Comunicación</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">ComunicaciÃ³n</div>
                     <div id="catBlockComunCount" style="font-size:9px;color:#34D39988;margin-top:2px">0 sitios</div>
                   </div>
                   <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(251,191,36,0.02));border:1px solid rgba(251,191,36,0.15)">
-                    <div style="font-size:22px;margin-bottom:4px">🌐</div>
+                    <div style="font-size:22px;margin-bottom:4px">ðŸŒ</div>
                     <div id="catBlockWeb" style="font-size:20px;font-weight:800;color:#FBBF24;font-family:var(--font-mono)">0h</div>
-                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Navegación</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">NavegaciÃ³n</div>
                     <div id="catBlockWebCount" style="font-size:9px;color:#FBBF2488;margin-top:2px">0 sitios</div>
                   </div>
                   <div style="text-align:center;padding:16px 8px;border-radius:10px;background:linear-gradient(135deg,rgba(248,113,113,0.08),rgba(248,113,113,0.02));border:1px solid rgba(248,113,113,0.15)">
-                    <div style="font-size:22px;margin-bottom:4px">🎮</div>
+                    <div style="font-size:22px;margin-bottom:4px">ðŸŽ®</div>
                     <div id="catBlockOcio" style="font-size:20px;font-weight:800;color:#F87171;font-family:var(--font-mono)">0h</div>
                     <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Ocio</div>
                     <div id="catBlockOcioCount" style="font-size:9px;color:#F8717188;margin-top:2px">0 sitios</div>
@@ -1492,23 +1473,23 @@
                 </div>
 
                 <!-- Stacked horizontal bar -->
-                <div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Distribución del tiempo</div>
+                <div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">DistribuciÃ³n del tiempo</div>
                 <div id="catStackedBar" style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface1)">
                 </div>
                 <div id="catStackedLabels" style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--text3)"></div>
                 
                 <!-- Total time -->
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-                  <span style="font-size:10px;color:var(--text3);font-weight:600">TOTAL NAVEGACIÓN</span>
+                  <span style="font-size:10px;color:var(--text3);font-weight:600">TOTAL NAVEGACIÃ“N</span>
                   <span id="catTotalTime" style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--font-mono)">0h 00m</span>
                 </div>
               </div>
 
               <!-- RIGHT: Site Detail Cards -->
               <div>
-                <div id="prodWebTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">📊 Detalle de Navegación</div>
+                <div id="prodWebTitle" style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:14px">ðŸ“Š Detalle de NavegaciÃ³n</div>
                 <div id="prodWebPagesCards" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding-right:4px">
-                  <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Cargando datos de navegación...</div>
+                  <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Cargando datos de navegaciÃ³n...</div>
                 </div>
                 <!-- Hidden tbody for compatibility -->
                 <table style="display:none"><tbody id="prodWebPagesBody"></tbody></table>
@@ -1518,7 +1499,7 @@
 
             <!-- Desktop Apps Row (below) -->
             <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px">
-              <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px">💻 Aplicaciones Activas</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px">ðŸ’» Aplicaciones Activas</div>
               <div id="prodDesktopApps" style="display:flex;gap:10px;flex-wrap:wrap">
                 <div style="color:var(--text3);font-size:13px;padding:12px">Cargando...</div>
               </div>
@@ -1529,13 +1510,13 @@
 <!-- 3.8 Grafo de Concentracion de Trafico Web -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
-            <span>🕸️</span>
-            <span class="card-title">Grafo de Concentración de Tráfico Web (Top Sitios)</span>
-            <span class="card-sub" style="color:var(--purple)">Relación Flota & Dominios</span>
+            <span>ðŸ•¸ï¸</span>
+            <span class="card-title">Grafo de ConcentraciÃ³n de TrÃ¡fico Web (Top Sitios)</span>
+            <span class="card-sub" style="color:var(--purple)">RelaciÃ³n Flota & Dominios</span>
           </div>
           <div class="card-body" style="padding:16px 20px">
             <div style="font-size:12.5px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Este grafo representa de manera visual qué <strong>sitios web</strong> concentran el tráfico de navegación de los <strong>endpoints</strong>. Los nodos de color <span style="color:var(--blue);font-weight:600">azul</span> representan a los equipos de los usuarios y los de color <span style="color:var(--purple);font-weight:600">púrpura</span> representan los dominios web. El tamaño del nodo de dominio es proporcional al número total de visitas recibidas desde el piloto.
+              Este grafo representa de manera visual quÃ© <strong>sitios web</strong> concentran el trÃ¡fico de navegaciÃ³n de los <strong>endpoints</strong>. Los nodos de color <span style="color:var(--blue);font-weight:600">azul</span> representan a los equipos de los usuarios y los de color <span style="color:var(--purple);font-weight:600">pÃºrpura</span> representan los dominios web. El tamaÃ±o del nodo de dominio es proporcional al nÃºmero total de visitas recibidas desde el piloto.
             </div>
             <div style="position:relative;height:350px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden">
               <svg id="webTrafficGraphSvg" style="width:100%;height:100%"></svg>
@@ -1545,17 +1526,17 @@
 
         <div class="card">
           <div class="card-header">
-            <span>👥</span>
-            <span class="card-title">Productividad por Usuario — Comparativa</span>
-            <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;padding:5px 12px" onclick="exportProductivityCSV()">📤 Exportar</button>
+            <span>ðŸ‘¥</span>
+            <span class="card-title">Productividad por Usuario â€” Comparativa</span>
+            <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;padding:5px 12px" onclick="exportProductivityCSV()">ðŸ“¤ Exportar</button>
           </div>
           <div style="overflow-x:auto">
             <table class="data-table" id="prodUserTable">
               <thead><tr>
                 <th>Usuario</th><th>Equipo</th>
-                <th>⏱ Trabajo</th><th>💬 Comun.</th>
-                <th>🌐 Web</th><th>🎬 Ocio</th>
-                <th>Índice</th><th>Apps Top</th>
+                <th>â± Trabajo</th><th>ðŸ’¬ Comun.</th>
+                <th>ðŸŒ Web</th><th>ðŸŽ¬ Ocio</th>
+                <th>Ãndice</th><th>Apps Top</th>
               </tr></thead>
               <tbody></tbody>
             </table>
@@ -1565,9 +1546,9 @@
 
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 4: MESA DE AYUDA
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-mesa">
 
         <!-- KPIs mesa -->
@@ -1575,26 +1556,26 @@
           <div class="kpi-card red">
             <div class="kpi-label">Tickets Abiertos</div>
             <div class="kpi-value">12</div>
-            <div class="kpi-delta"><span class="down">3 críticos</span> sin asignar</div>
-            <div class="kpi-icon-bg">🎫</div>
+            <div class="kpi-delta"><span class="down">3 crÃ­ticos</span> sin asignar</div>
+            <div class="kpi-icon-bg">ðŸŽ«</div>
           </div>
           <div class="kpi-card amber">
             <div class="kpi-label">En Progreso</div>
             <div class="kpi-value">7</div>
             <div class="kpi-delta">Asignados a 4 agentes</div>
-            <div class="kpi-icon-bg">⏳</div>
+            <div class="kpi-icon-bg">â³</div>
           </div>
           <div class="kpi-card green">
             <div class="kpi-label">Resueltos Hoy</div>
             <div class="kpi-value">23</div>
-            <div class="kpi-delta"><span class="up">▲ +8</span> vs ayer</div>
-            <div class="kpi-icon-bg">✅</div>
+            <div class="kpi-delta"><span class="up">â–² +8</span> vs ayer</div>
+            <div class="kpi-icon-bg">âœ…</div>
           </div>
           <div class="kpi-card blue">
             <div class="kpi-label">MTTR Promedio</div>
             <div class="kpi-value">2.4h</div>
-            <div class="kpi-delta"><span class="up">▼ -35 min</span> esta semana</div>
-            <div class="kpi-icon-bg">⚡</div>
+            <div class="kpi-delta"><span class="up">â–¼ -35 min</span> esta semana</div>
+            <div class="kpi-icon-bg">âš¡</div>
           </div>
         </div>
 
@@ -1610,8 +1591,8 @@
               <div class="ticket-priority p1"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2851</div>
-                <div class="ticket-title">RAM crítica — Chrome 94% · LAPTOP-MROJAS</div>
-                <div class="ticket-meta">🤖 Auto-creado · hace 2 min · Sin asignar</div>
+                <div class="ticket-title">RAM crÃ­tica â€” Chrome 94% Â· LAPTOP-MROJAS</div>
+                <div class="ticket-meta">ðŸ¤– Auto-creado Â· hace 2 min Â· Sin asignar</div>
               </div>
               <span class="badge crit">P1</span>
             </div>
@@ -1620,8 +1601,8 @@
               <div class="ticket-priority p1"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2849</div>
-                <div class="ticket-title">Disco 95% — PC-JGOMEZ · 4.2 GB libres</div>
-                <div class="ticket-meta">🤖 Auto-creado · hace 18 min · Sin asignar</div>
+                <div class="ticket-title">Disco 95% â€” PC-JGOMEZ Â· 4.2 GB libres</div>
+                <div class="ticket-meta">ðŸ¤– Auto-creado Â· hace 18 min Â· Sin asignar</div>
               </div>
               <span class="badge crit">P1</span>
             </div>
@@ -1630,8 +1611,8 @@
               <div class="ticket-priority p2"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2847</div>
-                <div class="ticket-title">5 intentos login fallidos · PC-BSANCHEZ</div>
-                <div class="ticket-meta">🔐 Seguridad · hace 42 min · L. Vargas</div>
+                <div class="ticket-title">5 intentos login fallidos Â· PC-BSANCHEZ</div>
+                <div class="ticket-meta">ðŸ” Seguridad Â· hace 42 min Â· L. Vargas</div>
               </div>
               <span class="badge warn">P2</span>
             </div>
@@ -1640,8 +1621,8 @@
               <div class="ticket-priority p2"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2845</div>
-                <div class="ticket-title">CPU >90% sostenido — LAPTOP-CPEREZ</div>
-                <div class="ticket-meta">⏳ En progreso · hace 1h 20min · A. Cruz</div>
+                <div class="ticket-title">CPU >90% sostenido â€” LAPTOP-CPEREZ</div>
+                <div class="ticket-meta">â³ En progreso Â· hace 1h 20min Â· A. Cruz</div>
               </div>
               <span class="badge warn">P2</span>
             </div>
@@ -1650,8 +1631,8 @@
               <div class="ticket-priority p3"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2843</div>
-                <div class="ticket-title">Software no autorizado — PC-RLOPEZ</div>
-                <div class="ticket-meta">📦 Inventario · hace 2h 05min · M. Gil</div>
+                <div class="ticket-title">Software no autorizado â€” PC-RLOPEZ</div>
+                <div class="ticket-meta">ðŸ“¦ Inventario Â· hace 2h 05min Â· M. Gil</div>
               </div>
               <span class="badge info">P3</span>
             </div>
@@ -1660,8 +1641,8 @@
               <div class="ticket-priority p3"></div>
               <div style="flex:1">
                 <div class="ticket-num">#INC-2841</div>
-                <div class="ticket-title">Equipo offline 6 días — PC-LMENDEZ</div>
-                <div class="ticket-meta">⚫ Offline · hace 3h · Sin asignar</div>
+                <div class="ticket-title">Equipo offline 6 dÃ­as â€” PC-LMENDEZ</div>
+                <div class="ticket-meta">âš« Offline Â· hace 3h Â· Sin asignar</div>
               </div>
               <span class="badge off">P3</span>
             </div>
@@ -1673,18 +1654,18 @@
               <div class="detail-header">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start">
                   <div>
-                    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">#INC-2851 · 🤖 Creado automáticamente por EndpointIQ</div>
-                    <div class="detail-title">RAM crítica — Chrome consume 94% de memoria</div>
-                    <div class="detail-sub">LAPTOP-MROJAS-001 · María Rojas · Gerencia Comercial</div>
+                    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">#INC-2851 Â· ðŸ¤– Creado automÃ¡ticamente por EndpointIQ</div>
+                    <div class="detail-title">RAM crÃ­tica â€” Chrome consume 94% de memoria</div>
+                    <div class="detail-sub">LAPTOP-MROJAS-001 Â· MarÃ­a Rojas Â· Gerencia Comercial</div>
                   </div>
-                  <span class="badge crit">CRÍTICO P1</span>
+                  <span class="badge crit">CRÃTICO P1</span>
                 </div>
               </div>
               <div class="detail-body">
 
-                <!-- Métricas al momento del incidente -->
+                <!-- MÃ©tricas al momento del incidente -->
                 <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px;margin-bottom:16px">
-                  <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">📸 Snapshot al momento del incidente — 09:42:18</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">ðŸ“¸ Snapshot al momento del incidente â€” 09:42:18</div>
                   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
                     <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px">
                       <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--red)">89%</div>
@@ -1705,44 +1686,44 @@
                   </div>
                 </div>
 
-                <!-- Análisis causa raíz -->
+                <!-- AnÃ¡lisis causa raÃ­z -->
                 <div style="margin-bottom:14px">
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">🔎 Análisis Automático de Causa Raíz</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">ðŸ”Ž AnÃ¡lisis AutomÃ¡tico de Causa RaÃ­z</div>
                   <div style="font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface2);border-radius:8px;padding:12px">
-                    El proceso <strong style="color:var(--text);font-family:var(--font-mono)">chrome.exe</strong> está utilizando <strong style="color:var(--red)">61%</strong> de la RAM total del equipo (9.8 GB de 16 GB). Se detectaron <strong style="color:var(--amber)">23 pestañas activas</strong>. El antivirus <strong style="color:var(--text);font-family:var(--font-mono)">MsMpEng</strong> consume adicionalmente un 18%, lo que combinado genera el pico crítico. <strong style="color:var(--green)">Recomendación:</strong> Cerrar pestañas no esenciales y programar escaneo antivirus fuera de horario laboral.
+                    El proceso <strong style="color:var(--text);font-family:var(--font-mono)">chrome.exe</strong> estÃ¡ utilizando <strong style="color:var(--red)">61%</strong> de la RAM total del equipo (9.8 GB de 16 GB). Se detectaron <strong style="color:var(--amber)">23 pestaÃ±as activas</strong>. El antivirus <strong style="color:var(--text);font-family:var(--font-mono)">MsMpEng</strong> consume adicionalmente un 18%, lo que combinado genera el pico crÃ­tico. <strong style="color:var(--green)">RecomendaciÃ³n:</strong> Cerrar pestaÃ±as no esenciales y programar escaneo antivirus fuera de horario laboral.
                   </div>
                 </div>
 
                 <!-- Info del equipo -->
                 <div class="detail-row"><span class="detail-key">Equipo</span><span class="detail-val mono">LAPTOP-MROJAS-001</span></div>
-                <div class="detail-row"><span class="detail-key">Usuario</span><span class="detail-val">María Rojas · mrojas@empresa.com</span></div>
-                <div class="detail-row"><span class="detail-key">SO</span><span class="detail-val mono">Windows 11 Pro 23H2 · Build 22631</span></div>
+                <div class="detail-row"><span class="detail-key">Usuario</span><span class="detail-val">MarÃ­a Rojas Â· mrojas@empresa.com</span></div>
+                <div class="detail-row"><span class="detail-key">SO</span><span class="detail-val mono">Windows 11 Pro 23H2 Â· Build 22631</span></div>
                 <div class="detail-row"><span class="detail-key">RAM Instalada</span><span class="detail-val mono">16 GB DDR4 3200MHz</span></div>
-                <div class="detail-row"><span class="detail-key">Agente Notificó</span><span class="detail-val">✅ Toast enviado al usuario — 09:42</span></div>
-                <div class="detail-row"><span class="detail-key">Usuario respondió</span><span class="detail-val">❌ Sin respuesta — escalado automático</span></div>
-                <div class="detail-row"><span class="detail-key">Asignado a</span><span class="detail-val" style="color:var(--text3)">— Sin asignar —</span></div>
+                <div class="detail-row"><span class="detail-key">Agente NotificÃ³</span><span class="detail-val">âœ… Toast enviado al usuario â€” 09:42</span></div>
+                <div class="detail-row"><span class="detail-key">Usuario respondiÃ³</span><span class="detail-val">âŒ Sin respuesta â€” escalado automÃ¡tico</span></div>
+                <div class="detail-row"><span class="detail-key">Asignado a</span><span class="detail-val" style="color:var(--text3)">â€” Sin asignar â€”</span></div>
 
                 <!-- Acciones -->
                 <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-                  <button class="btn btn-primary">✅ Asignarme</button>
-                  <button class="btn btn-ghost">👤 Asignar a...</button>
-                  <button class="btn btn-green">✔ Resolver</button>
-                  <button class="btn btn-ghost">💬 Comentar</button>
-                  <button class="btn btn-ghost">📎 Ver Logs</button>
+                  <button class="btn btn-primary">âœ… Asignarme</button>
+                  <button class="btn btn-ghost">ðŸ‘¤ Asignar a...</button>
+                  <button class="btn btn-green">âœ” Resolver</button>
+                  <button class="btn btn-ghost">ðŸ’¬ Comentar</button>
+                  <button class="btn btn-ghost">ðŸ“Ž Ver Logs</button>
                 </div>
 
-                <!-- Notificación preview -->
+                <!-- NotificaciÃ³n preview -->
                 <div style="margin-top:16px">
-                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">📩 Notificación enviada al usuario</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">ðŸ“© NotificaciÃ³n enviada al usuario</div>
                   <div class="toast-preview">
                     <div class="toast-title-row">
-                      <div class="toast-app-icon">🔔</div>
-                      <div class="toast-app-name">EndpointIQ · Alerta de Rendimiento</div>
+                      <div class="toast-app-icon">ðŸ””</div>
+                      <div class="toast-app-name">EndpointIQ Â· Alerta de Rendimiento</div>
                       <div class="toast-time">09:42</div>
                     </div>
-                    <div class="toast-body">Tu equipo está experimentando lentitud. Chrome está usando el 94% de tu memoria RAM. Tienes 23 pestañas abiertas.</div>
+                    <div class="toast-body">Tu equipo estÃ¡ experimentando lentitud. Chrome estÃ¡ usando el 94% de tu memoria RAM. Tienes 23 pestaÃ±as abiertas.</div>
                     <div class="toast-actions">
-                      <div class="toast-btn primary">Cerrar pestañas</div>
+                      <div class="toast-btn primary">Cerrar pestaÃ±as</div>
                       <div class="toast-btn ghost">Ver detalles</div>
                       <div class="toast-btn ghost">Ignorar</div>
                     </div>
@@ -1754,10 +1735,10 @@
           </div>
         </div>
 
-        <!-- Estadísticas mesa de ayuda -->
+        <!-- EstadÃ­sticas mesa de ayuda -->
         <div class="three-col" style="margin-top:16px">
           <div class="card">
-            <div class="card-header"><span>📊</span><span class="card-title">Tickets por Tipo</span></div>
+            <div class="card-header"><span>ðŸ“Š</span><span class="card-title">Tickets por Tipo</span></div>
             <div class="card-body">
               <div class="meter-row"><div class="meter-label">Hardware</div><div class="meter-track"><div class="meter-fill" style="width:45%;background:var(--red)"></div></div><div class="meter-val">45%</div></div>
               <div class="meter-row"><div class="meter-label">Software</div><div class="meter-track"><div class="meter-fill" style="width:28%;background:var(--blue)"></div></div><div class="meter-val">28%</div></div>
@@ -1767,24 +1748,24 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><span>🤖</span><span class="card-title">Tickets Auto-creados</span></div>
+            <div class="card-header"><span>ðŸ¤–</span><span class="card-title">Tickets Auto-creados</span></div>
             <div class="card-body">
               <div style="display:flex;align-items:center;justify-content:center;gap:20px;padding:10px 0">
                 <div style="text-align:center">
                   <div style="font-family:var(--font-disp);font-size:40px;font-weight:800;color:var(--blue)">71%</div>
-                  <div style="font-size:12px;color:var(--text3);margin-top:4px">Tickets generados<br>automáticamente por IA</div>
+                  <div style="font-size:12px;color:var(--text3);margin-top:4px">Tickets generados<br>automÃ¡ticamente por IA</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="font-size:12.5px;color:var(--text2)">🤖 Auto: <strong style="color:var(--blue)">23</strong> tickets</div>
-                  <div style="font-size:12.5px;color:var(--text2)">👤 Manual: <strong style="color:var(--text)">9</strong> tickets</div>
-                  <div style="font-size:12.5px;color:var(--text2)">⚡ MTTR auto: <strong style="color:var(--green)">1.8h</strong></div>
-                  <div style="font-size:12.5px;color:var(--text2)">⌛ MTTR manual: <strong style="color:var(--amber)">3.2h</strong></div>
+                  <div style="font-size:12.5px;color:var(--text2)">ðŸ¤– Auto: <strong style="color:var(--blue)">23</strong> tickets</div>
+                  <div style="font-size:12.5px;color:var(--text2)">ðŸ‘¤ Manual: <strong style="color:var(--text)">9</strong> tickets</div>
+                  <div style="font-size:12.5px;color:var(--text2)">âš¡ MTTR auto: <strong style="color:var(--green)">1.8h</strong></div>
+                  <div style="font-size:12.5px;color:var(--text2)">âŒ› MTTR manual: <strong style="color:var(--amber)">3.2h</strong></div>
                 </div>
               </div>
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><span>👥</span><span class="card-title">Carga por Agente</span></div>
+            <div class="card-header"><span>ðŸ‘¥</span><span class="card-title">Carga por Agente</span></div>
             <div class="card-body">
               <div class="meter-row"><div class="meter-label">L. Vargas</div><div class="meter-track"><div class="meter-fill" style="width:80%;background:var(--red)"></div></div><div class="meter-val">8 tkt</div></div>
               <div class="meter-row"><div class="meter-label">A. Cruz</div><div class="meter-track"><div class="meter-fill" style="width:60%;background:var(--amber)"></div></div><div class="meter-val">6 tkt</div></div>
@@ -1795,23 +1776,23 @@
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 5: SEGURIDAD
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-seguridad">
         <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="kpi-card blue"><div class="kpi-label">Score de Seguridad</div><div class="kpi-value" id="secScore">—</div><div class="kpi-delta" id="secScoreDelta">Calculando...</div><div class="kpi-icon-bg">🛡️</div></div>
-          <div class="kpi-card red"><div class="kpi-label">Alertas Críticas</div><div class="kpi-value" id="secThreats">0</div><div class="kpi-delta" id="secThreatsDelta">—</div><div class="kpi-icon-bg">🚨</div></div>
-          <div class="kpi-card amber"><div class="kpi-label">Advertencias</div><div class="kpi-value" id="secWarnings">0</div><div class="kpi-delta" id="secWarningsDelta">—</div><div class="kpi-icon-bg">⚠️</div></div>
-          <div class="kpi-card green"><div class="kpi-label">Equipos Monitoreados</div><div class="kpi-value" id="secDevices">0</div><div class="kpi-delta" id="secDevicesDelta">—</div><div class="kpi-icon-bg">💻</div></div>
+          <div class="kpi-card blue"><div class="kpi-label">Score de Seguridad</div><div class="kpi-value" id="secScore">â€”</div><div class="kpi-delta" id="secScoreDelta">Calculando...</div><div class="kpi-icon-bg">ðŸ›¡ï¸</div></div>
+          <div class="kpi-card red"><div class="kpi-label">Alertas CrÃ­ticas</div><div class="kpi-value" id="secThreats">0</div><div class="kpi-delta" id="secThreatsDelta">â€”</div><div class="kpi-icon-bg">ðŸš¨</div></div>
+          <div class="kpi-card amber"><div class="kpi-label">Advertencias</div><div class="kpi-value" id="secWarnings">0</div><div class="kpi-delta" id="secWarningsDelta">â€”</div><div class="kpi-icon-bg">âš ï¸</div></div>
+          <div class="kpi-card green"><div class="kpi-label">Equipos Monitoreados</div><div class="kpi-value" id="secDevices">0</div><div class="kpi-delta" id="secDevicesDelta">â€”</div><div class="kpi-icon-bg">ðŸ’»</div></div>
         </div>
 
         <div class="two-col">
           <div class="card">
-            <div class="card-header"><span>🔐</span><span class="card-title">Eventos de Seguridad — Tiempo Real</span></div>
+            <div class="card-header"><span>ðŸ”</span><span class="card-title">Eventos de Seguridad â€” Tiempo Real</span></div>
             <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
               <table class="data-table" id="secEventsTable">
-                <thead><tr><th></th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>Categoría</th><th>Hora</th><th>Severidad</th></tr></thead>
+                <thead><tr><th></th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>CategorÃ­a</th><th>Hora</th><th>Severidad</th></tr></thead>
                 <tbody id="secEventsBody">
                   <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Cargando eventos...</td></tr>
                 </tbody>
@@ -1822,7 +1803,7 @@
           <div style="display:flex;flex-direction:column;gap:16px">
             <!-- World Map -->
             <div class="card">
-              <div class="card-header"><span>🗺️</span><span class="card-title">Mapa Global de Conexiones — Monitoreo en Tiempo Real</span></div>
+              <div class="card-header"><span>ðŸ—ºï¸</span><span class="card-title">Mapa Global de Conexiones â€” Monitoreo en Tiempo Real</span></div>
               <div class="card-body" style="padding:0;overflow:hidden;border-radius:0 0 12px 12px">
                 <div style="position:relative;height:360px;overflow:hidden;background:#040d21" id="secWorldMapContainer">
                   <!-- Canvas for dot-matrix world -->
@@ -1856,7 +1837,7 @@
             </div>
             <!-- Categories Breakdown -->
             <div class="card">
-              <div class="card-header"><span>📊</span><span class="card-title">Desglose por Categoría</span></div>
+              <div class="card-header"><span>ðŸ“Š</span><span class="card-title">Desglose por CategorÃ­a</span></div>
               <div class="card-body" id="secCategoriesPanel">
                 <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Cargando...</div>
               </div>
@@ -1865,16 +1846,16 @@
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 6: AGENTES IA
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-agentes">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
 
           <div class="card" style="border-left:3px solid var(--red)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">🚨</div>
+                <div style="font-size:22px">ðŸš¨</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Centinela de Seguridad</div>
@@ -1883,7 +1864,7 @@
                 <div style="color:var(--text3)">Alertas hoy</div><div style="color:var(--red);font-weight:700">4</div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
-                <div style="color:var(--text3)">Último disparo</div><div style="color:var(--text2)">hace 31 min</div>
+                <div style="color:var(--text3)">Ãšltimo disparo</div><div style="color:var(--text2)">hace 31 min</div>
               </div>
             </div>
           </div>
@@ -1891,16 +1872,16 @@
           <div class="card" style="border-left:3px solid var(--amber)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">🔮</div>
+                <div style="font-size:22px">ðŸ”®</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Predictor de Fallas</div>
-              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta tendencias de degradación antes de que fallen</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Detecta tendencias de degradaciÃ³n antes de que fallen</div>
               <div style="display:flex;justify-content:space-between;font-size:12px">
                 <div style="color:var(--text3)">En riesgo (7d)</div><div style="color:var(--amber);font-weight:700">6 equipos</div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
-                <div style="color:var(--text3)">Precisión modelo</div><div style="color:var(--green)">94.2%</div>
+                <div style="color:var(--text3)">PrecisiÃ³n modelo</div><div style="color:var(--green)">94.2%</div>
               </div>
             </div>
           </div>
@@ -1908,11 +1889,11 @@
           <div class="card" style="border-left:3px solid var(--blue)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">📊</div>
+                <div style="font-size:22px">ðŸ“Š</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Monitor Productividad</div>
-              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Identifica patrones de bajo rendimiento y uso fuera de política</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Identifica patrones de bajo rendimiento y uso fuera de polÃ­tica</div>
               <div style="display:flex;justify-content:space-between;font-size:12px">
                 <div style="color:var(--text3)">Bajo umbral</div><div style="color:var(--amber);font-weight:700">8 usuarios</div>
               </div>
@@ -1925,16 +1906,16 @@
           <div class="card" style="border-left:3px solid var(--green)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">🔧</div>
+                <div style="font-size:22px">ðŸ”§</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Auto-Ticket Engine</div>
-              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Crea tickets automáticos cuando detecta incidentes críticos</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Crea tickets automÃ¡ticos cuando detecta incidentes crÃ­ticos</div>
               <div style="display:flex;justify-content:space-between;font-size:12px">
                 <div style="color:var(--text3)">Tickets auto hoy</div><div style="color:var(--green);font-weight:700">23</div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
-                <div style="color:var(--text3)">Tasa de éxito</div><div style="color:var(--green)">97.8%</div>
+                <div style="color:var(--text3)">Tasa de Ã©xito</div><div style="color:var(--green)">97.8%</div>
               </div>
             </div>
           </div>
@@ -1942,7 +1923,7 @@
           <div class="card" style="border-left:3px solid var(--purple)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">🕸</div>
+                <div style="font-size:22px">ðŸ•¸</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green)"><span class="status-glow green"></span>Activo</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Graph Analyzer</div>
@@ -1951,7 +1932,7 @@
                 <div style="color:var(--text3)">Clusters activos</div><div style="color:var(--purple);font-weight:700">3</div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
-                <div style="color:var(--text3)">Último análisis</div><div style="color:var(--text2)">hace 4h</div>
+                <div style="color:var(--text3)">Ãšltimo anÃ¡lisis</div><div style="color:var(--text2)">hace 4h</div>
               </div>
             </div>
           </div>
@@ -1959,7 +1940,7 @@
           <div class="card" style="border-left:3px solid var(--cyan)">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-                <div style="font-size:22px">📦</div>
+                <div style="font-size:22px">ðŸ“¦</div>
                 <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--amber)"><span class="status-glow" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Pausado</div>
               </div>
               <div style="font-weight:700;color:var(--text);margin-bottom:4px">Inventario Guard</div>
@@ -1979,13 +1960,13 @@
         <div class="col-7-3" style="margin-top:20px">
           <!-- Alertas -->
           <div class="card">
-            <div class="card-header"><span>⚡</span><span class="card-title">Feed en Tiempo Real — Alertas de Agentes</span><span class="card-sub" style="display:flex;align-items:center;gap:6px"><span class="status-glow green"></span>Live</span></div>
+            <div class="card-header"><span>âš¡</span><span class="card-title">Feed en Tiempo Real â€” Alertas de Agentes</span><span class="card-sub" style="display:flex;align-items:center;gap:6px"><span class="status-glow green"></span>Live</span></div>
             <div style="overflow-x:auto">
               <table class="data-table">
-                <thead><tr><th>Hora</th><th>Agente</th><th>Equipo</th><th>Evento</th><th>Severidad</th><th>Acción</th></tr></thead>
+                <thead><tr><th>Hora</th><th>Agente</th><th>Equipo</th><th>Evento</th><th>Severidad</th><th>AcciÃ³n</th></tr></thead>
                 <tbody id="agentAlertsTable">
-                  <!-- Se poblará dinámicamente -->
-                  <tr><td class="mono">09:42</td><td>Auto-Ticket</td><td class="mono">LAPTOP-MROJAS</td><td>Ticket #INC-2851 creado — RAM 94%</td><td><span class="badge crit">Crítico</span></td><td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">Ver →</button></td></tr>
+                  <!-- Se poblarÃ¡ dinÃ¡micamente -->
+                  <tr><td class="mono">09:42</td><td>Auto-Ticket</td><td class="mono">LAPTOP-MROJAS</td><td>Ticket #INC-2851 creado â€” RAM 94%</td><td><span class="badge crit">CrÃ­tico</span></td><td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">Ver â†’</button></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1994,18 +1975,18 @@
           <!-- WhatsApp Bot Simulator -->
           <div class="card">
             <div class="card-header">
-              <span>💬</span>
+              <span>ðŸ’¬</span>
               <span class="card-title">Simulador WhatsApp Business API</span>
             </div>
             <div class="card-body" style="display:flex; flex-direction:column; height:320px; padding:0; background:#080C14">
               <!-- Chat logs container -->
               <div id="chatContainer" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;">
                 <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
-                  🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de EndpointIQ. Hazme una pregunta como:
+                  ðŸ¤– <strong>Bot:</strong> Â¡Hola! Soy el asistente cognitivo de Onyx. Hazme una pregunta como:
                   <div style="margin-top:6px; font-style:italic; opacity:0.8; font-size:11.5px">
-                    - "¿Cómo está la flota hoy?"<br>
-                    - "¿Hay alertas críticas de hardware?"<br>
-                    - "¿Qué puertos o USBs se detectaron?"
+                    - "Â¿CÃ³mo estÃ¡ la flota hoy?"<br>
+                    - "Â¿Hay alertas crÃ­ticas de hardware?"<br>
+                    - "Â¿QuÃ© puertos o USBs se detectaron?"
                   </div>
                 </div>
               </div>
@@ -2019,15 +2000,15 @@
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            VIEW 7: KPI BUILDER
-      ════════════════════════════════════════════ -->
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-kpibuilder">
         <div class="two-col">
           <!-- Formulario para agregar KPI -->
           <div class="card">
             <div class="card-header">
-              <span>🛠</span>
+              <span>ðŸ› </span>
               <span class="card-title">Crear Nuevo KPI Asistido por IA</span>
             </div>
             <div class="card-body">
@@ -2037,14 +2018,14 @@
                   <input type="text" id="kpiNameInput" required placeholder="Ej: Cumplimiento de RAM" style="width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-ui)"/>
                 </div>
                 <div style="margin-bottom:16px">
-                  <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">Fórmula SQL (BigQuery):</label>
+                  <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">FÃ³rmula SQL (BigQuery):</label>
                   <textarea id="kpiFormulaInput" required placeholder="Ej: COUNTIF(ram_usage < 80.0) / COUNT(device_id) * 100" style="width:100%; height:80px; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-mono); resize:none"></textarea>
                 </div>
                 <div style="margin-bottom:20px">
                   <label style="display:block; font-size:12.5px; color:var(--text2); margin-bottom:6px">Valor Objetivo (%):</label>
                   <input type="number" step="0.1" id="kpiTargetInput" required placeholder="Ej: 90.0" style="width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; font-family:var(--font-ui)"/>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center">💾 Guardar KPI en BigQuery</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center">ðŸ’¾ Guardar KPI en BigQuery</button>
               </form>
             </div>
           </div>
@@ -2052,14 +2033,14 @@
           <!-- Listado de KPIs actuales -->
           <div class="card">
             <div class="card-header">
-              <span>📋</span>
-              <span class="card-title">Fórmulas de KPIs Activos en la Nube</span>
+              <span>ðŸ“‹</span>
+              <span class="card-title">FÃ³rmulas de KPIs Activos en la Nube</span>
             </div>
             <div style="overflow-x:auto">
               <table class="data-table">
-                <thead><tr><th>ID</th><th>Nombre del KPI</th><th>Fórmula SQL</th><th>Objetivo</th></tr></thead>
+                <thead><tr><th>ID</th><th>Nombre del KPI</th><th>FÃ³rmula SQL</th><th>Objetivo</th></tr></thead>
                 <tbody id="kpisTableBody">
-                  <!-- Se poblará dinámicamente -->
+                  <!-- Se poblarÃ¡ dinÃ¡micamente -->
                 </tbody>
               </table>
             </div>
@@ -2067,24 +2048,24 @@
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════
-           VIEW: GESTIÓN DE USUARIOS (admin only)
-      ════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+           VIEW: GESTIÃ“N DE USUARIOS (admin only)
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div class="view" id="view-usuarios">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
           <div>
-            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">👥 Gestión de Usuarios</h2>
+            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">ðŸ‘¥ GestiÃ³n de Usuarios</h2>
             <p style="color:var(--text3);font-size:13px;margin-top:4px">Administra los accesos y roles de la plataforma</p>
           </div>
           <div style="display:flex;gap:10px">
-            <button onclick="openChangePasswordModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px;background:linear-gradient(135deg,#A78BFA,#7C3AED)">🔑 Cambiar Mi Contraseña</button>
-            <button onclick="openUserModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px">➕ Nuevo Usuario</button>
+            <button onclick="openChangePasswordModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px;background:linear-gradient(135deg,#A78BFA,#7C3AED)">ðŸ”‘ Cambiar Mi ContraseÃ±a</button>
+            <button onclick="openUserModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px">âž• Nuevo Usuario</button>
           </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <table class="prod-table" style="width:100%">
             <thead>
-              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Ãšltimo Acceso</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="usersTableBody">
               <tr><td colspan="6" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
@@ -2099,32 +2080,32 @@
           <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)" id="userModalTitle">Nuevo Usuario</h3>
           <div class="login-field"><label>Nombre Completo</label><input id="umName" placeholder="Nombre Apellido" /></div>
           <div class="login-field"><label>Email</label><input id="umEmail" type="email" placeholder="email@empresa.com" /></div>
-          <div class="login-field" id="umPasswordField"><label>Contraseña</label><input id="umPassword" type="password" placeholder="Mínimo 6 caracteres" /></div>
+          <div class="login-field" id="umPasswordField"><label>ContraseÃ±a</label><input id="umPassword" type="password" placeholder="MÃ­nimo 6 caracteres" /></div>
           <div class="login-field">
             <label>Rol</label>
             <select id="umRole" style="width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--font-ui)">
-              <option value="admin">🔑 Administrador</option>
-              <option value="analyst">📊 Analista</option>
-              <option value="viewer" selected>👁 Visor</option>
+              <option value="admin">ðŸ”‘ Administrador</option>
+              <option value="analyst">ðŸ“Š Analista</option>
+              <option value="viewer" selected>ðŸ‘ Visor</option>
             </select>
           </div>
           <div style="display:flex;gap:10px;margin-top:12px">
             <button onclick="closeUserModal()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
-            <button onclick="saveUser()" class="login-btn" style="flex:1;margin-top:0">💾 Guardar</button>
+            <button onclick="saveUser()" class="login-btn" style="flex:1;margin-top:0">ðŸ’¾ Guardar</button>
           </div>
         </div>
       </div>
 
-      <!-- Modal: Cambiar Contraseña -->
+      <!-- Modal: Cambiar ContraseÃ±a -->
       <div id="changePwModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
         <div class="login-card" style="animation:loginSlideUp 0.3s">
-          <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">🔑 Cambiar Contraseña</h3>
-          <div class="login-field"><label>Contraseña Actual</label><input id="cpCurrent" type="password" /></div>
-          <div class="login-field"><label>Nueva Contraseña</label><input id="cpNew" type="password" placeholder="Mínimo 6 caracteres" /></div>
+          <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">ðŸ”‘ Cambiar ContraseÃ±a</h3>
+          <div class="login-field"><label>ContraseÃ±a Actual</label><input id="cpCurrent" type="password" /></div>
+          <div class="login-field"><label>Nueva ContraseÃ±a</label><input id="cpNew" type="password" placeholder="MÃ­nimo 6 caracteres" /></div>
           <div class="login-error" id="cpError"></div>
           <div style="display:flex;gap:10px;margin-top:12px">
             <button onclick="document.getElementById('changePwModal').style.display='none'" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
-            <button onclick="changePassword()" class="login-btn" style="flex:1;margin-top:0;background:linear-gradient(135deg,#A78BFA,#7C3AED)">💾 Cambiar</button>
+            <button onclick="changePassword()" class="login-btn" style="flex:1;margin-top:0;background:linear-gradient(135deg,#A78BFA,#7C3AED)">ðŸ’¾ Cambiar</button>
           </div>
         </div>
       </div>
@@ -2134,7 +2115,7 @@
 </div><!-- .app -->
 
 <script>
-// ── Estado Global ──
+// â”€â”€ Estado Global â”€â”€
 let fleetDevices = [];
 let kpiDefinitions = [];
 let securityEvents = [];
@@ -2149,10 +2130,10 @@ const titles = {
   seguridad:     'Seguridad',
   agentes:       'Agentes Inteligentes IA',
   kpibuilder:    'KPI Builder Asistido por IA',
-  usuarios:      'Gestión de Usuarios'
+  usuarios:      'GestiÃ³n de Usuarios'
 };
 
-// ── Navegación de Vistas ──
+// â”€â”€ NavegaciÃ³n de Vistas â”€â”€
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -2186,7 +2167,7 @@ function showView(id) {
   }
 }
 
-// ── Sincronizar BigQuery ──
+// â”€â”€ Sincronizar BigQuery â”€â”€
 function syncBigQuery() {
   const syncBtn = document.getElementById('btnSync');
   const syncText = document.getElementById('syncTimeText');
@@ -2216,12 +2197,12 @@ function syncBigQuery() {
     });
 }
 
-// ── Fetch General de Dispositivos ──
+// â”€â”€ Fetch General de Dispositivos â”€â”€
 function fetchDevices() {
   fetch('/api/devices')
     .then(res => res.json())
     .then(data => {
-      // Derive online/offline from timestamp: if last sync > 4h ago → Offline
+      // Derive online/offline from timestamp: if last sync > 4h ago â†’ Offline
       const now = new Date();
       const OFFLINE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
       data.forEach(d => {
@@ -2243,7 +2224,7 @@ function fetchDevices() {
     });
 }
 
-// ── Actualizar Tarjetas KPIs del Dashboard ──
+// â”€â”€ Actualizar Tarjetas KPIs del Dashboard â”€â”€
 function updateDashboardKPIs() {
   const totalCards = document.querySelectorAll('.kpi-card');
   if (totalCards.length < 5) return;
@@ -2283,7 +2264,7 @@ function updateDashboardKPIs() {
   try { renderSyncTimeline(); } catch(e) { console.warn('Sync timeline error:', e); }
 }
 
-// ── Grafica Metricas Promedio con datos reales (INTERACTIVA) ──
+// â”€â”€ Grafica Metricas Promedio con datos reales (INTERACTIVA) â”€â”€
 let _chartData = { cpu: [], ram: [], disk: [], times: [], visible: {cpu:true, ram:true, disk:true} };
 
 function toggleChartSeries(series) {
@@ -2513,7 +2494,7 @@ function onChartLeave() {
   }
 }
 
-// ── Tabla dinamica de equipos de la flota ──
+// â”€â”€ Tabla dinamica de equipos de la flota â”€â”€
 function updateFleetTable() {
   const tbody = document.getElementById('fleetTableBody');
   if (!tbody) return;
@@ -2558,7 +2539,7 @@ function updateFleetTable() {
   });
 }
 
-// ── Resumen de red del dashboard ──
+// â”€â”€ Resumen de red del dashboard â”€â”€
 function updateDashboardNetwork() {
   let totalConns = 0, wifiConns = 0, totalDevices = 0;
   const ssids = new Set();
@@ -2601,7 +2582,7 @@ function updateDashboardNetwork() {
   }
 }
 
-// ── Fleet Status Donut ──
+// â”€â”€ Fleet Status Donut â”€â”€
 function renderFleetStatusDonut() {
   const C = 389.56;
   const total = fleetDevices.length;
@@ -2645,7 +2626,7 @@ function renderFleetStatusDonut() {
   if (nOf) nOf.textContent = offline;
 }
 
-// ── Sync Timeline ──
+// â”€â”€ Sync Timeline â”€â”€
 function renderSyncTimeline() {
   const container = document.getElementById('syncTimelineContainer');
   if (!container) return;
@@ -2696,7 +2677,7 @@ function renderSyncTimeline() {
   container.innerHTML = html || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Sin dispositivos</div>';
 }
 
-// ── Generar Mapa de Calor de la Flota (Heatmap) ──
+// â”€â”€ Generar Mapa de Calor de la Flota (Heatmap) â”€â”€
 function generateFleetHeatmap() {
   const grid = document.getElementById('fleetGrid');
   if (!grid) return;
@@ -2711,7 +2692,7 @@ function generateFleetHeatmap() {
     else if (dev.cpu_usage > 70 || dev.ram_usage > 85) st = 'warn';
     
     dot.className = 'fleet-dot ' + st;
-    dot.title = `${dev.device_id} (${dev.device_type}) · CPU: ${dev.cpu_usage || 0}% · RAM: ${dev.ram_usage || 0}%`;
+    dot.title = `${dev.device_id} (${dev.device_type}) Â· CPU: ${dev.cpu_usage || 0}% Â· RAM: ${dev.ram_usage || 0}%`;
     dot.onclick = () => {
       selectedDeviceId = dev.device_id;
       showView('equipo');
@@ -2722,7 +2703,7 @@ function generateFleetHeatmap() {
   // Solo mostrar equipos reales - sin simulados
 }
 
-// ── Poblar Dropdown de Selección de Dispositivo ──
+// â”€â”€ Poblar Dropdown de SelecciÃ³n de Dispositivo â”€â”€
 function populateDeviceSelector(filterText) {
   const select = document.getElementById('deviceSelector');
   if (!select) return;
@@ -2763,7 +2744,7 @@ function clearDeviceSelection() {
   populateDeviceSelector();
 }
 
-// ── Cargar Detalles Granulares de un Equipo ──
+// â”€â”€ Cargar Detalles Granulares de un Equipo â”€â”€
 function loadDeviceDetail(id) {
   if (!id) { clearDeviceSelection(); return; }
   selectedDeviceId = id;
@@ -2824,11 +2805,11 @@ function renderRings(m) {
   if (!container) return;
   
   const ringData = [
-    { label: 'Procesador', value: m.cpu_usage || 0, unit: '%', maxVal: 100, icon: '⚙️' },
-    { label: 'Memoria', value: m.ram_usage || 0, unit: '%', maxVal: 100, icon: '🧠', subVal: `${(m.ram_usage/100*16).toFixed(1)} / 16 GB` },
-    { label: 'Disco', value: m.disk_free_gb || 0, unit: 'GB', maxVal: 500, icon: '💾', subVal: `${(m.disk_free_gb||0).toFixed(0)} GB libres` },
-    { label: 'Red', value: m.network_latency_ms || 0, unit: 'ms', maxVal: 200, icon: '📡', subVal: `${(m.network_latency_ms||0).toFixed(0)} ms latencia` },
-    { label: m.device_type === 'Laptop' ? 'Bateria' : 'Energia', value: m.battery_percent || 0, unit: m.device_type === 'Laptop' ? '%' : '', maxVal: 100, icon: '🔋', isEnergy: true }
+    { label: 'Procesador', value: m.cpu_usage || 0, unit: '%', maxVal: 100, icon: 'âš™ï¸' },
+    { label: 'Memoria', value: m.ram_usage || 0, unit: '%', maxVal: 100, icon: 'ðŸ§ ', subVal: `${(m.ram_usage/100*16).toFixed(1)} / 16 GB` },
+    { label: 'Disco', value: m.disk_free_gb || 0, unit: 'GB', maxVal: 500, icon: 'ðŸ’¾', subVal: `${(m.disk_free_gb||0).toFixed(0)} GB libres` },
+    { label: 'Red', value: m.network_latency_ms || 0, unit: 'ms', maxVal: 200, icon: 'ðŸ“¡', subVal: `${(m.network_latency_ms||0).toFixed(0)} ms latencia` },
+    { label: m.device_type === 'Laptop' ? 'Bateria' : 'Energia', value: m.battery_percent || 0, unit: m.device_type === 'Laptop' ? '%' : '', maxVal: 100, icon: 'ðŸ”‹', isEnergy: true }
   ];
   
   container.innerHTML = '';
@@ -2840,10 +2821,10 @@ function renderRings(m) {
     if (r.label === 'Disco') pct = Math.min((500 - r.value) / 500, 1);
     const offset = circumference * (1 - pct);
     
-    let displayVal = r.isEnergy ? (r.value > 0 ? `${Math.round(r.value)}` : '⚡') : `${r.unit === '%' ? Math.round(r.value) : r.value.toFixed(0)}`;
+    let displayVal = r.isEnergy ? (r.value > 0 ? `${Math.round(r.value)}` : 'âš¡') : `${r.unit === '%' ? Math.round(r.value) : r.value.toFixed(0)}`;
     let displayUnit = r.isEnergy ? (r.value > 0 ? '%' : '') : r.unit;
     let subDisplay = r.subVal || `${displayVal}${displayUnit}`;
-    if (r.isEnergy && r.value <= 0) { displayVal = '⚡'; displayUnit = ''; subDisplay = 'Corriente directa'; }
+    if (r.isEnergy && r.value <= 0) { displayVal = 'âš¡'; displayUnit = ''; subDisplay = 'Corriente directa'; }
     
     // Dynamic gradient colors by status
     let c1, c2;
@@ -2927,12 +2908,12 @@ function renderNetworkInfo(m) {
   
   if (!netInfo) {
     if (wifiLabel) wifiLabel.textContent = 'Sin datos de red';
-    if (statType) statType.textContent = '—';
+    if (statType) statType.textContent = 'â€”';
     if (statSSID) statSSID.textContent = 'Agente sin modulo de red';
-    if (statIfaceCount) statIfaceCount.textContent = '—';
-    if (deviceCount) deviceCount.textContent = '—';
-    if (ifacesList) ifacesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">📡</div>El agente de este equipo aun no reporta datos de red.<br>Se mostraran automaticamente en la proxima actualizacion.</div>';
-    if (devicesList) devicesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">🔍</div>Sin tabla ARP disponible.</div>';
+    if (statIfaceCount) statIfaceCount.textContent = 'â€”';
+    if (deviceCount) deviceCount.textContent = 'â€”';
+    if (ifacesList) ifacesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">ðŸ“¡</div>El agente de este equipo aun no reporta datos de red.<br>Se mostraran automaticamente en la proxima actualizacion.</div>';
+    if (devicesList) devicesList.innerHTML = '<div style="color:var(--text3);padding:20px;text-align:center;font-size:11px;opacity:0.6"><div style="font-size:22px;margin-bottom:6px">ðŸ”</div>Sin tabla ARP disponible.</div>';
     return;
   }
   
@@ -2941,7 +2922,7 @@ function renderNetworkInfo(m) {
   
   // Connection type & SSID
   const hasWifi = cleanSSID && cleanSSID.length > 0;
-  if (wifiLabel) wifiLabel.textContent = hasWifi ? `📡 ${cleanSSID}` : '🔌 Ethernet';
+  if (wifiLabel) wifiLabel.textContent = hasWifi ? `ðŸ“¡ ${cleanSSID}` : 'ðŸ”Œ Ethernet';
   if (statType) { statType.textContent = hasWifi ? 'WiFi' : 'Ethernet'; statType.style.color = hasWifi ? 'var(--cyan)' : 'var(--blue)'; }
   if (statSSID) statSSID.textContent = hasWifi ? cleanSSID : 'Conexion cableada';
   
@@ -2961,7 +2942,7 @@ function renderNetworkInfo(m) {
     } else {
       netInfo.interfaces.forEach(iface => {
         const isWifi = iface.type === 'WiFi';
-        const icon = isWifi ? '📡' : '🔌';
+        const icon = isWifi ? 'ðŸ“¡' : 'ðŸ”Œ';
         const accentColor = isWifi ? 'var(--cyan)' : 'var(--blue)';
         const speed = iface.speed_mbps ? `${iface.speed_mbps} Mbps` : '';
         const sentMB = iface.bytes_sent ? (iface.bytes_sent / 1024 / 1024).toFixed(0) : '0';
@@ -2980,9 +2961,9 @@ function renderNetworkInfo(m) {
               ${iface.mac ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">${iface.mac}</span>` : ''}
             </div>
             <div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
-              ${speed ? `<span style="color:var(--text2)">⚡ ${speed}</span>` : ''}
-              <span style="color:#10B981">⬆ ${sentMB} MB</span>
-              <span style="color:#3B82F6">⬇ ${recvMB} MB</span>
+              ${speed ? `<span style="color:var(--text2)">âš¡ ${speed}</span>` : ''}
+              <span style="color:#10B981">â¬† ${sentMB} MB</span>
+              <span style="color:#3B82F6">â¬‡ ${recvMB} MB</span>
             </div>
           </div>`;
       });
@@ -3000,7 +2981,7 @@ function renderNetworkInfo(m) {
     let html = '<div class="net-device-row" style="font-weight:700;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px">';
     html += '<div>IP</div><div>MAC</div><div>Tipo</div></div>';
     netInfo.connected_devices.forEach((dev, i) => {
-      const isDynamic = dev.type === 'dynamic' || dev.type === 'dinámico';
+      const isDynamic = dev.type === 'dynamic' || dev.type === 'dinÃ¡mico';
       html += `<div class="net-device-row" style="${i % 2 === 0 ? 'background:rgba(255,255,255,0.015);' : ''}">`;
       html += `<div style="color:var(--text2);font-family:var(--font-mono);font-size:11px">${dev.ip}</div>`;
       html += `<div style="color:var(--text3);font-family:var(--font-mono);font-size:10px">${dev.mac}</div>`;
@@ -3039,15 +3020,15 @@ function updateDiagnosticBox(m) {
   if (m.cause_root) {
     alertBox.style.background = 'rgba(239,68,68,0.1)';
     alertBox.style.borderColor = 'rgba(239,68,68,0.25)';
-    let alertHtml = '🔎 <strong style="color:var(--red)">Causa detectada:</strong> ' + m.cause_root;
+    let alertHtml = 'ðŸ”Ž <strong style="color:var(--red)">Causa detectada:</strong> ' + m.cause_root;
     if (m.cause_process) {
-      alertHtml += ' — <strong style="font-family:var(--font-mono)">' + m.cause_process + '</strong>';
+      alertHtml += ' â€” <strong style="font-family:var(--font-mono)">' + m.cause_process + '</strong>';
     }
     alertBox.innerHTML = alertHtml;
   } else {
     alertBox.style.background = 'rgba(16,185,129,0.1)';
     alertBox.style.borderColor = 'rgba(16,185,129,0.25)';
-    alertBox.innerHTML = '✅ <strong style="color:var(--green)">Sin alertas:</strong> Recursos dentro de parametros normales. CPU: ' + Math.round(m.cpu_usage) + '% | RAM: ' + Math.round(m.ram_usage) + '%';
+    alertBox.innerHTML = 'âœ… <strong style="color:var(--green)">Sin alertas:</strong> Recursos dentro de parametros normales. CPU: ' + Math.round(m.cpu_usage) + '% | RAM: ' + Math.round(m.ram_usage) + '%';
   }
   
   // Build process meters
@@ -3162,7 +3143,7 @@ function updateEventTimeline(history, security) {
   });
 }
 
-// ── Actualizar Tabla de Equipos Más Problemáticos ──
+// â”€â”€ Actualizar Tabla de Equipos MÃ¡s ProblemÃ¡ticos â”€â”€
 function updateTopProblematicTable() {
   const tbody = document.querySelector('#view-dashboard table.data-table tbody');
   if (!tbody) return;
@@ -3175,7 +3156,7 @@ function updateTopProblematicTable() {
     let badgeClass = 'ok';
     let badgeText = 'Normal';
     if (dev.status !== 'Online') { badgeClass = 'off'; badgeText = 'Offline'; }
-    else if (dev.cause_root) { badgeClass = 'crit'; badgeText = 'Crítico'; }
+    else if (dev.cause_root) { badgeClass = 'crit'; badgeText = 'CrÃ­tico'; }
     else if (dev.cpu_usage > 70 || dev.ram_usage > 80) { badgeClass = 'warn'; badgeText = 'Alerta'; }
     
     tbody.innerHTML += `
@@ -3185,13 +3166,13 @@ function updateTopProblematicTable() {
         <td style="color:${dev.cpu_usage > 80 ? 'var(--red)' : 'var(--text)'}">${dev.cpu_usage ? dev.cpu_usage.toFixed(0) : 0}%</td>
         <td style="color:${dev.ram_usage > 85 ? 'var(--red)' : 'var(--text)'}">${dev.ram_usage ? dev.ram_usage.toFixed(0) : 0}%</td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        <td><span style="color:var(--blue);cursor:pointer;font-size:12px" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')">Ver →</span></td>
+        <td><span style="color:var(--blue);cursor:pointer;font-size:12px" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')">Ver â†’</span></td>
       </tr>
     `;
   });
 }
 
-// ── Feed de alertas del Dashboard ──
+// â”€â”€ Feed de alertas del Dashboard â”€â”€
 function updateAlertsFeed() {
   const feed = document.querySelector('#view-dashboard .card-body[style*="padding-top:8px"]');
   if (!feed) return;
@@ -3199,17 +3180,17 @@ function updateAlertsFeed() {
   
   const alerts = fleetDevices.filter(d => d.cause_root);
   if (alerts.length === 0) {
-    feed.innerHTML = '<div style="font-size:12.5px; color:var(--text3); padding:10px">No hay alertas críticas en este momento.</div>';
+    feed.innerHTML = '<div style="font-size:12.5px; color:var(--text3); padding:10px">No hay alertas crÃ­ticas en este momento.</div>';
     return;
   }
   
   alerts.forEach(dev => {
     feed.innerHTML += `
       <div class="alert-item">
-        <div class="alert-icon crit">🔴</div>
+        <div class="alert-icon crit">ðŸ”´</div>
         <div class="alert-body">
-          <div class="alert-title">Alerta de IA — ${dev.device_id}</div>
-          <div class="alert-meta">${dev.cause_process} · ${dev.cause_root}</div>
+          <div class="alert-title">Alerta de IA â€” ${dev.device_id}</div>
+          <div class="alert-meta">${dev.cause_process} Â· ${dev.cause_root}</div>
         </div>
         <div class="alert-time">Reciente</div>
       </div>
@@ -3217,7 +3198,7 @@ function updateAlertsFeed() {
   });
 }
 
-// ── Módulo de Productividad ──
+// â”€â”€ MÃ³dulo de Productividad â”€â”€
 let _prodData = null; // Cache productividad data
 
 function fetchProductivity() {
@@ -3230,12 +3211,12 @@ function fetchProductivity() {
       const sel = document.getElementById('prodUserSelector');
       if (sel && data.users_productivity_table) {
         const currentVal = sel.value;
-        sel.innerHTML = '<option value="__all__">📊 Todos los usuarios</option>';
+        sel.innerHTML = '<option value="__all__">ðŸ“Š Todos los usuarios</option>';
         const seenIds = new Set();
         data.users_productivity_table.forEach(u => {
           if (!seenIds.has(u.device_id)) {
             seenIds.add(u.device_id);
-            sel.innerHTML += `<option value="${u.device_id}">👤 ${u.usuario} — ${u.device_id}</option>`;
+            sel.innerHTML += `<option value="${u.device_id}">ðŸ‘¤ ${u.usuario} â€” ${u.device_id}</option>`;
           }
         });
         sel.value = currentVal;
@@ -3260,8 +3241,8 @@ function loadUserProductivity(userId) {
     ocio = dist.ocio || 0;
     topApps = data.top_apps || [];
     tableRows = data.users_productivity_table || [];
-    document.getElementById('prodDonutTitle').textContent = 'Distribución — Todos los usuarios';
-    document.getElementById('prodAppsTitle').textContent = 'Top Aplicaciones — Flota';
+    document.getElementById('prodDonutTitle').textContent = 'DistribuciÃ³n â€” Todos los usuarios';
+    document.getElementById('prodAppsTitle').textContent = 'Top Aplicaciones â€” Flota';
     document.getElementById('prodKpiIndexDelta').textContent = `${data.users_productivity_table?.length || 0} usuarios activos`;
     // Use global desktop_apps and web_pages
     var filteredDesktopApps = data.desktop_apps || [];
@@ -3291,8 +3272,8 @@ function loadUserProductivity(userId) {
     var filteredDesktopApps = deviceApps.desktop_apps || [];
     var filteredWebPages = (data.per_device_web || {})[userId] || [];
     
-    document.getElementById('prodDonutTitle').textContent = `Distribución — ${user.usuario}`;
-    document.getElementById('prodAppsTitle').textContent = `Apps — ${user.usuario}`;
+    document.getElementById('prodDonutTitle').textContent = `DistribuciÃ³n â€” ${user.usuario}`;
+    document.getElementById('prodAppsTitle').textContent = `Apps â€” ${user.usuario}`;
     document.getElementById('prodKpiIndexDelta').textContent = userId;
   }
   
@@ -3365,12 +3346,12 @@ function loadUserProductivity(userId) {
   document.getElementById('legendWeb').textContent = web + '%';
   document.getElementById('legendOcio').textContent = ocio + '%';
   
-  // Top Apps → Radial Arc Chart
+  // Top Apps â†’ Radial Arc Chart
   const ac = document.getElementById('prodAppsContainer');
   if (ac && topApps.length > 0) {
-    const icons = ['💻', '🌐', '📧', '📄', '🎨', '⚙️'];
+    const icons = ['ðŸ’»', 'ðŸŒ', 'ðŸ“§', 'ðŸ“„', 'ðŸŽ¨', 'âš™ï¸'];
     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'];
-    let h = '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;font-weight:600"><span>Aplicación</span><span>Uso %</span></div>';
+    let h = '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;font-weight:600"><span>AplicaciÃ³n</span><span>Uso %</span></div>';
     topApps.forEach((app, i) => {
       const c = colors[i % colors.length];
       h += `<div class="app-bar-row">
@@ -3386,11 +3367,11 @@ function loadUserProductivity(userId) {
   // === Category Time Blocks + Stacked Bar ===
   const userName = (userId === '__all__') ? 'Flota' : (data.users_productivity_table || []).find(u => u.device_id === userId)?.usuario || userId;
   const titleEl = document.getElementById('prodTimeAppTitle');
-  if (titleEl) titleEl.textContent = `Actividad Web & Apps — ${userName}`;
+  if (titleEl) titleEl.textContent = `Actividad Web & Apps â€” ${userName}`;
   const deskTitleEl = document.getElementById('prodDesktopTitle');
-  if (deskTitleEl) deskTitleEl.textContent = `⏱️ Tiempo por Categoría — ${userName}`;
+  if (deskTitleEl) deskTitleEl.textContent = `â±ï¸ Tiempo por CategorÃ­a â€” ${userName}`;
   const webTitleEl = document.getElementById('prodWebTitle');
-  if (webTitleEl) webTitleEl.textContent = `📊 Detalle de Navegación — ${userName}`;
+  if (webTitleEl) webTitleEl.textContent = `ðŸ“Š Detalle de NavegaciÃ³n â€” ${userName}`;
   
   const catColors = {'Trabajo': '#6C9FFF', 'Comun.': '#34D399', 'Web': '#FBBF24', 'Ocio': '#F87171'};
   
@@ -3482,7 +3463,7 @@ function loadUserProductivity(userId) {
       const pct = Math.round((wp.visits || 1) / totalVisits * 100);
       const delay = i * 50;
       wh += `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);animation:loginSlideUp 0.4s ease ${delay}ms both">
-        <div style="min-width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${color}22,${color}44);display:flex;align-items:center;justify-content:center;font-size:14px">🌐</div>
+        <div style="min-width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${color}22,${color}44);display:flex;align-items:center;justify-content:center;font-size:14px">ðŸŒ</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${wp.domain}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
@@ -3498,13 +3479,13 @@ function loadUserProductivity(userId) {
     });
     webCards.innerHTML = wh;
   } else if (webCards) {
-    webCards.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Sin datos de navegación</div>';
+    webCards.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">Sin datos de navegaciÃ³n</div>';
   }
   // Keep hidden tbody in sync for compatibility
   const webBody = document.getElementById('prodWebPagesBody');
   if (webBody) webBody.innerHTML = '';
   
-  // Desktop Apps → Compact pill cards
+  // Desktop Apps â†’ Compact pill cards
   const deskEl = document.getElementById('prodDesktopApps');
   if (deskEl && filteredDesktopApps && filteredDesktopApps.length > 0) {
     let dh = '';
@@ -3514,7 +3495,7 @@ function loadUserProductivity(userId) {
         <div style="width:28px;height:28px;border-radius:7px;background:${app.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${app.icon}</div>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text)">${app.name}</div>
-          <div style="font-size:10px;color:var(--text3)">${app.hours} · ${app.pct_label}</div>
+          <div style="font-size:10px;color:var(--text3)">${app.hours} Â· ${app.pct_label}</div>
         </div>
       </div>`;
     });
@@ -3560,7 +3541,7 @@ function exportProductivityCSV() {
   a.click();
 }
 
-// ── Exportar PDF del equipo ──
+// â”€â”€ Exportar PDF del equipo â”€â”€
 function exportDevicePDF() {
   const equipoName = document.querySelector('.equipo-name')?.textContent || 'Equipo';
   const viewEquipo = document.getElementById('view-equipo');
@@ -3587,11 +3568,11 @@ function exportDevicePDF() {
   // Restore
   setTimeout(() => {
     document.getElementById('printStyles')?.remove();
-    document.title = 'EndpointIQ — Enterprise Monitoring Platform';
+    document.title = 'EndpointIQ â€” Enterprise Monitoring Platform';
   }, 1000);
 }
 
-// ── Módulo de Seguridad ──
+// â”€â”€ MÃ³dulo de Seguridad â”€â”€
 function fetchSecurity() {
   fetch('/api/seguridad')
     .then(res => res.json())
@@ -3617,8 +3598,8 @@ function fetchSecurity() {
         secScoreDelta.innerHTML = score >= 80 
           ? '<span class="up">Estado saludable</span>' 
           : score >= 50 
-            ? '<span class="down">Requiere atención</span>'
-            : '<span class="down">⚠️ Estado crítico</span>';
+            ? '<span class="down">Requiere atenciÃ³n</span>'
+            : '<span class="down">âš ï¸ Estado crÃ­tico</span>';
       }
       
       const secThreats = document.getElementById('secThreats');
@@ -3643,7 +3624,7 @@ function fetchSecurity() {
       if (tbody) {
         tbody.innerHTML = '';
         if (events.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">✅ Sin eventos de seguridad — Todo en orden</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">âœ… Sin eventos de seguridad â€” Todo en orden</td></tr>';
           return;
         }
         events.forEach(row => {
@@ -3652,11 +3633,11 @@ function fetchSecurity() {
           else if (row.severity === 'Media') badgeClass = 'warn';
           else if (row.severity === 'Baja') badgeClass = 'info';
           
-          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || '—' : '—';
-          const devName = row.device_name || row.device_id || '—';
-          const icon = row.icon || '🔐';
+          const time = row.timestamp ? row.timestamp.split('T')[1]?.substring(0,5) || 'â€”' : 'â€”';
+          const devName = row.device_name || row.device_id || 'â€”';
+          const icon = row.icon || 'ðŸ”';
           const cat = row.category || 'general';
-          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
+          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'NavegaciÃ³n',productividad:'Productividad',estado:'Estado',general:'General'};
           
           tbody.innerHTML += `<tr>
             <td style="font-size:18px;text-align:center">${icon}</td>
@@ -3670,7 +3651,7 @@ function fetchSecurity() {
         });
       }
       
-      // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
+      // â”€â”€ WORLD MAP: Dot Matrix Canvas + SVG Pins â”€â”€
       const mapCanvas = document.getElementById('secWorldCanvas');
       const mapSvg = document.getElementById('secWorldMapSvg');
       const mapCards = document.getElementById('secMapDeviceCards');
@@ -3688,7 +3669,7 @@ function fetchSecurity() {
         ctx.scale(2, 2);
 
         // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
-        // Covers -180..180 lon (cols), 90..-90 lat (rows), 5° per cell
+        // Covers -180..180 lon (cols), 90..-90 lat (rows), 5Â° per cell
         const worldBits = [
           "000000000000000000000000000000000000000000000000000000000000000000000000",
           "000000000000000000000000000011100000000000000000000000000000000000000000",
@@ -3758,7 +3739,7 @@ function fetchSecurity() {
             const px = dotSpacingX * c + dotSpacingX / 2;
             const py = dotSpacingY * r + dotSpacingY / 2;
             if (worldBits[r][c] === '1') {
-              // Land dot — cyan glow
+              // Land dot â€” cyan glow
               ctx.beginPath();
               ctx.arc(px, py, 2.2, 0, Math.PI * 2);
               ctx.fillStyle = 'rgba(108,159,255,0.45)';
@@ -3769,7 +3750,7 @@ function fetchSecurity() {
               ctx.fillStyle = 'rgba(108,159,255,0.08)';
               ctx.fill();
             } else {
-              // Ocean dot — very subtle
+              // Ocean dot â€” very subtle
               ctx.beginPath();
               ctx.arc(px, py, 0.8, 0, Math.PI * 2);
               ctx.fillStyle = 'rgba(108,159,255,0.04)';
@@ -3781,9 +3762,9 @@ function fetchSecurity() {
         // Labels
         ctx.font = '9px JetBrains Mono';
         ctx.fillStyle = 'rgba(108,159,255,0.25)';
-        ctx.fillText('90°N', 4, 14);
-        ctx.fillText('0° EC', 4, H * 0.5 + 14);
-        ctx.fillText('90°S', 4, H - 4);
+        ctx.fillText('90Â°N', 4, 14);
+        ctx.fillText('0Â° EC', 4, H * 0.5 + 14);
+        ctx.fillText('90Â°S', 4, H - 4);
       }
 
       // Render pins on SVG overlay
@@ -3831,7 +3812,7 @@ function fetchSecurity() {
             </circle>
             <circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" style="filter:drop-shadow(0 0 8px ${color})"/>
             <text x="${x}" y="${y - 18}" text-anchor="middle" fill="#F1F5F9" font-size="11" font-family="DM Sans" font-weight="700" style="text-shadow:0 2px 6px rgba(0,0,0,0.9)">${dev.name}</text>
-            <text x="${x}" y="${y + 26}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="JetBrains Mono" style="text-shadow:0 1px 4px rgba(0,0,0,0.9)">${dev.city || 'Bogotá'}, ${dev.country || 'Colombia'}</text>
+            <text x="${x}" y="${y + 26}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="JetBrains Mono" style="text-shadow:0 1px 4px rgba(0,0,0,0.9)">${dev.city || 'BogotÃ¡'}, ${dev.country || 'Colombia'}</text>
           `;
           mapSvg.appendChild(g);
 
@@ -3843,13 +3824,13 @@ function fetchSecurity() {
               tooltip.style.left = (e.clientX - rect.left + 16) + 'px';
               tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
               tooltipContent.innerHTML = `
-                <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">${isOnline ? '🟢' : '🔴'} ${dev.name}</div>
+                <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">${isOnline ? 'ðŸŸ¢' : 'ðŸ”´'} ${dev.name}</div>
                 <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px">
                   <span style="color:#64748B">IP:</span><span style="font-family:var(--font-mono);color:#CBD5E1">${dev.ip || 'N/A'}</span>
-                  <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
-                  <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
-                  <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || '—'}</span>
-                  <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? '● Conectado' : '● Desconectado'}</span>
+                  <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'BogotÃ¡'}</span>
+                  <span style="color:#64748B">PaÃ­s:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
+                  <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || 'â€”'}</span>
+                  <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? 'â— Conectado' : 'â— Desconectado'}</span>
                 </div>`;
             }
           });
@@ -3876,7 +3857,7 @@ function fetchSecurity() {
                 <span style="color:#F1F5F9;font-weight:700;font-size:12px">${dev.name}</span>
               </div>
               <div style="color:#64748B;font-family:var(--font-mono);font-size:9px">${dev.ip || 'N/A'}</div>
-              <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'Bogotá'} · ${dev.country || 'Colombia'}</div>
+              <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'BogotÃ¡'} Â· ${dev.country || 'Colombia'}</div>
             </div>`;
           }).join('');
         }
@@ -3886,8 +3867,8 @@ function fetchSecurity() {
       const catPanel = document.getElementById('secCategoriesPanel');
       if (catPanel && data.categories) {
         const catColors = {disponibilidad:'#F87171',rendimiento:'#FBBF24',almacenamiento:'#A78BFA',red:'#6C9FFF',software:'#F59E0B',navegacion:'#34D399',productividad:'#06B6D4',estado:'#10B981',general:'#8B9DAF'};
-        const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
-        const catIcons = {disponibilidad:'⚫',rendimiento:'🔥',almacenamiento:'💿',red:'📡',software:'⚠️',navegacion:'🌐',productividad:'📱',estado:'✅',general:'🔐'};
+        const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'NavegaciÃ³n',productividad:'Productividad',estado:'Estado',general:'General'};
+        const catIcons = {disponibilidad:'âš«',rendimiento:'ðŸ”¥',almacenamiento:'ðŸ’¿',red:'ðŸ“¡',software:'âš ï¸',navegacion:'ðŸŒ',productividad:'ðŸ“±',estado:'âœ…',general:'ðŸ”'};
         
         let cp = '';
         const total = Object.values(data.categories).reduce((s,v) => s+v, 0);
@@ -3895,7 +3876,7 @@ function fetchSecurity() {
           const c = catColors[cat] || '#8B9DAF';
           const pct = Math.round(count/total*100);
           cp += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
-            <span style="font-size:14px">${catIcons[cat] || '📋'}</span>
+            <span style="font-size:14px">${catIcons[cat] || 'ðŸ“‹'}</span>
             <span style="font-size:12px;font-weight:600;color:var(--text);min-width:100px">${catLabels[cat] || cat}</span>
             <div style="flex:1;height:6px;background:var(--surface1);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:3px"></div></div>
             <span style="font-size:11px;font-weight:700;color:${c};min-width:24px;text-align:right">${count}</span>
@@ -3907,7 +3888,7 @@ function fetchSecurity() {
     .catch(err => console.error('Error fetching security:', err));
 }
 
-// ── Módulo de KPI Builder ──
+// â”€â”€ MÃ³dulo de KPI Builder â”€â”€
 function fetchKPIs() {
   fetch('/api/kpis')
     .then(res => res.json())
@@ -3955,7 +3936,7 @@ function createNewKpi(event) {
   });
 }
 
-// ── Simulador de WhatsApp Chat ──
+// â”€â”€ Simulador de WhatsApp Chat â”€â”€
 function fetchWhatsAppHistory() {
   fetch('/api/whatsapp')
     .then(res => res.json())
@@ -3966,16 +3947,16 @@ function fetchWhatsAppHistory() {
       // Limpiar y restaurar burbuja de bienvenida
       container.innerHTML = `
         <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
-          🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de EndpointIQ. Hazme una pregunta como:
+          ðŸ¤– <strong>Bot:</strong> Â¡Hola! Soy el asistente cognitivo de Onyx. Hazme una pregunta como:
           <div style="margin-top:6px; font-style:italic; opacity:0.8; font-size:11.5px">
-            - "¿Cómo está la flota hoy?"<br>
-            - "¿Hay alertas críticas de hardware?"<br>
-            - "¿Qué puertos o USBs se detectaron?"
+            - "Â¿CÃ³mo estÃ¡ la flota hoy?"<br>
+            - "Â¿Hay alertas crÃ­ticas de hardware?"<br>
+            - "Â¿QuÃ© puertos o USBs se detectaron?"
           </div>
         </div>
       `;
       
-      // Renderizar interacciones previas al revés (de más antiguas a más nuevas para el flujo del chat)
+      // Renderizar interacciones previas al revÃ©s (de mÃ¡s antiguas a mÃ¡s nuevas para el flujo del chat)
       const reversed = [...data].reverse();
       reversed.forEach(chat => {
         appendChatBubbles(chat.user_query, chat.bot_response);
@@ -4012,14 +3993,14 @@ function appendChatBubbles(userMsg, botMsg) {
   // Burbuja de usuario
   container.innerHTML += `
     <div style="align-self:flex-end; background:var(--blue); color:white; padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
-      👤 <strong>Tú:</strong> ${userMsg}
+      ðŸ‘¤ <strong>TÃº:</strong> ${userMsg}
     </div>
   `;
   
   // Burbuja de bot
   container.innerHTML += `
     <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px; animation: fadeIn 0.2s ease">
-      🤖 <strong>Bot:</strong> ${botMsg}
+      ðŸ¤– <strong>Bot:</strong> ${botMsg}
     </div>
   `;
 }
@@ -4031,7 +4012,7 @@ function scrollToBottom() {
   }
 }
 
-// ── Filtro de busqueda de equipos ──
+// â”€â”€ Filtro de busqueda de equipos â”€â”€
 function filterDevices(query) {
   const q = query.toLowerCase().trim();
   
@@ -4072,7 +4053,7 @@ function filterDevices(query) {
   });
 }
 
-// ── Toggle Tema Claro/Oscuro ──
+// â”€â”€ Toggle Tema Claro/Oscuro â”€â”€
 function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute('data-theme');
@@ -4090,7 +4071,7 @@ function applySavedTheme() {
   } catch(e) {}
 }
 
-// ── Temporizador regresivo de actualizacion ──
+// â”€â”€ Temporizador regresivo de actualizacion â”€â”€
 let lastSyncTime = new Date();
 let countdownSeconds = 120; // 2 minutos
 let countdownInterval = null;
@@ -4180,9 +4161,9 @@ function markSyncNow() {
   updateSyncClock();
 }
 
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AUTH FUNCTIONS
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function checkAuth() {
   return fetch('/api/auth/me')
     .then(r => r.json())
@@ -4242,7 +4223,7 @@ async function handleLogin(e) {
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
   btn.disabled = true;
-  btn.textContent = '⏳ Verificando...';
+  btn.textContent = 'â³ Verificando...';
   
   try {
     const res = await fetch('/api/auth/login', {
@@ -4260,15 +4241,15 @@ async function handleLogin(e) {
       currentUser.permissions = data.user.permissions;
       showApp();
     } else {
-      errEl.textContent = data.error || 'Error de autenticación';
+      errEl.textContent = data.error || 'Error de autenticaciÃ³n';
       errEl.style.display = 'block';
     }
   } catch(err) {
-    errEl.textContent = 'Error de conexión con el servidor';
+    errEl.textContent = 'Error de conexiÃ³n con el servidor';
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.textContent = '🔐 Iniciar Sesión';
+    btn.textContent = 'ðŸ” Iniciar SesiÃ³n';
   }
 }
 
@@ -4280,7 +4261,7 @@ async function handleLogout() {
   showLogin();
 }
 
-// ── Users Management ──
+// â”€â”€ Users Management â”€â”€
 async function fetchUsers() {
   try {
     const res = await fetch('/api/users');
@@ -4290,7 +4271,7 @@ async function fetchUsers() {
     if (!tbody) return;
     tbody.innerHTML = '';
     const roleColors = {admin: '#6C9FFF', analyst: '#34D399', viewer: '#FBBF24'};
-    const roleIcons = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    const roleIcons = {admin: 'ðŸ”‘', analyst: 'ðŸ“Š', viewer: 'ðŸ‘'};
     users.forEach(u => {
       const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
       const roleColor = roleColors[u.role] || '#888';
@@ -4304,8 +4285,8 @@ async function fetchUsers() {
         <td style="font-size:12px;color:var(--text2)">${lastLogin}</td>
         <td><span class="badge ok" style="font-size:11px">Activo</span></td>
         <td>
-          <button onclick="openEditUserModal('${u.user_id}','${u.full_name}','${u.email}','${u.role}')" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
-          <button onclick="deleteUser('${u.user_id}','${u.full_name}')" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
+          <button onclick="openEditUserModal('${u.user_id}','${u.full_name}','${u.email}','${u.role}')" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">âœï¸</button>
+          <button onclick="deleteUser('${u.user_id}','${u.full_name}')" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">ðŸ—‘ï¸</button>
         </td>
       </tr>`;
     });
@@ -4361,7 +4342,7 @@ async function saveUser() {
     else { alert(data.error || 'Error al actualizar'); }
   } else {
     // Create
-    if (!password || password.length < 6) { alert('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!password || password.length < 6) { alert('La contraseÃ±a debe tener al menos 6 caracteres'); return; }
     const res = await fetch('/api/users/create', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -4374,7 +4355,7 @@ async function saveUser() {
 }
 
 async function deleteUser(userId, userName) {
-  if (!confirm(`¿Desactivar al usuario "${userName}"?`)) return;
+  if (!confirm(`Â¿Desactivar al usuario "${userName}"?`)) return;
   const res = await fetch('/api/users/delete', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -4397,7 +4378,7 @@ async function changePassword() {
   const newPw = document.getElementById('cpNew').value;
   const errEl = document.getElementById('cpError');
   if (!curr || !newPw) { errEl.textContent = 'Ambos campos son requeridos'; errEl.style.display = 'block'; return; }
-  if (newPw.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (newPw.length < 6) { errEl.textContent = 'MÃ­nimo 6 caracteres'; errEl.style.display = 'block'; return; }
   const res = await fetch('/api/users/change-password', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -4406,7 +4387,7 @@ async function changePassword() {
   const data = await res.json();
   if (data.success) {
     document.getElementById('changePwModal').style.display = 'none';
-    alert('Contraseña cambiada exitosamente');
+    alert('ContraseÃ±a cambiada exitosamente');
   } else {
     errEl.textContent = data.error || 'Error';
     errEl.style.display = 'block';
@@ -4479,7 +4460,7 @@ function timeAgo(dateString) {
     if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
     
     const days = Math.floor(hours / 24);
-    if (days < 30) return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
+    if (days < 30) return `Hace ${days} ${days === 1 ? 'dÃ­a' : 'dÃ­as'}`;
     
     return date.toLocaleDateString();
   } catch (e) {
@@ -4521,7 +4502,7 @@ function renderSubnetGraph(m) {
   
   let content = '';
   
-  // Nodos satélites y líneas
+  // Nodos satÃ©lites y lÃ­neas
   devices.forEach((dev, i) => {
     const angle = i * (2 * Math.PI / N);
     const x = cx + radius * Math.cos(angle);
@@ -4531,10 +4512,10 @@ function renderSubnetGraph(m) {
     const color = isGateway ? 'var(--amber)' : 'var(--green)';
     const size = isGateway ? 9 : 7;
     
-    // Línea al nodo central
+    // LÃ­nea al nodo central
     content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
     
-    // Nodo satélite
+    // Nodo satÃ©lite
     content += `
       <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
         <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
@@ -4563,7 +4544,7 @@ function renderWebTrafficGraph(userId) {
   // Obtener los usuarios/equipos a graficar
   let users = [];
   if (userId === '__all__') {
-    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
+    users = fleetDevices.slice(0, 8); // LÃ­mite de 8 usuarios
   } else {
     const dev = fleetDevices.find(d => d.device_id === userId);
     if (dev) users = [dev];
@@ -4588,11 +4569,11 @@ function renderWebTrafficGraph(userId) {
   
   let content = '';
   
-  // Mapa de posiciones de los nodos para dibujar líneas
+  // Mapa de posiciones de los nodos para dibujar lÃ­neas
   const userPos = {};
   const domainPos = {};
   
-  // Dibujar líneas/enlaces (Edges) primero
+  // Dibujar lÃ­neas/enlaces (Edges) primero
   users.forEach((user, ui) => {
     const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
     userPos[user.device_id] = { x: uX, y: uy };
@@ -4631,7 +4612,7 @@ function renderWebTrafficGraph(userId) {
     `;
   });
   
-  // Dibujar nodos de Dominios Web (Púrpura)
+  // Dibujar nodos de Dominios Web (PÃºrpura)
   domains.forEach((dom, di) => {
     const pos = domainPos[dom.domain];
     const visits = dom.visits || 1;
@@ -4649,7 +4630,7 @@ function renderWebTrafficGraph(userId) {
   svg.innerHTML = content;
 }
 
-// ── Inicializacion ──
+// â”€â”€ Inicializacion â”€â”€
 window.onload = () => {
   applySavedTheme();
   checkAuth();
@@ -4678,7 +4659,7 @@ window.onload = () => {
 <!-- CHATBOT FLOTANTE GLOBAL -->
 <!-- ========================================== -->
 <style>
-  /* Estilos del Botón Flotante */
+  /* Estilos del BotÃ³n Flotante */
   .floating-chat-trigger {
     position: fixed;
     bottom: 24px;
@@ -4771,7 +4752,7 @@ window.onload = () => {
     font-weight: 500;
   }
   .chat-panel-status::before {
-    content: '●';
+    content: 'â—';
     font-size: 8px;
     animation: blink 1.5s infinite;
   }
@@ -4885,7 +4866,7 @@ window.onload = () => {
 </style>
 
 <!-- Boton Flotante -->
-<div class="floating-chat-trigger" id="floatingChatTrigger" onclick="toggleFloatingChat()" title="Preguntar a EndpointIQ IA">
+<div class="floating-chat-trigger" id="floatingChatTrigger" onclick="toggleFloatingChat()" title="Preguntar a Onyx IA">
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
   </svg>
@@ -4894,29 +4875,29 @@ window.onload = () => {
 <!-- Panel de Chat -->
 <div class="floating-chat-panel" id="floatingChatPanel">
   <div class="chat-panel-header">
-    <div class="chat-panel-avatar">🤖</div>
+    <div class="chat-panel-avatar">ðŸ¤–</div>
     <div class="chat-panel-info">
-      <div class="chat-panel-title">Asistente EndpointIQ</div>
+      <div class="chat-panel-title">Asistente Onyx</div>
       <div class="chat-panel-status">Online</div>
     </div>
-    <div class="chat-panel-close" onclick="toggleFloatingChat()">✕</div>
+    <div class="chat-panel-close" onclick="toggleFloatingChat()">âœ•</div>
   </div>
   
   <div class="chat-panel-body" id="floatingChatBody">
     <div class="chat-panel-msg bot">
-      ¡Hola! Soy el asistente de EndpointIQ. Pregúntame sobre el estado de la flota, alertas o la seguridad de los equipos.
+      Â¡Hola! Soy el asistente de Onyx. PregÃºntame sobre el estado de la flota, alertas o la seguridad de los equipos.
     </div>
   </div>
   
   <div class="chat-panel-suggests">
-    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Cómo está la flota hoy?')">¿Cómo está la flota hoy?</span>
-    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Hay alertas críticas?')">¿Alertas críticas?</span>
-    <span class="chat-suggest-pill" onclick="sendQuickQuestion('¿Qué puertos o USBs se detectaron?')">¿Puertos/USBs?</span>
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('Â¿CÃ³mo estÃ¡ la flota hoy?')">Â¿CÃ³mo estÃ¡ la flota hoy?</span>
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('Â¿Hay alertas crÃ­ticas?')">Â¿Alertas crÃ­ticas?</span>
+    <span class="chat-suggest-pill" onclick="sendQuickQuestion('Â¿QuÃ© puertos o USBs se detectaron?')">Â¿Puertos/USBs?</span>
   </div>
   
   <div class="chat-panel-input-row">
     <input type="text" class="chat-panel-input" id="floatingChatInput" placeholder="Pregunta algo sobre la flota..." onkeypress="handleFloatingChatKey(event)"/>
-    <button class="chat-panel-send" onclick="sendFloatingChatMessage()">➤</button>
+    <button class="chat-panel-send" onclick="sendFloatingChatMessage()">âž¤</button>
   </div>
 </div>
 
@@ -4964,7 +4945,7 @@ window.onload = () => {
     `;
     scrollFloatingChatToBottom();
     
-    // burbuja de cargando (simulación de escritura)
+    // burbuja de cargando (simulaciÃ³n de escritura)
     const typingId = 'typing-' + Date.now();
     body.innerHTML += `
       <div class="chat-panel-msg bot" id="${typingId}" style="font-style:italic;opacity:0.7">
@@ -5016,3 +4997,4 @@ window.onload = () => {
 
 </body>
 </html>
+
