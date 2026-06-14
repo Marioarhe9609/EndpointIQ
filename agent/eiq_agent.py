@@ -399,6 +399,22 @@ def collect_metrics():
     # Latency
     latency = measure_latency()
 
+    # Idle time (tiempo sin movimiento de mouse/teclado) — solo Windows
+    idle_seconds = None
+    try:
+        if platform.system() == "Windows":
+            import ctypes
+            class LASTINPUTINFO(ctypes.Structure):
+                _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+            lii = LASTINPUTINFO()
+            lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+            if ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
+                millis_since_boot = ctypes.windll.kernel32.GetTickCount()
+                idle_millis = millis_since_boot - lii.dwTime
+                idle_seconds = max(0, idle_millis // 1000)
+    except Exception as e:
+        log.debug("[COLLECT] Could not get idle time: %s", e)
+
     # Top processes collection (top 5 by CPU + RAM)
     top_processes = []
     try:
@@ -488,7 +504,8 @@ def collect_metrics():
         "device_type": device_type,
         "battery_percent": battery_pct,
         "battery_status": battery_status,
-        "top_processes": top_processes_json
+        "top_processes": top_processes_json,
+        "idle_seconds": idle_seconds
     }
 
     sync_row = {
@@ -499,8 +516,9 @@ def collect_metrics():
         "status": "Online"
     }
 
-    log.info("[COLLECT] CPU:%.1f%% RAM:%.1f%% Disk:%.2fGB Latency:%.1fms Battery:%s%%",
-             cpu_pct, ram_pct, disk_free_gb, latency, battery_pct)
+    idle_str = f"{idle_seconds}s" if idle_seconds is not None else "N/A"
+    log.info("[COLLECT] CPU:%.1f%% RAM:%.1f%% Disk:%.2fGB Latency:%.1fms Battery:%s%% Idle:%s",
+             cpu_pct, ram_pct, disk_free_gb, latency, battery_pct, idle_str)
     log.info("[COLLECT] Top processes: %s", ", ".join(p['name'] for p in top_processes[:3]))
 
     return metrics_row, sync_row
