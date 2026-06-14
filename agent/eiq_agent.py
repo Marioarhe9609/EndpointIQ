@@ -255,17 +255,24 @@ def bq_insert_row(table_name, row_dict, retries=3):
     full_table = dataset + "." + table_name
 
     # Build column names and values for DML INSERT
+    # Skip None values entirely — avoids errors for new/optional fields not yet in BQ schema
     cols = []
     vals = []
     for k, v in row_dict.items():
-        cols.append(k)
         if v is None:
-            vals.append("NULL")
-        elif isinstance(v, (int, float)):
+            continue  # omit None fields — BQ will use column default (NULL)
+        cols.append(k)
+        if isinstance(v, (int, float)):
             vals.append(str(v))
+        elif isinstance(v, bool):
+            vals.append("TRUE" if v else "FALSE")
         else:
             safe_v = str(v).replace("'", "\\'")
             vals.append("'" + safe_v + "'")
+
+    if not cols:
+        log.warning("[BQ] Nothing to insert for %s — all fields are None", table_name)
+        return False
 
     col_str = ", ".join(cols)
     val_str = ", ".join(vals)
