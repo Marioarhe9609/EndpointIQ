@@ -2,13 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar SDK de BigQuery para Python
-RUN pip install --no-cache-dir google-cloud-bigquery
+# Instalar dependencias del servidor
+RUN pip install --no-cache-dir \
+    google-cloud-bigquery \
+    google-cloud-pubsub
 
-# Copiar todos los archivos de la aplicacion
+# Copiar todos los archivos
 COPY . .
 
-# Puerto por defecto (Cloud Run inyecta PORT como variable de entorno)
+# Puerto Cloud Run
 EXPOSE 8080
 
 # Comando de arranque

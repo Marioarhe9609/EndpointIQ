@@ -87,7 +87,9 @@ cache_lock = threading.Lock()
 # ══════════════════════════════════════════════════════════════
 sessions = {}  # token -> {user_id, email, role, full_name, avatar, expires}
 sessions_lock = threading.Lock()
-VERSION = "2.2.0"  # Bumped: filter None BQ fields, idle_seconds tracking
+VERSION    = "2.3.0"  # Pub/Sub architecture + ingest endpoint
+BQ_PROJECT = "endpointiq"
+BQ_DATASET = "endpointiq"
 users_cache = []  # In-memory cache of users from BigQuery
 users_cache_lock = threading.Lock()
 
@@ -1271,10 +1273,52 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
             with cache_lock:
                 self.send_json(cache["whatsapp"])
 
+        # ── Pub/Sub push subscriber endpoint ─────────────────────────────
+        elif path == "/api/internal/ingest":
+            """
+            Receives Pub/Sub push messages from the onyx-metrics topic.
+            Each message contains a JSON payload from an Onyx agent.
+            Routes to eq_hardware_metrics (INSERT) or eq_sync_status (MERGE).
+            This endpoint is called by GCP automatically — NOT by agents directly.
+            """
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                raw_body = self.rfile.read(content_length)
+                envelope = json.loads(raw_body.decode('utf-8'))
+
+                # Pub/Sub wraps the message in {"message": {"data": base64, "attributes": {}}}
+                import base64
+                pubsub_message = envelope.get('message', {})
+                data_b64 = pubsub_message.get('data', '')
+                if not data_b64:
+                    self.send_json({'status': 'ok', 'note': 'empty message'}, 200)
+                    return
+
+                payload = json.loads(base64.b64decode(data_b64).decode('utf-8'))
+                table   = payload.pop('_table', 'eq_hardware_metrics')
+                is_merge = payload.pop('_merge', False)
+
+                # Choose insert method
+                if is_merge and table == 'eq_sync_status':
+                    ok = self._bq_upsert_sync_server(payload)
+                else:
+                    ok = self._bq_batch_insert(table, payload)
+
+                status = 'inserted' if ok else 'bq_error'
+                logging.info('[INGEST] Pub/Sub message processed: table=%s ok=%s device=%s',
+                             table, ok, payload.get('device_id', '?'))
+                # Always return 200 to prevent Pub/Sub retries on BQ errors
+                # (retry storms would make the problem worse)
+                self.send_json({'status': status}, 200)
+
+            except Exception as e:
+                logging.error('[INGEST] Error processing Pub/Sub message: %s', e)
+                self.send_json({'status': 'error', 'detail': str(e)}, 200)
+
         elif path == "/api/agent-version":
             # Return current agent version and file hash for update check
             import hashlib
-            agent_version = "2.2.0"
+            agent_version = "2.3.0"
             base_dir = os.path.join(os.path.dirname(__file__), "agent")
             agent_path = os.path.join(base_dir, "eiq_agent.py")
             updater_path = os.path.join(base_dir, "eiq_updater.py")
@@ -1653,6 +1697,71 @@ class EndpointIQRequestHandler(SimpleHTTPRequestHandler):
                 
         else:
             self.send_json({"error": "Endpoint no encontrado"}, 404)
+
+    def _bq_batch_insert(self, table_name, row_dict):
+        """
+        Insert a single row into BigQuery from a Pub/Sub message.
+        Called by /api/internal/ingest. Skips None and internal (_) fields.
+        In the future this can be replaced by the Storage Write API for true batching.
+        """
+        try:
+            bq = bigquery.Client(project=BQ_PROJECT)
+            full_table = BQ_DATASET + "." + table_name
+            cols, vals = [], []
+            for k, v in row_dict.items():
+                if v is None or k.startswith("_"):
+                    continue
+                cols.append(k)
+                if isinstance(v, bool):
+                    vals.append("TRUE" if v else "FALSE")
+                elif isinstance(v, (int, float)):
+                    vals.append(str(v))
+                else:
+                    vals.append("'" + str(v).replace("'", "\\'") + "'")
+            if not cols:
+                return False
+            query = "INSERT INTO `%s` (%s) VALUES (%s)" % (
+                full_table, ", ".join(cols), ", ".join(vals)
+            )
+            bq.query(query).result()
+            return True
+        except Exception as e:
+            logging.error("[INGEST] BQ insert failed for %s: %s", table_name, e)
+            return False
+
+    def _bq_upsert_sync_server(self, sync_row):
+        """
+        MERGE into eq_sync_status from a Pub/Sub sync message.
+        Keeps exactly one row per device_id (upsert).
+        """
+        try:
+            bq = bigquery.Client(project=BQ_PROJECT)
+            full_table = BQ_DATASET + ".eq_sync_status"
+            def sv(v):
+                if v is None: return "NULL"
+                if isinstance(v, (int, float)): return str(v)
+                return "'" + str(v).replace("'", "\\'") + "'"
+            query = """
+            MERGE `%s` T USING (SELECT %s AS device_id) S ON T.device_id = S.device_id
+            WHEN MATCHED THEN
+              UPDATE SET timestamp=%s, last_sync=%s, last_ip=%s, status=%s
+            WHEN NOT MATCHED THEN
+              INSERT (timestamp, device_id, last_sync, last_ip, status)
+              VALUES (%s, %s, %s, %s, %s)
+            """ % (
+                full_table,
+                sv(sync_row.get("device_id")),
+                sv(sync_row.get("timestamp")), sv(sync_row.get("last_sync")),
+                sv(sync_row.get("last_ip")),   sv(sync_row.get("status")),
+                sv(sync_row.get("timestamp")), sv(sync_row.get("device_id")),
+                sv(sync_row.get("last_sync")), sv(sync_row.get("last_ip")),
+                sv(sync_row.get("status"))
+            )
+            bq.query(query).result()
+            return True
+        except Exception as e:
+            logging.error("[INGEST] BQ sync upsert failed: %s", e)
+            return False
 
     def _build_per_device_apps(self, per_device_app_count, app_icons, system_procs):
         """Build desktop_apps list for each device."""

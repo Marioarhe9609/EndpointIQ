@@ -2,11 +2,12 @@
     "device_id": "auto",
     "project_id": "endpointiq",
     "dataset": "endpointiq",
+    "pubsub_topic": "onyx-metrics",
     "interval_seconds": 300,
     "offline_buffer_max": 1000,
     "credentials_file": "eiq_credentials.json",
     "ping_target": "8.8.8.8",
     "log_file": "eiq_agent.log",
-    "version": "2.1.0",
+    "version": "2.3.0",
     "update_server": "https://endpointiq-175647544738.us-central1.run.app"
 }
