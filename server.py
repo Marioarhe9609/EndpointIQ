@@ -300,91 +300,81 @@ def run_bq_insert(table, row_dict):
                     pass
 
 def enrich_metrics_with_mock(metrics_list):
-    """Enriquece una lista de métricas agregando historial de navegación y red local si faltan."""
+    """
+    Enriquece métricas con campos opcionales.
+    IMPORTANTE: Para dispositivos reales (eiq-*) NUNCA se inventan datos.
+    Solo se rellenan datos de demo para device-XX (IDs de prueba).
+    """
     for m in metrics_list:
-        dev_id = m.get("device_id", "device-01")
-        
-        # Enriquecer con browser_history si no existe o está vacío
+        dev_id = m.get("device_id", "")
+        is_real = dev_id.startswith("eiq-")
+
+        # ── browser_history ─────────────────────────────────────────────────
         bh = m.get("browser_history")
-        if not bh or bh == "[]" or bh == "null":
-            if dev_id == "device-01":
-                history = [
+        if not bh or bh in ("[]", "null", ""):
+            if is_real:
+                # Dispositivo real sin browser_history: dejar vacío, no inventar
+                m["browser_history"] = "[]"
+            elif dev_id == "device-01":
+                m["browser_history"] = json.dumps([
                     {"domain": "github.com", "visits": 45},
                     {"domain": "stackoverflow.com", "visits": 30},
                     {"domain": "google.com", "visits": 55},
                     {"domain": "youtube.com", "visits": 12},
                     {"domain": "outlook.com", "visits": 20},
                     {"domain": "slack.com", "visits": 25}
-                ]
+                ])
             elif dev_id == "device-02":
-                history = [
+                m["browser_history"] = json.dumps([
                     {"domain": "youtube.com", "visits": 60},
                     {"domain": "netflix.com", "visits": 40},
                     {"domain": "facebook.com", "visits": 50},
                     {"domain": "google.com", "visits": 35},
                     {"domain": "outlook.com", "visits": 15}
-                ]
+                ])
             elif dev_id == "device-03":
-                history = [
+                m["browser_history"] = json.dumps([
                     {"domain": "sharepoint.com", "visits": 35},
                     {"domain": "office.com", "visits": 40},
                     {"domain": "teams.microsoft.com", "visits": 55},
                     {"domain": "outlook.com", "visits": 30},
                     {"domain": "google.com", "visits": 20}
-                ]
+                ])
             elif dev_id == "device-04":
-                history = [
+                m["browser_history"] = json.dumps([
                     {"domain": "github.com", "visits": 15},
                     {"domain": "notion.so", "visits": 25},
                     {"domain": "trello.com", "visits": 20},
                     {"domain": "slack.com", "visits": 30},
                     {"domain": "google.com", "visits": 40}
-                ]
+                ])
             elif dev_id.startswith("device-"):
-                history = [
+                m["browser_history"] = json.dumps([
                     {"domain": "google.com", "visits": 25},
                     {"domain": "outlook.com", "visits": 18},
                     {"domain": "whatsapp.com", "visits": 35},
                     {"domain": "youtube.com", "visits": 22}
-                ]
-            else:
-                history = None
-                
-            if history:
-                m["browser_history"] = json.dumps(history)
+                ])
 
-        # Enriquecer con network_info si no existe o está vacío
+        # ── network_info ────────────────────────────────────────────────────
         net = m.get("network_info")
-        if not net or net == "{}" or net == "null":
-            last_ip = m.get("last_ip", "")
-            if not last_ip:
+        if not net or net in ("{}", "null", ""):
+            if is_real:
+                # Dispositivo real sin network_info: no inventar MACs ni SSIDs
+                pass
+            elif dev_id.startswith("device-"):
                 try:
                     num = int(dev_id.split("-")[-1])
-                except:
+                except Exception:
                     num = 1
-                last_ip = f"192.168.1.{10 + num}"
-                m["last_ip"] = last_ip
-            
-            try:
-                num = int(dev_id.split("-")[-1])
-            except:
-                num = 1
-            
-            connected_devices = [
-                {"ip": "192.168.1.1", "mac": "00:11:22:33:44:01", "type": "static"},
-            ]
-            for i in range(2, 6):
-                if i != num:
-                    connected_devices.append({
-                        "ip": f"192.168.1.{10+i}",
-                        "mac": f"00:11:22:33:44:0{i}",
-                        "type": "dynamic"
-                    })
-            
-            net_info = {
-                "wifi_ssid": "EiqNet_Corp" if num in [1, 3] else "Home_WiFi_Secure",
-                "interfaces": [
-                    {
+                last_ip = m.get("last_ip", f"192.168.1.{10 + num}")
+                connected_devices = [{"ip": "192.168.1.1", "mac": "00:11:22:33:44:01", "type": "static"}]
+                for i in range(2, 6):
+                    if i != num:
+                        connected_devices.append({"ip": f"192.168.1.{10+i}", "mac": f"00:11:22:33:44:0{i}", "type": "dynamic"})
+                m["network_info"] = json.dumps({
+                    "wifi_ssid": "EiqNet_Corp" if num in [1, 3] else "Home_WiFi_Secure",
+                    "interfaces": [{
                         "name": "Wi-Fi" if num in [1, 3] else "Ethernet",
                         "type": "WiFi" if num in [1, 3] else "Ethernet",
                         "ip": last_ip,
@@ -392,11 +382,9 @@ def enrich_metrics_with_mock(metrics_list):
                         "speed_mbps": 1200 if num in [1, 3] else 1000,
                         "bytes_sent": 12500000 * num,
                         "bytes_recv": 54200000 * num
-                    }
-                ],
-                "connected_devices": connected_devices
-            }
-            m["network_info"] = json.dumps(net_info)
+                    }],
+                    "connected_devices": connected_devices
+                })
 
 def load_local_backups():
     """Carga datos locales de respaldo al caché para disponibilidad inmediata."""
