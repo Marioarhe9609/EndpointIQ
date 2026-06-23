@@ -13,23 +13,23 @@ import datetime
 # Flag para ocultar ventanas de consola en Windows
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
 
-# Intentar importar SDK nativo de BigQuery (disponible en el contenedor Docker)
+
+# Inicializar cliente BigQuery
+# En Cloud Run: usa automáticamente la SA adjunta (endpointiq-backend-sa) — NO leer archivos de credenciales
+# En desarrollo local: usa GOOGLE_APPLICATION_CREDENTIALS del entorno si está definida
 try:
     from google.cloud import bigquery
-    # Buscar credenciales en la carpeta del agente o raíz para inicializar el SDK
-    creds_path = os.path.join(os.path.dirname(__file__), "agent", "eiq_credentials.json")
-    if os.path.exists(creds_path):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
-    elif os.path.exists("eiq_credentials.json"):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath("eiq_credentials.json")
-        
+    # IMPORTANTE: NO sobreescribir GOOGLE_APPLICATION_CREDENTIALS aquí.
+    # En Cloud Run, la SA se inyecta automáticamente por el runtime.
+    # El archivo eiq_credentials.json es SOLO para el agente Windows, no para el servidor.
     BQ_CLIENT = bigquery.Client()
     USE_SDK = True
-    print("[INFO] Usando google-cloud-bigquery SDK nativo para consultas.")
+    print("[INFO] Usando google-cloud-bigquery SDK nativo (SA de Cloud Run).")
 except Exception as e:
     BQ_CLIENT = None
     USE_SDK = False
-    print(f"[INFO] SDK de BigQuery no disponible o sin credenciales ({e}). Usando fallback.")
+    print(f"[INFO] SDK de BigQuery no disponible ({e}). Usando fallback bq CLI.")
+
 
 PORT = int(os.environ.get("PORT", 8080))
 
