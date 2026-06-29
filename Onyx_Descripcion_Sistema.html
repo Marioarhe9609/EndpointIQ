@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Onyx — Descripción del Sistema</title>
+<!-- Fuentes del sistema — sin dependencias externas -->
+<style>
+:root {
+  --ink:       #0A0F1C;
+  --ink2:      #2D3A52;
+  --ink3:      #6B7A99;
+  --paper:     #F8F7F3;
+  --paper2:    #EEECEA;
+  --paper3:    #E3E0DB;
+  --blue:      #1E40AF;
+  --blue-l:    #DBEAFE;
+  --cyan:      #0E7490;
+  --cyan-l:    #CFFAFE;
+  --green:     #065F46;
+  --green-l:   #D1FAE5;
+  --amber:     #92400E;
+  --amber-l:   #FEF3C7;
+  --red:       #991B1B;
+  --red-l:     #FEE2E2;
+  --purple:    #4C1D95;
+  --purple-l:  #EDE9FE;
+  --rule:      rgba(10,15,28,0.10);
+  --font-body: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', 'SF Mono', 'Monaco', 'Menlo', monospace;
+  --font-disp: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 0;
+}
+
+/* COVER */
+.cover {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 64px 56px 52px;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255,255,255,0.02) 0px,
+    rgba(255,255,255,0.02) 1px,
+    transparent 1px,
+    transparent 48px
+  ),
+  repeating-linear-gradient(
+    180deg,
+    rgba(255,255,255,0.02) 0px,
+    rgba(255,255,255,0.02) 1px,
+    transparent 1px,
+    transparent 48px
+  );
+}
+.cover-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 28px;
+  position: relative;
+}
+.cover-title {
+  font-family: var(--font-disp);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  color: #fff;
+  margin-bottom: 10px;
+  position: relative;
+}
+.cover-title span {
+  background: linear-gradient(90deg, #60A5FA, #22D3EE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cover-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 300;
+  letter-spacing: 0.3px;
+  margin-bottom: 48px;
+  position: relative;
+}
+.cover-meta {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  position: relative;
+}
+.cover-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cover-meta-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+.cover-meta-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.8);
+}
+.cover-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 28px;
+  position: relative;
+}
+
+/* LAYOUT */
+.doc { max-width: 920px; margin: 0 auto; padding: 0 40px 80px; }
+
+/* SECTION HEADERS */
+.section-block {
+  margin-top: 56px;
+}
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 6px;
+}
+.section-title {
+  font-family: var(--font-disp);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--rule);
+  margin-bottom: 24px;
+}
+
+/* PROSE */
+p { color: var(--ink2); font-size: 14px; margin-bottom: 12px; }
+p:last-child { margin-bottom: 0; }
+strong { color: var(--ink); font-weight: 600; }
+
+/* INTRO BOX */
+.intro-box {
+  background: var(--ink);
+  color: rgba(255,255,255,0.82);
+  border-radius: 8px;
+  padding: 28px 32px;
+  font-size: 15px;
+  line-height: 1.75;
+  margin-bottom: 32px;
+}
+.intro-box strong { color: #fff; }
+
+/* PROBLEM LIST */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.problem-card {
+  background: var(--paper2);
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  padding: 16px 18px;
+}
+.problem-icon {
+  font-size: 18px;
+  margin-bottom: 8px;
+  display: block;
+}
+.problem-card h4 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  font-family: var(--font-body);
+}
+.problem-card p {
+  font-size: 12.5px;
+  color: var(--ink3);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* MODULES */
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+}
+.module-row {
+  display: grid;
+  grid-template-columns: 28px 200px 1fr 80px;
+  align-items: start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+}
+.module-row.head {
+  background: var(--ink);
+  border-color: var(--ink);
+  border-radius: 6px 6px 0 0;
+  padding: 10px 16px;
+}
+.module-row.head span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+.mod-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink3);
+  padding-top: 1px;
+}
+.mod-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.mod-desc { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+.mod-scope {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+  align-self: start;
+}
+.scope-in { background: var(--green-l); color: var(--green); }
+.scope-out { background: var(--paper3); color: var(--ink3); }
+
+/* ARCHITECTURE LAYERS */
+.arch-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 20px 0;
+}
+.arch-layer {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--paper3);
+}
+.arch-layer-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  cursor: default;
+}
+.arch-layer-body {
+  padding: 14px 20px 16px;
+  border-top: 1px solid var(--paper3);
+  background: var(--paper);
+}
+.layer-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #fff;
+  background: var(--ink);
+  padding: 3px 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.layer-title { font-weight: 600; font-size: 13.5px; }
+.layer-services {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink3);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.layer-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.layer-bullets li {
+  font-size: 13px;
+  color: var(--ink2);
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.layer-bullets li::before {
+  content: '→';
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+.l1 { background: #EFF6FF; }
+.l1 .arch-layer-head { background: #DBEAFE; }
+.l1 .layer-title { color: #1E40AF; }
+.l2 { background: #F0FDF4; }
+.l2 .arch-layer-head { background: #DCFCE7; }
+.l2 .layer-title { color: #065F46; }
+.l3 { background: #FEFCE8; }
+.l3 .arch-layer-head { background: #FEF9C3; }
+.l3 .layer-title { color: #713F12; }
+.l4 { background: #FAF5FF; }
+.l4 .arch-layer-head { background: #EDE9FE; }
+.l4 .layer-title { color: #4C1D95; }
+
+/* AGENT TABLE */
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.agent-table th {
+  background: var(--ink2);
+  color: rgba(255,255,255,0.8);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 400;
+}
+.agent-table td {
+  padding: 11px 14px;
+  color: var(--ink2);
+  border-top: 1px solid var(--paper3);
+  vertical-align: top;
+}
+.agent-table tr:first-child td { border-top: none; }
+.agent-table tr:nth-child(even) td { background: var(--paper2); }
+.sev-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.sev-critica { background: var(--red-l); color: var(--red); }
+.sev-alta { background: var(--amber-l); color: var(--amber); }
+.sev-media { background: var(--blue-l); color: var(--blue); }
+.sev-baja { background: var(--green-l); color: var(--green); }
+.agt-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+/* EPIC CARDS */
+.epics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.epic-card {
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  padding: 18px 20px;
+  background: var(--paper);
+}
+.epic-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.epic-num {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  background: var(--ink);
+  color: rgba(255,255,255,0.7);
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.epic-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.epic-stories {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.epic-stories li {
+  font-size: 12px;
+  color: var(--ink2);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  line-height: 1.45;
+}
+.epic-stories li::before {
+  content: '·';
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+.epic-pts {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.epic-pts span {
+  background: var(--paper2);
+  padding: 2px 7px;
+  border-radius: 3px;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* ROADMAP */
+.roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.roadmap-row {
+  display: grid;
+  grid-template-columns: 140px 90px 1fr;
+  gap: 0;
+  border-top: 1px solid var(--paper3);
+}
+.roadmap-row:first-child { border-top: none; }
+.roadmap-row.head {
+  background: var(--ink);
+}
+.roadmap-row.head > * {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  padding: 9px 16px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.roadmap-cell {
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: var(--ink2);
+  border-right: 1px solid var(--paper3);
+  line-height: 1.5;
+}
+.roadmap-cell:last-child { border-right: none; }
+.roadmap-cell strong { color: var(--ink); }
+.roadmap-weeks {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--blue);
+  font-weight: 600;
+}
+.roadmap-row:nth-child(even) .roadmap-cell { background: var(--paper2); }
+
+/* KPI TABLE */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+.kpi-card {
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  padding: 16px;
+  background: var(--paper);
+}
+.kpi-name { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
+.kpi-value {
+  font-family: var(--font-disp);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.kpi-desc { font-size: 11.5px; color: var(--ink2); line-height: 1.45; }
+
+/* DATA MODEL */
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+.table-card {
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.table-card-head {
+  background: var(--ink2);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.table-card-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #fff;
+  font-weight: 600;
+}
+.table-card-ret {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+}
+.table-card-body { padding: 12px 14px; background: var(--paper); }
+.table-card-desc { font-size: 12px; color: var(--ink2); margin-bottom: 8px; line-height: 1.45; }
+.table-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink3);
+  background: var(--paper2);
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-right: 4px;
+  margin-top: 2px;
+}
+
+/* SECURITY */
+.sec-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.sec-col {
+  border: 1px solid var(--paper3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.sec-col-head {
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sec-col ul {
+  list-style: none;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.sec-col ul li {
+  font-size: 12.5px;
+  color: var(--ink2);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  line-height: 1.45;
+}
+.sec-col ul li::before {
+  content: '▸';
+  font-size: 10px;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+.sec-a .sec-col-head { background: #1E3A5F; }
+.sec-b .sec-col-head { background: #14532D; }
+.sec-c .sec-col-head { background: #3B0764; }
+
+/* FOOTER */
+.doc-footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  padding: 24px 40px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-top: 60px;
+}
+
+/* PAGE BREAK helper for print */
+@media print {
+  .section-block { page-break-inside: avoid; }
+  .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <div class="cover-tag">Documento de Requerimiento de Sistema · v1.1 · Junio 2025</div>
+  <div class="cover-title">Endpoint<span>IQ</span></div>
+  <div class="cover-subtitle">Enterprise Endpoint Intelligence Platform — Descripción Completa del Sistema (v1.1 — incluye WhatsApp Analytics, Aprendizaje Continuo y KPI Builder)</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Escala objetivo</span>
+      <span class="cover-meta-value">+1,000 equipos Windows 11</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Infraestructura</span>
+      <span class="cover-meta-value">Google Cloud Platform</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Módulos</span>
+      <span class="cover-meta-value">13 módulos · 14 agentes IA</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Duración estimada</span>
+      <span class="cover-meta-value">42 semanas · 21 sprints</span>
+    </div>
+  </div>
+  <div class="cover-pill">CONFIDENCIAL · Uso interno</div>
+</div>
+
+<div class="doc">
+
+<!-- ═══════════════════════════════════════════════ 1. RESUMEN EJECUTIVO -->
+<div class="section-block">
+  <div class="section-num">01</div>
+  <div class="section-title">Resumen ejecutivo</div>
+
+  <div class="intro-box">
+    <strong>Onyx</strong> es una plataforma empresarial de monitoreo, analítica e inteligencia de endpoints diseñada para organizaciones con flotas de más de 1,000 equipos Windows 11. Combina un <strong>agente nativo ultraligero</strong> instalado en cada computador con una arquitectura de datos e inteligencia artificial completamente hospedada en <strong>Google Cloud Platform</strong>.<br><br>
+    La plataforma convierte el uso diario de los equipos en eficiencia, claridad y productividad medible. Opera con continuidad total, incluso sin conectividad, sincronizando automáticamente los datos al restaurarse la red.
+  </div>
+
+  <p>El producto atiende una necesidad crítica en organizaciones medianas y grandes: la <strong>ausencia de visibilidad real</strong> sobre lo que ocurre en los equipos corporativos — desde el comportamiento de hardware hasta la productividad del colaborador. Onyx cierra esa brecha con datos en tiempo real, alertas inteligentes y herramientas de análisis accionables.</p>
+
+  <div class="section-num" style="margin-top:24px;">Problemas que resuelve</div>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="problem-icon">🔍</span>
+      <h4>Visibilidad nula o fragmentada</h4>
+      <p>No existe una fuente única de verdad sobre el estado real de la flota de equipos.</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">🔗</span>
+      <h4>Sin correlación falla–usuario</h4>
+      <p>Es imposible conectar una falla de hardware con el comportamiento específico del usuario que la causó.</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">📊</span>
+      <h4>Sin indicadores de productividad</h4>
+      <p>La productividad se gestiona por percepción, no por datos objetivos de uso de aplicaciones y tiempo.</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">🚨</span>
+      <h4>Alertas reactivas</h4>
+      <p>El equipo de TI reacciona ante incidentes en lugar de prevenirlos con datos anticipados.</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">🛡️</span>
+      <h4>Riesgos de seguridad ocultos</h4>
+      <p>Accesos fallidos, conexiones desde IPs extranjeras y equipos inactivos pasan desapercibidos.</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">📡</span>
+      <h4>Datos dispersos</h4>
+      <p>La información existe en múltiples herramientas desconectadas que impiden análisis de tendencias.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 2. MÓDULOS -->
+<div class="section-block">
+  <div class="section-num">02</div>
+  <div class="section-title">Módulos del sistema</div>
+
+  <p>El sistema se divide en <strong>13 módulos</strong> (10 en v1.0 + 3 nuevos en v1.1) y 2 fuera de alcance. Cada módulo representa una capacidad funcional autónoma que puede desplegarse y evolucionar de forma independiente.</p>
+
+  <div class="module-list">
+    <div class="module-row head">
+      <span></span><span>Módulo</span><span>Descripción funcional</span><span>Alcance</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M01</span>
+      <span class="mod-name">Agente Windows</span>
+      <span class="mod-desc">Servicio nativo Windows 11 escrito en Go. Consumo ultraligero (&lt;1% CPU, &lt;50 MB RAM). Recopila métricas de hardware, software, actividad y red. Opera en modo offline con buffer SQLite cifrado.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M02</span>
+      <span class="mod-name">Monitor de Hardware</span>
+      <span class="mod-desc">Captura CPU (por núcleo), RAM, disco (I/O y espacio), temperatura y red cada 30 segundos. Identifica causa raíz automáticamente cuando un recurso supera umbral configurable.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M03</span>
+      <span class="mod-name">Inventario de Software</span>
+      <span class="mod-desc">Escanea WMI y registro Windows para listar apps instaladas con nombre, versión, vendor y fechas. Detecta software no autorizado y versiones fuera de política. Escaneo diario + incremental por evento.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M04</span>
+      <span class="mod-name">Tracker de Productividad</span>
+      <span class="mod-desc">Registra ventana activa en primer plano cada 5 segundos (título + proceso + URL vía accesibilidad Windows UIA). Clasifica automáticamente actividad productiva, ofimática, entretenimiento e inactividad. Anonimizable por configuración organizacional.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M05</span>
+      <span class="mod-name">Modo Offline y Sincronización</span>
+      <span class="mod-desc">Buffer local SQLite cifrado (AES-256-GCM, clave derivada de TPM). Almacena hasta 500 MB o 30 días. Al reconectar, envía batch comprimido con timestamps originales. Deduplicación en Dataflow.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M06</span>
+      <span class="mod-name">BigQuery Analytics</span>
+      <span class="mod-desc">Data warehouse central en GCP con 15 tablas particionadas por fecha. Retención entre 1 y 7 años según tipo de dato. Vistas precalculadas para productividad semanal, inventario, alertas, aprendizaje y KPIs personalizados.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M07</span>
+      <span class="mod-name">Agentes Inteligentes</span>
+      <span class="mod-desc">14 agentes Vertex AI que detectan anomalías, predicen fallas, vigilan seguridad, identifican comportamientos anómalos, gestionan el canal WhatsApp, detectan errores sistémicos, optimizan umbrales y asesoran en creación de KPIs. Disparadores basados en Z-score estadístico, análisis de series temporales y contexto de negocio.</span>
+      <span class="mod-scope scope-in">v1.0+</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M08</span>
+      <span class="mod-name">Dashboard y Reportes</span>
+      <span class="mod-desc">Portal web React + TypeScript con dashboards en tiempo real (actualización 30-60 s). Looker Studio para ejecutivos. Reportes semanales automáticos por correo (HTML/PDF). Exportación CSV y PDF desde cualquier tabla.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M09</span>
+      <span class="mod-name">Integración Mesa de Ayuda</span>
+      <span class="mod-desc">API REST genérica con soporte Bearer/API Key/OAuth2. Compatible con ServiceNow, Jira, Freshdesk y cualquier sistema vía webhook. Tickets automáticos con métricas y logs adjuntos en incidentes críticos.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row">
+      <span class="mod-num">M10</span>
+      <span class="mod-name">Graph Analytics</span>
+      <span class="mod-desc">Visualización interactiva de relaciones entre equipos (D3.js / Cytoscape.js). Detecta clusters de fallas por área geográfica o departamento. Nodos coloreados por severidad; aristas proporcionales a intensidad.</span>
+      <span class="mod-scope scope-in">v1.0</span>
+    </div>
+    <div class="module-row" style="border-left:3px solid #3B82F6;">
+      <span class="mod-num">M11</span>
+      <span class="mod-name">Canal WhatsApp Analytics</span>
+      <span class="mod-desc">Capa visual de analítica accesible desde WhatsApp Business API. Autenticación OTP, gobierno de roles (RBAC) con 5 niveles, generación de gráficos en tiempo real (Plotly → PNG), consultas en lenguaje natural, alertas proactivas, y audit log completo. Datos PII enmascarados automáticamente.</span>
+      <span class="mod-scope scope-in" style="background:#DBEAFE;color:#1E40AF;">v1.1</span>
+    </div>
+    <div class="module-row" style="border-left:3px solid #10B981;">
+      <span class="mod-num">M12</span>
+      <span class="mod-name">Aprendizaje Continuo</span>
+      <span class="mod-desc">Motor de retroalimentación que detecta patrones de error sistémico (≥3 equipos, misma causa, 1h), clasifica alertas como TP/FP/FN, propone ajustes automáticos de umbrales con justificación estadística, y reentrena quincenalmente los modelos de predicción de Vertex AI con datos de resolución.</span>
+      <span class="mod-scope scope-in" style="background:#D1FAE5;color:#065F46;">v1.1</span>
+    </div>
+    <div class="module-row" style="border-left:3px solid #8B5CF6;">
+      <span class="mod-num">M13</span>
+      <span class="mod-name">KPI Builder Dinámico</span>
+      <span class="mod-desc">Interfaz para crear indicadores de negocio personalizados con asistencia de un agente IA (AGT-14 KPI Advisor) que sugiere fórmulas y metas según el contexto empresarial descrito en lenguaje natural. Los KPIs se publican en el dashboard y/o en el canal WhatsApp. Cálculo batch programado.</span>
+      <span class="mod-scope scope-in" style="background:#EDE9FE;color:#4C1D95;">v1.1</span>
+    </div>
+    <div class="module-row" style="opacity:0.6;">
+      <span class="mod-num">—</span>
+      <span class="mod-name">Aplicación Móvil</span>
+      <span class="mod-desc">Acceso al portal desde dispositivos móviles iOS/Android. Notificaciones push para alertas críticas.</span>
+      <span class="mod-scope scope-out">Fuera v1</span>
+    </div>
+    <div class="module-row" style="opacity:0.6;">
+      <span class="mod-num">—</span>
+      <span class="mod-name">SIEM Externo</span>
+      <span class="mod-desc">Integración nativa con plataformas SIEM. En v1.0 se limita a exportación JSON compatible.</span>
+      <span class="mod-scope scope-out">Fuera v1</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 3. ARQUITECTURA -->
+<div class="section-block">
+  <div class="section-num">03</div>
+  <div class="section-title">Arquitectura de la solución</div>
+
+  <p>La plataforma se organiza en <strong>cuatro capas desacopladas</strong>: el agente en el endpoint, la ingesta y streaming en GCP, el almacenamiento analítico, y la capa de presentación con agentes inteligentes.</p>
+
+  <div class="arch-layers">
+    <div class="arch-layer l1">
+      <div class="arch-layer-head">
+        <span class="layer-num">CAPA 1</span>
+        <span class="layer-title">Endpoint — Windows 11</span>
+        <span class="layer-services">Go · SQLite · gRPC · TLS 1.3</span>
+      </div>
+      <div class="arch-layer-body">
+        <ul class="layer-bullets">
+          <li>Agente Go ultraligero (&lt;1% CPU / &lt;50 MB RAM) instalado como servicio Windows.</li>
+          <li>Módulos internos: HardwareMonitor, SoftwareInventory, ActivityTracker, NetworkMonitor, AlertEngine local.</li>
+          <li>Buffer local SQLite cifrado con AES-256-GCM; clave derivada del TPM del equipo.</li>
+          <li>Notificaciones nativas al usuario vía Windows Toast (WinRT), bilingüe (ES/EN).</li>
+          <li>Comunicación: gRPC sobre TLS 1.3 hacia Cloud Pub/Sub. Health-check periódico para detectar modo offline.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-layer l2">
+      <div class="arch-layer-head">
+        <span class="layer-num">CAPA 2</span>
+        <span class="layer-title">Ingesta y Streaming — GCP</span>
+        <span class="layer-services">Pub/Sub · Dataflow · Cloud Functions · Cloud Run</span>
+      </div>
+      <div class="arch-layer-body">
+        <ul class="layer-bullets">
+          <li>Cloud Pub/Sub: recibe eventos en tiempo real de toda la flota (métricas + alertas, topics separados).</li>
+          <li>Dataflow (Apache Beam): transformación, enriquecimiento con metadata del equipo, deduplicación de eventos offline.</li>
+          <li>Cloud Functions: evalúan reglas de alerta al vuelo; disparan agentes IA y crean tickets automáticos. <strong style="color:var(--green)">[v1.1]</strong> learning-pattern-detector evalúa patrones de error sistémico.</li>
+          <li>Cloud Run: microservicios REST para configuración, comandos remotos y API del portal web. <strong style="color:var(--green)">[v1.1]</strong> proy-anla-poc-whatsapp-bot (webhook WhatsApp + RBAC) y proy-anla-poc-chart-renderer (Plotly → PNG).</li>
+          <li><strong style="color:var(--green)">[v1.1]</strong> Cloud Scheduler: reentrenamiento quincenal Vertex AI + cálculo batch de KPIs personalizados.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-layer l3">
+      <div class="arch-layer-head">
+        <span class="layer-num">CAPA 3</span>
+        <span class="layer-title">Almacenamiento y Analítica — GCP</span>
+        <span class="layer-services">BigQuery · Spanner · Vertex AI · Cloud Storage</span>
+      </div>
+      <div class="arch-layer-body">
+        <ul class="layer-bullets">
+          <li>BigQuery: data warehouse principal con 15 tablas particionadas por fecha y clustering por device_id. Retención 1–7 años. <strong style="color:var(--green)">[v1.1]</strong> +7 tablas nuevas (WhatsApp, aprendizaje, KPIs).</li>
+          <li>Cloud Spanner: estado en tiempo real de cada endpoint (última sincronización, última IP, estado actual).</li>
+          <li>Cloud Storage: logs históricos en Parquet, backups del agente, plantillas de Dataflow.</li>
+          <li>Vertex AI: modelos de detección de anomalías (Z-score), predicción de fallas (series temporales 7 días). <strong style="color:var(--green)">[v1.1]</strong> Modelo KPI Advisor (Gemini Pro con grounding BigQuery) + pipeline de reentrenamiento.</li>
+          <li>BigQuery Graph / Spanner Graph: análisis de concentraciones para Graph Analytics.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-layer l4">
+      <div class="arch-layer-head">
+        <span class="layer-num">CAPA 4</span>
+        <span class="layer-title">Presentación y Agentes</span>
+        <span class="layer-services">React · Looker Studio · Vertex AI Agents · WebSockets</span>
+      </div>
+      <div class="arch-layer-body">
+        <ul class="layer-bullets">
+          <li>Portal web React + TypeScript en Cloud Run; dashboard con actualización en tiempo real vía WebSockets. <strong style="color:var(--green)">[v1.1]</strong> +3 vistas: WhatsApp Admin, Aprendizaje Continuo, KPI Builder.</li>
+          <li>Looker Studio: dashboards ejecutivos conectados directamente a BigQuery para reportes sin código.</li>
+          <li>Vertex AI Agent Builder: 14 agentes con lógica de alertas proactivas, análisis de causa raíz, predicciones, aprendizaje continuo, canal WhatsApp y asesoría KPI.</li>
+          <li>API REST integrable con cualquier mesa de ayuda (ServiceNow, Jira, Freshdesk u otra vía webhook).</li>
+          <li>ChatScout: interfaz de lenguaje natural integrada al portal para consultas sobre datos de la flota.</li>
+          <li><strong style="color:var(--green)">[v1.1]</strong> Canal WhatsApp Business: analítica visual accesible desde WhatsApp con RBAC, OTP y audit log completo.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 4. FUNCIONALIDADES CLAVE -->
+<div class="section-block">
+  <div class="section-num">04</div>
+  <div class="section-title">Funcionalidades clave</div>
+
+  <p>Las siguientes capacidades describen el comportamiento observable del sistema desde el punto de vista del negocio y el usuario final.</p>
+
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px;">
+
+    <div style="border-left:3px solid #1E40AF;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Monitoreo de hardware en tiempo real</p>
+      <p>Métricas de CPU, RAM, disco y red actualizadas cada 30 segundos. Dashboard con semáforo automático (normal / alertado / crítico / hibernando). Drilldown por equipo con top-10 procesos por consumo e identificación de causa raíz (navegador, antivirus, sistema, otro). Historial de picos de congestión exportable, filtrable por sede y área.</p>
+    </div>
+
+    <div style="border-left:3px solid #0E7490;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Inventario de software y cumplimiento de licencias</p>
+      <p>Catálogo completo de aplicaciones instaladas por equipo con estado de actualización. Agrupación por suite (Google Workspace, Microsoft 365, etc.). Visualización de uso real por licencia, licencias subutilizadas y software sin licencia. Alertas automáticas por versiones obsoletas con CVE asociado.</p>
+    </div>
+
+    <div style="border-left:3px solid #065F46;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Productividad medible por colaborador y área</p>
+      <p>Clasificación automática de actividad en productiva (ofimática, comunicación, herramientas de negocio), no productiva (entretenimiento, redes sociales) e inactiva. Reporte semanal por usuario y por departamento. Nube de palabras con términos más frecuentes. Cálculo del costo económico del tiempo improductivo y valor de la hora efectiva.</p>
+    </div>
+
+    <div style="border-left:3px solid #92400E;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Operación offline transparente</p>
+      <p>El agente detecta pérdida de conectividad automáticamente y almacena todos los eventos en buffer local cifrado. Al restaurarse la conexión, sincroniza respetando los timestamps originales. El portal refleja el estado correcto de cada equipo ("Offline desde [fecha]" → "Sincronizado [fecha]"). Sin pérdida de datos garantizada.</p>
+    </div>
+
+    <div style="border-left:3px solid #4C1D95;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Alertas inteligentes y creación automática de tickets</p>
+      <p>10 agentes de IA con disparadores configurables. Si una condición crítica persiste más de 5 minutos tras la notificación al usuario, el sistema crea un ticket automático en la mesa de ayuda con evidencia adjunta (logs, métricas, proceso causante, historial). El usuario recibe el número de ticket. El agente de soporte recibe el contexto completo sin pedírselo.</p>
+    </div>
+
+    <div style="border-left:3px solid #991B1B;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Seguridad y detección de anomalías</p>
+      <p>Alerta inmediata tras 3+ intentos de login fallidos en 5 minutos. Detección de conexiones desde IPs en países no configurados con geolocalización automática. Alerta por equipos sin sincronizar más de N días (default: 5). Software no autorizado detectado en tiempo real. Audit logs con retención mínima de 7 años.</p>
+    </div>
+
+    <div style="border-left:3px solid #2D3A52;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Despliegue masivo y administración remota</p>
+      <p>Paquete MSI firmado desplegable vía GPO, SCCM, Intune o PowerShell. Instalación silenciosa sin reinicio. Configuración centralizada desde el portal. Actualización remota de la flota completa con un clic: Cloud Run envía el comando vía Pub/Sub y el portal muestra el progreso en tiempo real.</p>
+    </div>
+
+    <div style="border-left:3px solid #3B82F6;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">📱 Analítica visual desde WhatsApp <span style="font-family:var(--font-mono);font-size:9px;background:#DBEAFE;color:#1E40AF;padding:2px 7px;border-radius:3px;margin-left:8px;">v1.1</span></p>
+      <p>Los usuarios autorizados consultan KPIs, alertas, estado de flota y reportes directamente desde WhatsApp, recibiendo gráficos generados en tiempo real. Gobierno completo de roles con 5 niveles (Super Admin, Admin TI, Gerente de Área, Analista, Viewer). Autenticación OTP vinculada al correo corporativo. Token JWT con expiración de 8h. Rate limiting (30 consultas/hora). Datos PII enmascarados automáticamente. Audit log de todas las interacciones.</p>
+    </div>
+
+    <div style="border-left:3px solid #10B981;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">🧠 Aprendizaje continuo a partir de errores sistémicos <span style="font-family:var(--font-mono);font-size:9px;background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:3px;margin-left:8px;">v1.1</span></p>
+      <p>El sistema cierra el ciclo de retroalimentación: cada alerta resuelta recibe clasificación TP/FP/FN del operador. Un detector identifica errores sistémicos (≥3 equipos con la misma falla en 1h) y genera informes prioritarios. Un optimizador semanal propone ajustes de umbrales con justificación estadística (requiere aprobación del Admin). Cada 15 días, el modelo de predicción de Vertex AI se reentrena con los nuevos datos de resolución, mejorando continuamente la precisión.</p>
+    </div>
+
+    <div style="border-left:3px solid #8B5CF6;padding:0 0 0 20px;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">📐 Creación dinámica de indicadores de negocio (KPI Builder) <span style="font-family:var(--font-mono);font-size:9px;background:#EDE9FE;color:#4C1D95;padding:2px 7px;border-radius:3px;margin-left:8px;">v1.1</span></p>
+      <p>Los usuarios autorizados describen en lenguaje natural el indicador que necesitan (ej: "eficiencia del equipo de ventas") y un agente IA (AGT-14 KPI Advisor) sugiere fórmulas, metas y fuentes de datos relevantes a partir del esquema BigQuery. El usuario selecciona, personaliza y publica el KPI en el dashboard y/o en el canal WhatsApp. El cálculo se ejecuta de forma programada (batch) según la granularidad elegida.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 5. ÉPICAS Y BACKLOG -->
+<div class="section-block">
+  <div class="section-num">05</div>
+  <div class="section-title">Épicas y backlog de historias de usuario</div>
+  <p>El backlog completo comprende <strong>40 historias de usuario</strong> organizadas en <strong>13 épicas</strong> (10 en v1.0 + 3 nuevas en v1.1). A continuación se presenta el resumen por épica con sus historias principales y puntos de esfuerzo.</p>
+
+  <div class="epics-grid">
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 1</span>
+        <span class="epic-name">Monitoreo de Hardware</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-001: Dashboard de métricas en tiempo real con semáforo por umbral</li>
+        <li>HU-002: Análisis automático de causa raíz al colapsar un recurso</li>
+        <li>HU-003: Historial de picos de congestión 30/60/90 días</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>26 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 2</span>
+        <span class="epic-name">Inventario y Software</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-004: Consulta de inventario completo de software por equipo</li>
+        <li>HU-005: Alertas por software no autorizado o con versión obsoleta</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>16 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 3</span>
+        <span class="epic-name">Productividad y Uso de Apps</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-006: Tiempo por aplicación por colaborador (semanal)</li>
+        <li>HU-007: Páginas web visitadas con tiempo y categoría</li>
+        <li>HU-008: Vista personal de uso para autogestión del colaborador</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>34 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 4</span>
+        <span class="epic-name">Modo Offline y Sincronización</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-009: Recolección de datos sin internet con sincronización automática</li>
+        <li>HU-010: Visibilidad de última conexión y encendido por equipo</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 5</span>
+        <span class="epic-name">Alertas al Usuario Final</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-011: Notificación toast Windows con causa y sugerencia de acción</li>
+        <li>HU-012: Creación automática de ticket si el problema persiste</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 6</span>
+        <span class="epic-name">Mesa de Ayuda e Integración</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-013: Tickets automáticos con evidencia completa adjunta</li>
+        <li>HU-014: Configuración de integración API REST con cualquier sistema</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 7</span>
+        <span class="epic-name">Seguridad y Riesgos</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-015: Alerta por intentos de acceso con contraseña incorrecta (3 en 5 min)</li>
+        <li>HU-016: Detección de IP de otro país o red no corporativa</li>
+        <li>HU-017: Alerta por equipo sin encenderse más de N días</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Alta/Media</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 8</span>
+        <span class="epic-name">Dashboards y Agentes IA</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-018: Dashboard ejecutivo con KPIs de flota en tiempo real</li>
+        <li>HU-019: Reporte semanal automático por correo (PDF/HTML)</li>
+        <li>HU-020: Agente IA con sugerencias preventivas por tendencias</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>42 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 9</span>
+        <span class="epic-name">Graph Analytics</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-021: Visualización de grafo de equipos con problemas comunes</li>
+        <li>HU-022: Grafo de uso por colaborador para identificar patrones no laborales</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Media</div>
+    </div>
+    <div class="epic-card">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 10</span>
+        <span class="epic-name">Instalación y Administración</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-023: Despliegue masivo silencioso vía GPO/SCCM/Intune/PowerShell</li>
+        <li>HU-024: Actualización remota de toda la flota desde el portal</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>21 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card" style="border-left:3px solid #3B82F6;">
+      <div class="epic-header">
+        <span class="epic-num" style="background:#1E40AF;">ÉPICA 11</span>
+        <span class="epic-name">Canal WhatsApp Analytics</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-025: Registro y verificación OTP de usuarios WhatsApp</li>
+        <li>HU-026: Menú conversacional con gobierno de roles RBAC</li>
+        <li>HU-027: Generación de gráficos (KPIs, alertas, estado flota) como imágenes PNG</li>
+        <li>HU-028: Consultas en lenguaje natural vía WhatsApp con Vertex AI</li>
+        <li>HU-029: Audit log completo de toda interacción WhatsApp</li>
+        <li>HU-030: Envío proactivo de alertas críticas por WhatsApp al Admin</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span style="color:#1E40AF;">52 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card" style="border-left:3px solid #10B981;">
+      <div class="epic-header">
+        <span class="epic-num" style="background:#065F46;">ÉPICA 12</span>
+        <span class="epic-name">Aprendizaje Continuo</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-031: Clasificación de alertas como TP/FP/FN por el operador</li>
+        <li>HU-032: Detección automática de errores sistémicos (≥3 equipos, misma causa, 1h)</li>
+        <li>HU-033: Propuesta automática de ajuste de umbrales con justificación</li>
+        <li>HU-034: Reentrenamiento quincenal del modelo de predicción con datos de resolución</li>
+        <li>HU-035: Dashboard de aprendizaje: reglas propuestas, aprobadas, efectividad</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span style="color:#065F46;">50 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card" style="border-left:3px solid #8B5CF6;">
+      <div class="epic-header">
+        <span class="epic-num" style="background:#4C1D95;">ÉPICA 13</span>
+        <span class="epic-name">KPI Builder Dinámico</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-036: Interfaz de creación de KPI con selector de métricas y fórmulas</li>
+        <li>HU-037: Sugerencia de indicadores por IA según contexto de negocio</li>
+        <li>HU-038: Vista previa en tiempo real del KPI antes de publicar</li>
+        <li>HU-039: Publicación de KPI personalizado en dashboard y/o WhatsApp</li>
+        <li>HU-040: Cálculo programado de KPIs (Dataflow batch)</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span style="color:#4C1D95;">50 pts</span> · Prioridad: Alta</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 6. AGENTES INTELIGENTES -->
+<div class="section-block">
+  <div class="section-num">06</div>
+  <div class="section-title">Catálogo de agentes inteligentes</div>
+  <p>Los agentes son el núcleo de inteligencia proactiva del sistema. Corren en <strong>Vertex AI Agent Builder</strong> con acceso a BigQuery y Spanner. Cada uno tiene disparador, acción y nivel de severidad definidos.</p>
+
+  <table class="agent-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Agente</th>
+        <th>Disparador</th>
+        <th>Acción</th>
+        <th>Severidad</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="agt-id">AGT-01</span></td>
+        <td><strong>Anomalía de Hardware</strong></td>
+        <td>Métrica fuera de banda estadística (Z-score &gt; 3)</td>
+        <td>Alerta portal + correo + ticket si persiste</td>
+        <td><span class="sev-badge sev-alta">Alta</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-02</span></td>
+        <td><strong>Predictor de Fallas</strong></td>
+        <td>Tendencia degradante en serie temporal (7 días)</td>
+        <td>Recomendación preventiva al admin TI</td>
+        <td><span class="sev-badge sev-media">Media</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-03</span></td>
+        <td><strong>Centinela de Seguridad</strong></td>
+        <td>3+ intentos login fallidos en 5 minutos</td>
+        <td>Alerta inmediata + bloqueo opcional</td>
+        <td><span class="sev-badge sev-critica">Crítica</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-04</span></td>
+        <td><strong>Monitor IP Extranjera</strong></td>
+        <td>IP pública fuera del país configurado</td>
+        <td>Alerta seguridad + log geolocalización</td>
+        <td><span class="sev-badge sev-alta">Alta</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-05</span></td>
+        <td><strong>Equipo Inactivo</strong></td>
+        <td>Sin sincronización &gt; N días (default: 5)</td>
+        <td>Alerta admin + reporte de último estado conocido</td>
+        <td><span class="sev-badge sev-media">Media</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-06</span></td>
+        <td><strong>Software No Autorizado</strong></td>
+        <td>App fuera de lista blanca detectada</td>
+        <td>Alerta + ticket automático + notificación al usuario</td>
+        <td><span class="sev-badge sev-alta">Alta</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-07</span></td>
+        <td><strong>Uso Excesivo Internet</strong></td>
+        <td>Tiempo entretenimiento &gt; 30% de la jornada</td>
+        <td>Reporte gerencial semanal + alerta a RRHH</td>
+        <td><span class="sev-badge sev-baja">Baja</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-08</span></td>
+        <td><strong>Disco Crítico</strong></td>
+        <td>Espacio libre &lt; 5 GB</td>
+        <td>Notificación toast al usuario + alerta al admin TI</td>
+        <td><span class="sev-badge sev-alta">Alta</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-09</span></td>
+        <td><strong>Actualizaciones Críticas</strong></td>
+        <td>App sin actualizar &gt; 90 días con CVE conocido</td>
+        <td>Ticket automático + reporte de cumplimiento</td>
+        <td><span class="sev-badge sev-alta">Alta</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-10</span></td>
+        <td><strong>Concentración de Fallas</strong></td>
+        <td>Cluster detectado por Graph Engine</td>
+        <td>Informe de área afectada + causa probable</td>
+        <td><span class="sev-badge sev-media">Media</span></td>
+      </tr>
+      <tr style="border-top:2px solid #3B82F6;">
+        <td><span class="agt-id">AGT-11</span></td>
+        <td><strong>WhatsApp Analytics Bot</strong></td>
+        <td>Mensaje recibido en WhatsApp Business API</td>
+        <td>Valida rol → Ejecuta query → Genera gráfico → Envía respuesta</td>
+        <td><span class="sev-badge sev-baja">Servicio</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-12</span></td>
+        <td><strong>Detector de Errores Sistémicos</strong></td>
+        <td>≥3 equipos con el mismo tipo de falla en 1h</td>
+        <td>Genera informe de error sistémico + notificación prioritaria al admin</td>
+        <td><span class="sev-badge sev-critica">Crítica</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-13</span></td>
+        <td><strong>Optimizador de Umbrales</strong></td>
+        <td>Análisis semanal de falsos positivos y negativos</td>
+        <td>Propone ajustes de umbrales con justificación estadística</td>
+        <td><span class="sev-badge sev-media">Media</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-14</span></td>
+        <td><strong>KPI Advisor</strong></td>
+        <td>Solicitud de creación de KPI por usuario autorizado</td>
+        <td>Analiza contexto de negocio → Consulta métricas → Sugiere fórmulas y metas</td>
+        <td><span class="sev-badge sev-baja">Servicio</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 7. MODELO DE DATOS -->
+<div class="section-block">
+  <div class="section-num">07</div>
+  <div class="section-title">Modelo de datos — BigQuery</div>
+  <p>El data warehouse en BigQuery contiene <strong>15 tablas principales</strong> (8 en v1.0 + 7 nuevas en v1.1), todas particionadas por fecha y con retención configurable. El clustering por <code style="font-family:var(--font-mono);font-size:12px;background:var(--paper2);padding:1px 5px;border-radius:3px;">device_id</code> optimiza las consultas por equipo.</p>
+
+  <div class="tables-grid">
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_hardware_metrics</span>
+        <span class="table-card-ret">2 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">CPU, RAM, disco y red cada 30 segundos. Incluye causa raíz y proceso causante.</p>
+        <span class="table-tag">Partición: día</span>
+        <span class="table-tag">Cluster: device_id</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_software_inventory</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Apps instaladas con versión, vendor, fechas de instalación y actualización.</p>
+        <span class="table-tag">Partición: mes</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_activity_log</span>
+        <span class="table-card-ret">1 año</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Tiempo por app y URL activa por usuario. Categoría de actividad incluida.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_alerts</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Alertas generadas por agentes con severidad, causa y resolución.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_security_events</span>
+        <span class="table-card-ret">7 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Intentos de login fallidos, IPs externas detectadas, eventos de seguridad.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_sync_status</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Estado de sincronización por equipo: última conexión, último encendido, modo.</p>
+        <span class="table-tag">Partición: mes</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_helpdesk_tickets</span>
+        <span class="table-card-ret">7 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Tickets creados automáticamente: número, equipo, causa, estado de resolución.</p>
+        <span class="table-tag">Partición: mes</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_graph_edges</span>
+        <span class="table-card-ret">2 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Relaciones entre equipos para Graph Analytics. Nodos, aristas y tipo de problema compartido.</p>
+        <span class="table-tag">Partición: semana</span>
+      </div>
+    </div>
+
+    <!-- v1.1 TABLES -->
+    <div class="table-card" style="border-left:3px solid #3B82F6;">
+      <div class="table-card-head" style="background:#1E40AF;"><span class="table-card-name">eq_whatsapp_users</span><span class="table-card-ret">5 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Usuarios autorizados WhatsApp: teléfono, rol, departamento, estado OTP, última sesión.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag">PK: user_id</span><span class="table-tag" style="color:#1E40AF;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #3B82F6;">
+      <div class="table-card-head" style="background:#1E40AF;"><span class="table-card-name">eq_whatsapp_audit_log</span><span class="table-card-ret">7 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Audit log WhatsApp: usuario, consulta, tipo de respuesta, datos accedidos, rol al momento de consulta.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag">Cluster: user_id</span><span class="table-tag" style="color:#1E40AF;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #10B981;">
+      <div class="table-card-head" style="background:#065F46;"><span class="table-card-name">eq_learning_log</span><span class="table-card-ret">5 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Aprendizajes del sistema: tipo, agente fuente, patrón, acción propuesta, estado de aprobación.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag" style="color:#065F46;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #10B981;">
+      <div class="table-card-head" style="background:#065F46;"><span class="table-card-name">eq_resolution_feedback</span><span class="table-card-ret">3 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Feedback de operadores: clasificación TP/FP/FN, si resolución fue efectiva, notas.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag" style="color:#065F46;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #10B981;">
+      <div class="table-card-head" style="background:#065F46;"><span class="table-card-name">eq_systemic_errors</span><span class="table-card-ret">5 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Errores sistémicos: tipo, equipos afectados, recurrencia, hipótesis causa raíz, mitigación.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag" style="color:#065F46;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #8B5CF6;">
+      <div class="table-card-head" style="background:#4C1D95;"><span class="table-card-name">eq_custom_kpis</span><span class="table-card-ret">5 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Definiciones KPIs personalizados: fórmula JSON, tablas fuente, filtros, visualización, meta.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag">PK: kpi_id</span><span class="table-tag" style="color:#4C1D95;">v1.1</span>
+      </div>
+    </div>
+    <div class="table-card" style="border-left:3px solid #8B5CF6;">
+      <div class="table-card-head" style="background:#4C1D95;"><span class="table-card-name">eq_kpi_values</span><span class="table-card-ret">3 años</span></div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Valores calculados KPIs: período, valor actual, anterior, delta %, estado vs meta.</p>
+        <span class="table-tag">Partición: día</span><span class="table-tag">Cluster: kpi_id</span><span class="table-tag" style="color:#4C1D95;">v1.1</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 8. KPIs -->
+<div class="section-block">
+  <div class="section-num">08</div>
+  <div class="section-title">KPIs e indicadores de la plataforma</div>
+  <p>Los siguientes indicadores permiten medir la salud del sistema y el valor generado para el negocio en tiempo real y en reportes periódicos.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-name">Disponibilidad de flota</div>
+      <div class="kpi-value">&gt; 95%</div>
+      <div class="kpi-desc">Equipos online / Total. Tiempo real.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">MTTR (resolución)</div>
+      <div class="kpi-value">&lt; 4 h</div>
+      <div class="kpi-desc">Tiempo entre alerta y cierre de ticket. Medición semanal.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Cobertura inventario</div>
+      <div class="kpi-value">100%</div>
+      <div class="kpi-desc">Equipos con inventario actualizado en &lt;24 h. Diario.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Equipos en riesgo</div>
+      <div class="kpi-value">&lt; 2%</div>
+      <div class="kpi-desc">Equipos con alerta CRÍTICA activa. Tiempo real.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Productividad promedio</div>
+      <div class="kpi-value">&gt; 70%</div>
+      <div class="kpi-desc">% tiempo en apps laborales / jornada. Semanal.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Latencia de alerta</div>
+      <div class="kpi-value">&lt; 60 s</div>
+      <div class="kpi-desc">Entre evento y notificación al administrador. Por alerta.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Sync offline sin pérdida</div>
+      <div class="kpi-value">100%</div>
+      <div class="kpi-desc">Eventos offline procesados correctamente. Por evento.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Alertas seguridad abiertas</div>
+      <div class="kpi-value">= 0</div>
+      <div class="kpi-desc">AGT-03/04/05 sin resolver. Tiempo real.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #3B82F6;">
+      <div class="kpi-name">Consultas WhatsApp/día <span style="font-family:var(--font-mono);font-size:8px;background:#DBEAFE;color:#1E40AF;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--blue);">&gt; 50</div>
+      <div class="kpi-desc">Consultas exitosas por día. Mide adopción del canal.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #3B82F6;">
+      <div class="kpi-name">RBAC compliance <span style="font-family:var(--font-mono);font-size:8px;background:#DBEAFE;color:#1E40AF;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--green);">100%</div>
+      <div class="kpi-desc">Consultas bloqueadas correctamente por rol. Audit diario.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #10B981;">
+      <div class="kpi-name">FP reducidos <span style="font-family:var(--font-mono);font-size:8px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--amber);">&gt; 30%</div>
+      <div class="kpi-desc">Reducción mensual de falsos positivos tras aprendizajes.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #10B981;">
+      <div class="kpi-name">Errores sistémicos MTTR <span style="font-family:var(--font-mono);font-size:8px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--red);">&lt; 2h</div>
+      <div class="kpi-desc">Tiempo entre detección del error sistémico y mitigación.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #8B5CF6;">
+      <div class="kpi-name">KPIs personalizados <span style="font-family:var(--font-mono);font-size:8px;background:#EDE9FE;color:#4C1D95;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--purple);">&gt; 10</div>
+      <div class="kpi-desc">Indicadores creados y publicados por usuarios. Mensual.</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #8B5CF6;">
+      <div class="kpi-name">Adopción sugerencias IA <span style="font-family:var(--font-mono);font-size:8px;background:#EDE9FE;color:#4C1D95;padding:1px 5px;border-radius:2px;">v1.1</span></div>
+      <div class="kpi-value" style="color:var(--cyan);">&gt; 60%</div>
+      <div class="kpi-desc">% de KPIs creados a partir de sugerencia del AGT-14.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 9. SEGURIDAD -->
+<div class="section-block">
+  <div class="section-num">09</div>
+  <div class="section-title">Seguridad y privacidad</div>
+
+  <div class="sec-cols">
+    <div class="sec-col sec-a">
+      <div class="sec-col-head">🔐 Seguridad en el endpoint</div>
+      <ul>
+        <li>Logs locales cifrados AES-256-GCM con clave derivada del TPM del equipo</li>
+        <li>Directorio del agente con ACL restrictivo: solo SYSTEM y el servicio tienen acceso</li>
+        <li>Comunicación con GCP vía TLS 1.3; MTLS opcional en entornos de alta seguridad</li>
+        <li>El usuario local no puede leer ni modificar archivos del agente</li>
+        <li>Buffer offline inaccesible al usuario final en todo momento</li>
+      </ul>
+    </div>
+    <div class="sec-col sec-b">
+      <div class="sec-col-head">☁️ Seguridad en GCP</div>
+      <ul>
+        <li>IAM con mínimo privilegio: el agente solo tiene permiso pubsub.publish</li>
+        <li>Cloud Armor contra DDoS y OWASP Top 10 en el API del portal</li>
+        <li>VPC Service Controls aísla BigQuery y Spanner del acceso externo</li>
+        <li>Audit Logs habilitados en todos los servicios; retención mínima 7 años</li>
+        <li>Secret Manager para credenciales del agente, tokens y claves API</li>
+      </ul>
+    </div>
+    <div class="sec-col sec-c">
+      <div class="sec-col-head">🛡️ Privacidad y cumplimiento</div>
+      <ul>
+        <li>ActivityTracker captura solo título de ventana y dominio URL; nunca contenido de mensajes</li>
+        <li>Modo privacidad organizacional configurable por rol (RRHH, Legal, Dirección)</li>
+        <li>Anonimización de datos personales en BigQuery vía enmascaramiento de columnas</li>
+        <li>Cumplimiento con habeas data (Colombia), GDPR si aplica, y políticas corporativas</li>
+        <li>Datos NO accesibles al usuario final; solo a administradores autorizados</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- WhatsApp Security -->
+  <div style="margin-top:20px;border:1px solid var(--paper3);border-radius:6px;overflow:hidden;">
+    <div style="padding:12px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#1E40AF,#0E7490);display:flex;gap:8px;align-items:center;">📱 Seguridad del Canal WhatsApp <span style="font-family:var(--font-mono);font-size:8px;background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:3px;">v1.1</span></div>
+    <ul style="list-style:none;padding:14px 18px;display:flex;flex-direction:column;gap:7px;">
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Solo números registrados en eq_whatsapp_users pueden interactuar con el bot</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Primera autenticación requiere OTP enviado al correo corporativo</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Token JWT con TTL de 8 horas; después requiere re-autenticación</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Rate limiting: máximo 30 consultas/hora por usuario</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Datos PII enmascarados automáticamente (ej: "M. R***s")</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Datos sensibles como mensajes temporales (view-once) cuando disponible</li>
+      <li style="font-size:12.5px;color:var(--ink2);display:flex;gap:8px;align-items:baseline;line-height:1.45;"><span style="color:var(--ink3);">&#9656;</span> Productividad individual NO accesible vía WhatsApp (salvo Admin TI/Super Admin)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 10. ROADMAP -->
+<div class="section-block">
+  <div class="section-num">10</div>
+  <div class="section-title">Roadmap de desarrollo — 42 semanas</div>
+  <p>El proyecto se divide en <strong>21 sprints de 2 semanas</strong> organizados en 13 fases. Las fases 1–7 corresponden a v1.0 y las fases 8–13 a v1.1. Cada fase entrega capacidades funcionales incrementales y verificables.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-row head">
+      <span>Fase</span><span>Semanas</span><span>Entregables principales</span>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Fundación</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 1–2</span></div>
+      <div class="roadmap-cell roadmap-weeks">1 – 4</div>
+      <div class="roadmap-cell">Agente Go v0.1: recolección hardware + buffer SQLite cifrado. Schema BigQuery. Cloud Pub/Sub + Dataflow básico configurado.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Core GCP</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 3–4</span></div>
+      <div class="roadmap-cell roadmap-weeks">5 – 8</div>
+      <div class="roadmap-cell">Pipeline online/offline completo. Cloud Functions para alertas. API REST backend. Autenticación IAP. Modo offline probado.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Portal v1</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 5–6</span></div>
+      <div class="roadmap-cell roadmap-weeks">9 – 12</div>
+      <div class="roadmap-cell">Dashboard React con KPIs y detalle por equipo. Inventario de software. Visualización de estado offline. Exportación CSV.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Productividad</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 7–8</span></div>
+      <div class="roadmap-cell roadmap-weeks">13 – 16</div>
+      <div class="roadmap-cell">ActivityTracker + extractor de URL vía UIA. Vistas de productividad por usuario y área. Reportes semanales automáticos por correo.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Seguridad + Agentes</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 9–10</span></div>
+      <div class="roadmap-cell roadmap-weeks">17 – 20</div>
+      <div class="roadmap-cell">Agentes AGT-01 a AGT-09 activos. Módulo de seguridad completo. Integración mesa de ayuda. Notificaciones toast Windows bilingüe.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Graph + IA</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 11–12</span></div>
+      <div class="roadmap-cell roadmap-weeks">21 – 24</div>
+      <div class="roadmap-cell">Graph Analytics en BigQuery. Vertex AI predictor de fallas. AGT-10 activo. Dashboards ejecutivos en Looker Studio. ChatScout integrado.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Despliegue Masivo</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 13–14</span></div>
+      <div class="roadmap-cell roadmap-weeks">25 – 28</div>
+      <div class="roadmap-cell">MSI firmado + GPO + Intune. Actualización remota de flota. Pruebas de carga con 1,000+ equipos. Documentación técnica y de usuario final.</div>
+    </div>
+    <div class="roadmap-row" style="border-top:3px solid #3B82F6;">
+      <div class="roadmap-cell"><strong style="color:#1E40AF;">WhatsApp Core</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 15–16</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:#1E40AF;">29 – 32</div>
+      <div class="roadmap-cell">Cloud Run webhook. Autenticación OTP + JWT. Tabla eq_whatsapp_users. RBAC con 5 roles. Menú conversacional básico. Audit log completo.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong style="color:#1E40AF;">WhatsApp Visual</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 17</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:#1E40AF;">33 – 34</div>
+      <div class="roadmap-cell">Generación de gráficos Plotly → PNG. Consultas en lenguaje natural vía Vertex AI. Alertas proactivas por WhatsApp. Vista admin en portal.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong style="color:#065F46;">Aprendizaje Base</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 18</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:#065F46;">35 – 36</div>
+      <div class="roadmap-cell">Botón feedback TP/FP/FN en portal. Tablas eq_learning_log + eq_resolution_feedback + eq_systemic_errors. AGT-12 activo.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong style="color:#065F46;">Aprendizaje Avanzado</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 19</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:#065F46;">37 – 38</div>
+      <div class="roadmap-cell">AGT-13 Optimizador de umbrales. Reentrenamiento quincenal Vertex AI. Dashboard de aprendizaje con métricas de mejora.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong style="color:#4C1D95;">KPI Builder</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 20</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:#4C1D95;">39 – 40</div>
+      <div class="roadmap-cell">UI de creación KPI. AGT-14 KPI Advisor con Gemini Pro. Tablas eq_custom_kpis + eq_kpi_values. Cálculo batch. Publicación dashboard + WhatsApp.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Integración y QA</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 21</span></div>
+      <div class="roadmap-cell roadmap-weeks">41 – 42</div>
+      <div class="roadmap-cell">Testing E2E. Integración cruzada WhatsApp ↔ KPI Builder. Pruebas de seguridad RBAC. Documentación técnica y de usuario. Capacitación.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 11. OBJETIVOS ESTRATÉGICOS -->
+<div class="section-block">
+  <div class="section-num">11</div>
+  <div class="section-title">Objetivos estratégicos y metas de negocio</div>
+  <p>Onyx se posiciona como <em>la plataforma líder de inteligencia de endpoints en Latinoamérica</em>. Los siguientes objetivos definen el éxito del producto en su versión 1.0.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:18px;">
+    <div style="border:1px solid var(--paper3);border-radius:6px;padding:18px 20px;">
+      <div style="font-family:var(--font-disp);font-size:26px;font-weight:800;color:var(--blue);margin-bottom:6px;">−70%</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Tiempo de resolución de incidentes</div>
+      <div style="font-size:12px;color:var(--ink2);">Reducción en MTTR gracias a tickets automáticos con causa raíz identificada y evidencia adjunta.</div>
+    </div>
+    <div style="border:1px solid var(--paper3);border-radius:6px;padding:18px 20px;">
+      <div style="font-family:var(--font-disp);font-size:26px;font-weight:800;color:var(--green);margin-bottom:6px;">100%</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Visibilidad de la flota activa</div>
+      <div style="font-size:12px;color:var(--ink2);">Dashboard unificado con estado en tiempo real de cada equipo, incluyendo los que han operado offline.</div>
+    </div>
+    <div style="border:1px solid var(--paper3);border-radius:6px;padding:18px 20px;">
+      <div style="font-family:var(--font-disp);font-size:26px;font-weight:800;color:var(--amber);margin-bottom:6px;">&lt; 60 s</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Detección de riesgos de seguridad</div>
+      <div style="font-size:12px;color:var(--ink2);">Desde el evento hasta la notificación al administrador de seguridad.</div>
+    </div>
+    <div style="border:1px solid var(--paper3);border-radius:6px;padding:18px 20px;">
+      <div style="font-family:var(--font-disp);font-size:26px;font-weight:800;color:var(--purple);margin-bottom:6px;">0%</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Pérdida de datos ante desconexiones</div>
+      <div style="font-size:12px;color:var(--ink2);">El buffer offline garantiza integridad total de los datos independientemente de la conectividad.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /doc -->
+
+<div class="doc-footer">
+  ONYX — DOCUMENTO MAESTRO DE REQUERIMIENTO v1.1 · JUNIO 2025 · CONFIDENCIAL &nbsp;·&nbsp; © 2025 ONYX
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onyx — Documento de Arquitectura, Seguridad y Manual de Usuario</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020813;
+    --surface: #070f20;
+    --surface2: #0e1a35;
+    --surface3: #13244d;
+    --border: rgba(108, 159, 255, 0.15);
+    --border-glow: rgba(108, 159, 255, 0.3);
+    --blue: #3b82f6;
+    --blue-glow: rgba(59, 130, 246, 0.4);
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139, 92, 246, 0.3);
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.3);
+    --amber: #f59e0b;
+    --amber-glow: rgba(245, 158, 11, 0.3);
+    --red: #ef4444;
+    --cyan: #06b6d4;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --font: 'Inter', sans-serif;
+    --font-header: 'Space Grotesk', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.7;
+    font-size: 14px;
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+    background-attachment: fixed;
+    padding-top: 64px; /* Space for fixed Top Bar */
+  }
+
+  /* ── Fixed Premium Top Bar ── */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 64px;
+    background: rgba(7, 15, 32, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    z-index: 1000;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  }
+  .top-bar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+  .top-bar-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    font-family: var(--font-header);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  }
+  .top-bar-title {
+    font-family: var(--font-header);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .top-bar-title span {
+    font-size: 11px;
+    color: var(--green);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+  
+  .top-bar-tabs {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    padding: 4px;
+    border-radius: 30px;
+    gap: 4px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-family: var(--font-header);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .tab-btn.active {
+    background: var(--blue);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+  }
+
+  /* ── Master Containers ── */
+  .view-container {
+    display: none;
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  .view-container.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Cover Hero ── */
+  .cover {
+    background: linear-gradient(135deg, #020813 0%, #070f20 50%, #0e1a35 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(59, 130, 246, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 40% at 20% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), var(--green), transparent);
+  }
+  .cover-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+  .cover h1 {
+    font-family: var(--font-header);
+    font-size: 36px; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, #ffffff 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1.2; margin-bottom: 12px;
+  }
+  .cover-sub {
+    font-size: 15px; color: var(--text2); font-weight: 400; margin-bottom: 24px;
+    max-width: 800px;
+  }
+  .cover-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .cover-meta-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text3); font-family: var(--mono); }
+  .cover-meta-value { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+  /* ── Layout & Typography ── */
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px; }
+  
+  .toc { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    padding: 24px; 
+    margin-bottom: 40px; 
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); 
+  }
+  .toc-title { 
+    font-family: var(--font-header); 
+    font-size: 10px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 2px; 
+    color: var(--text3); 
+    margin-bottom: 12px; 
+    border-bottom: 1px solid var(--border); 
+    padding-bottom: 6px; 
+  }
+  .toc-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .toc-list a { 
+    color: var(--text2); 
+    text-decoration: none; 
+    font-size: 12.5px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    padding: 4px 0; 
+    transition: all 0.3s; 
+  }
+  .toc-list a:hover { color: var(--blue); padding-left: 4px; }
+  .toc-num { font-family: var(--mono); font-size: 10px; color: var(--blue); min-width: 20px; }
+
+  /* ── Section Styles ── */
+  .section { margin-bottom: 48px; scroll-margin-top: 80px; }
+  .section-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--blue); margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+  .section-label::before { content: ''; width: 16px; height: 2px; background: var(--blue); border-radius: 2px; }
+  
+  h2 {
+    font-family: var(--font-header);
+    font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
+    color: #fff; margin-bottom: 14px; line-height: 1.3;
+  }
+  h3 { 
+    font-family: var(--font-header); 
+    font-size: 16px; 
+    font-weight: 600; 
+    color: var(--text); 
+    margin: 24px 0 10px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+  }
+  p { color: var(--text2); margin-bottom: 12px; text-align: justify; font-size: 13.5px; }
+  strong { color: #fff; font-weight: 600; }
+
+  /* ── Cards & Visual Elements ── */
+  .card { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    padding: 20px; 
+    margin-bottom: 16px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+    transition: all 0.3s; 
+  }
+  .card:hover { border-color: var(--border-glow); transform: translateY(-1px); }
+  .card-accent { border-left: 3px solid var(--blue); }
+  .card-green { border-left: 3px solid var(--green); }
+  .card-purple { border-left: 3px solid var(--purple); }
+  .card-amber { border-left: 3px solid var(--amber); }
+  .card-cyan { border-left: 3px solid var(--cyan); }
+  .card-red { border-left: 3px solid var(--red); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .highlight {
+    background: rgba(59, 130, 246, 0.04); border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .highlight.green { background: rgba(16, 185, 129, 0.04); border-color: rgba(16, 185, 129, 0.15); }
+  .highlight.amber { background: rgba(245, 158, 11, 0.04); border-color: rgba(245, 158, 11, 0.15); }
+
+  /* Flow Diagram */
+  .flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; justify-content: space-between; }
+  .flow-step {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; text-align: center; min-width: 120px; flex: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.3s ease;
+  }
+  .flow-step:hover { transform: translateY(-2px); border-color: var(--blue); }
+  .flow-step .flow-icon { font-size: 20px; margin-bottom: 6px; }
+  .flow-step .flow-label { font-size: 10.5px; font-weight: 700; color: var(--text); font-family: var(--font-header); }
+  .flow-step .flow-sub { font-size: 9px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+  .flow-arrow {
+    font-size: 16px; color: var(--blue); padding: 0 6px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+    animation: pulse 2s infinite;
+  }
+  .flow-arrow .arr-label { font-size: 8px; color: var(--text3); font-family: var(--mono); text-align: center; line-height: 1.1; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  /* Badges */
+  .badge {
+    padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--mono);
+  }
+  .badge-blue { background: rgba(59, 130, 246, 0.12); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.2); }
+  .badge-green { background: rgba(16, 185, 129, 0.12); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
+  .badge-purple { background: rgba(139, 92, 246, 0.12); color: var(--purple); border: 1px solid rgba(139, 92, 246, 0.2); }
+  .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.2); }
+  .badge-cyan { background: rgba(6, 182, 212, 0.12); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+  .badge-red { background: rgba(239, 68, 68, 0.12); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+  /* Code Blocks */
+  .code-block {
+    background: #020810; border: 1px solid rgba(59, 130, 246, 0.15); border-radius: 10px;
+    padding: 16px 20px; font-family: var(--mono); font-size: 11.5px; color: #7DD3FC;
+    overflow-x: auto; margin-bottom: 16px; line-height: 1.7;
+  }
+  .code-cell { font-family: var(--mono); font-size: 11.5px; color: var(--cyan); background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th { background: var(--surface2); color: var(--text); font-family: var(--font-header); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(108, 159, 255, 0.1); font-size: 12.5px; color: var(--text2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td strong { color: #fff; }
+  tr:hover td { background: rgba(59, 130, 246, 0.02); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* Metric cards */
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .metric-value { font-size: 24px; font-weight: 800; font-family: var(--mono); color: var(--blue); display: block; }
+  .metric-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-top: 4px; }
+
+  /* ── User Manual Layout ── */
+  .manual-layout {
+    display: flex;
+    min-height: calc(100vh - 64px);
+  }
+  
+  /* Sidebar */
+  .manual-sidebar {
+    width: 280px;
+    background: rgba(7, 15, 32, 0.95);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 64px; bottom: 0; left: 0;
+    overflow-y: auto;
+    padding: 24px 0;
+    z-index: 900;
+  }
+  .manual-sidebar::-webkit-scrollbar { width: 4px; }
+  .manual-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  
+  .sidebar-group-title {
+    font-family: var(--font-header);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 24px 6px;
+  }
+  
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+  }
+  .sidebar-item:hover {
+    color: #fff;
+    background: rgba(59, 130, 246, 0.05);
+  }
+  .sidebar-item.active {
+    color: #fff;
+    background: rgba(59, 130, 246, 0.08);
+    border-left-color: var(--blue);
+    font-weight: 600;
+  }
+  .sidebar-item-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: var(--blue);
+  }
+  
+  /* Main Content Pane */
+  .manual-main {
+    margin-left: 280px;
+    flex-grow: 1;
+    padding: 40px 60px 80px;
+    max-width: 1000px;
+  }
+  
+  .manual-page {
+    display: none;
+    animation: fadeInPage 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .manual-page.active {
+    display: block;
+  }
+  
+  @keyframes fadeInPage {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  /* Steps for Guides */
+  .step {
+    display: flex;
+    gap: 14px;
+    margin: 14px 0;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.3s;
+  }
+  .step:hover {
+    border-color: var(--border-glow);
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: white;
+    font-weight: 700;
+    font-family: var(--font-header);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+  .step-content h4 { font-family: var(--font-header); font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .step-content p { font-size: 12.5px; color: var(--text2); margin: 0; }
+
+  /* Info cards in manual */
+  .info-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.3s ease;
+  }
+  .info-card:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+  }
+  .info-card-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  .info-card h4 {
+    font-family: var(--font-header);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .info-card p {
+    font-size: 12px;
+    color: var(--text2);
+    margin: 0;
+  }
+
+  /* Manual Page Navigation Buttons */
+  .page-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .page-nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-header);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .page-nav-btn:hover {
+    background: var(--surface2);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .page-indicator {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  /* Footer */
+  .footer { 
+    background: var(--surface); 
+    border-top: 1px solid var(--border); 
+    padding: 30px 40px; 
+    margin-top: 48px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    gap: 16px; 
+  }
+  .footer-brand { display: flex; align-items: center; gap: 10px; }
+  .footer-logo { width: 30px; height: 30px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; font-family: var(--font-header); }
+  .footer-name { font-size: 15px; font-weight: 800; color: var(--text); font-family: var(--font-header); }
+  .footer-tagline { font-size: 10.5px; color: var(--text3); margin-top: 2px; }
+  .footer-meta { font-size: 10.5px; color: var(--text3); text-align: right; }
+
+  @media (max-width: 900px) {
+    .manual-sidebar {
+      display: none;
+    }
+    .manual-main {
+      margin-left: 0;
+      padding: 30px 20px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .cover { padding: 30px 20px; }
+    .cover h1 { font-size: 26px; }
+    .container { padding: 30px 20px; }
+    .grid-2, .grid-3, .metric-grid { grid-template-columns: 1fr; }
+    .toc-list { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; gap: 12px; }
+    .flow-arrow { transform: rotate(90deg); margin: 6px 0; }
+    .top-bar { padding: 0 16px; }
+    .top-bar-title span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ FIXED TOP NAVIGATION BAR ═══ -->
+<div class="top-bar">
+  <a href="#" class="top-bar-brand" onclick="switchMasterTab('architect')">
+    <div class="top-bar-logo">Ω</div>
+    <div class="top-bar-title">Onyx Monitor <span>Portal Corporativo</span></div>
+  </a>
+  <div class="top-bar-tabs">
+    <button class="tab-btn active" id="tab-architect" onclick="switchMasterTab('architect')">🔬 Resumen Arquitectura y Seguridad</button>
+    <button class="tab-btn" id="tab-manual" onclick="switchMasterTab('manual')">📖 Manual de Usuario</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- MASTER VIEW 1: TECHNICAL ARCHITECTURE & SECURITY POSTURE -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div id="architect-view" class="view-container active">
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-badge">🔬 Ficha Técnica · Resumen Ejecutivo</div>
+    <h1>Arquitectura Técnica de Onyx<br>y Postura de Seguridad</h1>
+    <div class="cover-sub">Estructura telemétrica unificada, almacenamiento analítico seguro en GCP y cumplimiento normativo estricto para la protección de activos.</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><span class="cover-meta-label">Versión</span><span class="cover-meta-value">3.2.0 — Junio 2026</span></div>
+      <div class="cover-meta-item"><span class="cover-meta-label">Entorno</span><span class="cover-meta-value">ANLA POC (proy-anla-poc)</span></div>
+      <div class="cover-meta-item"><span class="cover-meta-label">Stack</span><span class="cover-meta-value">Python · Google Cloud (BigQuery / Run)</span></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- TOC -->
+    <div class="toc">
+      <div class="toc-title">Estructura de la Ficha de Ingeniería</div>
+      <ul class="toc-list">
+        <li><a href="#vision"><span class="toc-num">01</span> Flujo de Telemetría (Push Mode)</a></li>
+        <li><a href="#componentes"><span class="toc-num">02</span> Estructura y Capa de ONYX</a></li>
+        <li><a href="#datos"><span class="toc-num">03</span> Datos Recolectados en Endpoints</a></li>
+        <li><a href="#seguridad"><span class="toc-num">04</span> Ciberseguridad y Habeas Data</a></li>
+        <li><a href="#estado"><span class="toc-num">05</span> Estado Real de la Flota Activa</a></li>
+      </ul>
+    </div>
+
+    <!-- ═══ 01 VISIÓN ═══ -->
+    <div class="section" id="vision">
+      <div class="section-label">01 · Flujo de Datos</div>
+      <h2>Flujo General de Telemetría</h2>
+      <p>Onyx opera bajo un modelo estricto de **Tráfico Unidireccional Saliente (Push Mode)**. Esto garantiza inmunidad perimetral completa en las máquinas de la entidad: el agente local recopila y reporta datos directamente hacia la nube sin necesidad de abrir ningún puerto de escucha entrante en los endpoints locales.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-icon">💻</div>
+          <div class="flow-label">Agente Local</div>
+          <div class="flow-sub">Servicio Windows<br>Bajo Impacto</div>
+        </div>
+        <div class="flow-arrow">
+          ⟶
+          <div class="arr-label">HTTPS POST<br>TLS 1.3</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-icon">☁️</div>
+          <div class="flow-label">BFF Server</div>
+          <div class="flow-sub">Cloud Run<br>Validación Estricta</div>
+        </div>
+        <div class="flow-arrow">
+          ⟶
+          <div class="arr-label">BigQuery API<br>Streaming Directo</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-icon">🗄️</div>
+          <div class="flow-label">BigQuery</div>
+          <div class="flow-sub">GCP Warehouse<br>proy-anla-poc</div>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card"><span class="metric-value">~5 min</span><div class="metric-label">Ciclo de Reporte</div></div>
+        <div class="metric-card"><span class="metric-value">0</span><div class="metric-label">Puertos Abiertos</div></div>
+        <div class="metric-card"><span class="metric-value">TLS 1.3</span><div class="metric-label">Cifrado de Tránsito</div></div>
+        <div class="metric-card"><span class="metric-value">AES-256</span><div class="metric-label">Cifrado en Reposo</div></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ═══ 02 COMPONENTES ═══ -->
+    <div class="section" id="componentes">
+      <div class="section-label">02 · Estructura de Software</div>
+      <h2>Componentes de ONYX</h2>
+      <p>El ecosistema divide sus responsabilidades operativas en tres capas independientes de bajo acoplamiento para mayor escalabilidad y resiliencia:</p>
+
+      <div class="grid-3">
+        <div class="card card-blue">
+          <h3 style="margin-top:0">1. Agente Cliente</h3>
+          <p style="font-size:12.5px">Servicio residente ejecutado localmente en Windows. Recopila telemetría de hardware, rastrea inactividad e indexa descargas diferenciales de forma silenciosa (RAM &lt; 50MB, CPU &lt; 1%). Cuenta con un búfer de resiliencia local en caso de desconexiones.</p>
+        </div>
+
+        <div class="card card-purple">
+          <h3 style="margin-top:0">2. Capa de Servidor (BFF)</h3>
+          <p style="font-size:12.5px">Instancia en Cloud Run que valida la autenticidad e integridad de la telemetría a través de esquemas JSON estrictos y escribe los registros en BigQuery, proveyendo además las APIs necesarias para el Dashboard web.</p>
+        </div>
+
+        <div class="card card-cyan">
+          <h3 style="margin-top:0">3. Capa Analítica</h3>
+          <p style="font-size:12.5px">Almacenamiento analítico en BigQuery donde reposan los datos particionados de forma segura, permitiendo el cálculo de KPIs globales e históricos en milisegundos.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ═══ 03 DATOS RECOLECTADOS ═══ -->
+    <div class="section" id="datos">
+      <div class="section-label">03 · Telemetría y Datos</div>
+      <h2>Datos Recolectados en Endpoints</h2>
+      <p>La telemetría que el agente inyecta en el repositorio analítico se organiza rigurosamente en tres categorías estratégicas:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Atributos Capturados</th>
+            <th>Propósito del Monitoreo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Rendimiento Físico</strong></td>
+            <td>Porcentaje de CPU, consumo de memoria RAM, espacio de disco libre y porcentaje de batería.</td>
+            <td>Identificar de forma proactiva el desgaste de hardware o fallas de procesamiento.</td>
+          </tr>
+          <tr>
+            <td><strong>Comportamiento (Idle)</strong></td>
+            <td>Segundos continuos sin actividad física (teclado/mouse) e historial diferencial de procesos activos.</td>
+            <td>Generar scores analíticos de productividad laboral y uso del activo tecnológico.</td>
+          </tr>
+          <tr>
+            <td><strong>Forense y DLP</strong></td>
+            <td>Metadatos de la carpeta descargas (peso, nombre, URL origen), inserciones de USB y alertas clave del Event Viewer.</td>
+            <td>Prevenir fugas de información sensible y rastrear descargas o inserciones prohibidas.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ═══ 04 CIBERSEGURIDAD ═══ -->
+    <div class="section" id="seguridad">
+      <div class="section-label">04 · Estado de Seguridad</div>
+      <h2>Ciberseguridad y Cumplimiento Normativo</h2>
+      <p>La postura de seguridad de Onyx está diseñada bajo estrictos estándares técnicos para mitigar riesgos informáticos y garantizar la privacidad:</p>
+
+      <div class="grid-3">
+        <div class="card card-green">
+          <h4 style="color:var(--green)">🔒 Privilegios Mínimos (IAM)</h4>
+          <p style="font-size:12px; margin-top:8px">Tanto el agente como el servidor se autentican con GCP usando una cuenta de servicio limitada, restringiendo sus accesos únicamente al dataset <code class="code-cell">onyx</code> del proyecto.</p>
+        </div>
+        <div class="card card-cyan">
+          <h4 style="color:var(--cyan)">🛡 No Invasividad (DLP)</h4>
+          <p style="font-size:12px; margin-top:8px">Onyx **no captura pulsaciones de teclado (no keylogger) ni realiza capturas de pantalla**, garantizando la privacidad laboral del colaborador y limitando la auditoría al rendimiento.</p>
+        </div>
+        <div class="card card-amber">
+          <h4 style="color:var(--amber)">🇨🇴 Cumplimiento de Ley</h4>
+          <p style="font-size:12px; margin-top:8px">Alineado rigurosamente con la **Ley 1581 de 2012 (Habeas Data de Colombia)**, las directrices de ciberseguridad de MinTIC y estándares ISO 27001 para la protección de activos.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ═══ 05 ESTADO DE FLOTA ═══ -->
+    <div class="section" id="estado">
+      <div class="section-label">05 · Telemetría en Vivo</div>
+      <h2>Estado de Flota Real en Producción</h2>
+      <p>El Data Warehouse analítico de Onyx se encuentra depurado y registra únicamente las señales telemétricas reales en tiempo real de las tres terminales físicas de producción en el dataset corporativo de BigQuery:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID del Equipo</th>
+            <th>Asignación Corporativa</th>
+            <th>Dirección IP Registrada</th>
+            <th>Estatus del Agente</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="code-cell">eiq-equipo-jhoanr-b30b60</td>
+            <td>Equipo de Jhoan (Local)</td>
+            <td>`192.168.80.167`</td>
+            <td><span style="color:var(--green);font-weight:bold">🟢 Activo / Reportando</span></td>
+          </tr>
+          <tr>
+            <td class="code-cell">eiq-jenn-ed4a83</td>
+            <td>Equipo de Jenn</td>
+            <td>`172.20.10.2`</td>
+            <td><span style="color:var(--green);font-weight:bold">🟢 Activo / Reportando</span></td>
+          </tr>
+          <tr>
+            <td class="code-cell">eiq-desktop-vi5jds8-da2681</td>
+            <td>Máquina Desktop Jhoan</td>
+            <td>`172.20.10.3`</td>
+            <td><span style="color:var(--green);font-weight:bold">🟢 Activo / Reportando</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="highlight green" style="margin-top:16px">
+        <strong>Historial de Datos:</strong> El almacén aloja <strong>más de 9,900 registros telemétricos reales</strong> acumulados. Las tablas están particionadas por día y estructuradas para garantizar que las consultas analíticas carguen en milisegundos a costo cero de procesamiento.
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">
+      <div class="footer-logo">Ω</div>
+      <div>
+        <div class="footer-name">Onyx Platform</div>
+        <div class="footer-tagline">Consola de Seguridad y Monitoreo de Dispositivos</div>
+      </div>
+    </div>
+    <div class="footer-meta">
+      Ficha de Ingeniería · Junio 2026<br>
+      Desarrollado por Agentica · Confidencial — No Distribuir
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- MASTER VIEW 2: USER MANUAL (TABBED BY PAGES, CONCISE) -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div id="manual-view" class="view-container">
+  <div class="manual-layout">
+    <div class="manual-sidebar">
+      <div class="sidebar-group-title">Operación General</div>
+      <div class="sidebar-item active" onclick="switchManualPage(1)" id="side-page-1"><span class="sidebar-item-icon">📖</span> Pág 1: Inicio y Acceso</div>
+      <div class="sidebar-item" onclick="switchManualPage(2)" id="side-page-2"><span class="sidebar-item-icon">📊</span> Pág 2: Dashboard y Equipos</div>
+      <div class="sidebar-item" onclick="switchManualPage(3)" id="side-page-3"><span class="sidebar-item-icon">🛡️</span> Pág 3: Productividad y DLP</div>
+      <div class="sidebar-item" onclick="switchManualPage(4)" id="side-page-4"><span class="sidebar-item-icon">🎫</span> Pág 4: Soporte IA y KPIs</div>
+      <div class="sidebar-item" onclick="switchManualPage(5)" id="side-page-5"><span class="sidebar-item-icon">⚙️</span> Pág 5: Instalación y Fallas</div>
+    </div>
+    
+    <div class="manual-main">
+      <!-- PÁGINA 1: INICIO Y ACCESO -->
+      <div class="manual-page active" id="manual-page-1">
+        <div class="section-label">PÁGINA 1 · BIENVENIDA Y ACCESO</div>
+        <h2>Control de Operación Onyx</h2>
+        
+        <div class="card card-accent">
+          <h3>Consola Centralizada Onyx</h3>
+          <p>Bienvenido a la consola corporativa de Onyx. Esta plataforma unificada permite el monitoreo en tiempo real de la flota, el análisis de rendimiento físico y la auditoría silenciosa de seguridad de forma centralizada.</p>
+        </div>
+        
+        <h3>Acceso Seguro</h3>
+        <p>La consola se aloja de forma segura en Google Cloud y es accesible mediante navegadores modernos utilizando cifrado TLS 1.3:</p>
+        <div class="code-block" style="color:#06b6d4">https://proy-anla-poc-175647544738.us-central1.run.app</div>
+        
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Credenciales</h4>
+            <p>Ingrese utilizando su correo corporativo y contraseña asignada. La consola adaptará la interfaz y permisos según su rol asignado.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Seguridad de Sesión</h4>
+            <p>Por motivos de cumplimiento y ciberseguridad, las sesiones expiran automáticamente después de 8 horas de inactividad.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PÁGINA 2: DASHBOARD Y EQUIPOS -->
+      <div class="manual-page" id="manual-page-2">
+        <div class="section-label">PÁGINA 2 · MONITOREO Y DIAGNÓSTICO</div>
+        <h2>Tablero de Control y Diagnóstico</h2>
+        <p>El dashboard principal de Onyx consolida las señales de hardware y conectividad de toda la flota de endpoints.</p>
+        
+        <div class="info-card-grid">
+          <div class="info-card">
+            <div class="info-card-icon">🟢</div>
+            <h4>Equipos Online</h4>
+            <p>Máquinas reportando telemetría activamente en ventanas de 5 minutos.</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">⚠️</div>
+            <h4>Alertas del Sistema</h4>
+            <p>Equipos con picos de saturación detectados (CPU > 80%, RAM > 85%, Disco < 10GB).</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📡</div>
+            <h4>Latencia de Red</h4>
+            <p>Historial de ping en tiempo real para validar la estabilidad de red de cada dispositivo.</p>
+          </div>
+        </div>
+
+        <h3>Vista Detallada y Causa Raíz</h3>
+        <p>Al hacer clic en cualquier equipo del listado general, la consola muestra su telemetría individual e identifica automáticamente el motivo de las alertas:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Alerta</th>
+              <th>Diagnóstico Automático</th>
+              <th>Detalle Reportado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Consumo de CPU Crítico</strong></td>
+              <td>Procesador sobrecargado</td>
+              <td>Identifica el PID y el nombre del proceso que más recursos consume.</td>
+            </tr>
+            <tr>
+              <td><strong>Memoria RAM Saturada</strong></td>
+              <td>Consumo de memoria límite</td>
+              <td>Detalla los procesos responsables del sobrecosto de memoria física.</td>
+            </tr>
+            <tr>
+              <td><strong>Espacio de Disco Bajo</strong></td>
+              <td>Almacenamiento local crítico</td>
+              <td>Reporta la cantidad de almacenamiento restante disponible en gigabytes (GB).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PÁGINA 3: PRODUCTIVIDAD Y DLP -->
+      <div class="manual-page" id="manual-page-3">
+        <div class="section-label">PÁGINA 3 · PRODUCTIVIDAD Y PROTECCIÓN DE DATOS</div>
+        <h2>Módulo Analítico y Seguridad DLP</h2>
+        <p>Onyx balancea el análisis del rendimiento y la productividad con la ciberseguridad corporativa.</p>
+        
+        <div class="card card-purple">
+          <h3>Puntaje de Productividad</h3>
+          <p>El sistema analiza el tiempo de inactividad física (mouse/teclado) contra los procesos activos en segundo plano para generar un puntaje de eficiencia en el uso de los activos de la entidad.</p>
+        </div>
+
+        <div class="highlight amber">
+          <strong>Directriz de No Invasividad (Ley 1581):</strong> Onyx respeta la privacidad laboral del colaborador. <strong>No es un keylogger</strong> (no registra teclas ingresadas) y <strong>no toma capturas de pantalla</strong>.
+        </div>
+
+        <h3>Auditoría Forense y DLP</h3>
+        <p>El agente reporta de manera silenciosa tres fuentes clave de prevención de fuga de datos:</p>
+        <ul>
+          <li><strong>Módulo de Descargas:</strong> Registra peso, nombre del archivo e IP/URL de origen en la carpeta de descargas corporativa.</li>
+          <li><strong>Inserciones USB:</strong> Registro inmutable de marcas, modelos y tiempos de conexión de almacenamiento externo.</li>
+          <li><strong>Alertas de Windows:</strong> Reporta de forma remota logs de interés directamente desde el Event Viewer de la máquina.</li>
+        </ul>
+      </div>
+
+      <!-- PÁGINA 4: SOPORTE IA Y KPIS -->
+      <div class="manual-page" id="manual-page-4">
+        <div class="section-label">PÁGINA 4 · MESA DE AYUDA INTELIGENTE</div>
+        <h2>Asistencia Inteligente y KPI Builder</h2>
+        <p>Soporte técnico inteligente y automatización analítica sobre los datos de la flota.</p>
+
+        <div class="grid-2">
+          <div class="card card-green">
+            <h3 style="margin-top:0">🤖 Chat de Soporte (Vertex AI)</h3>
+            <p style="font-size:12.5px">Asistente conversacional de IA integrado con Vertex AI de Google Cloud. Resuelve inquietudes de configuración técnica y analiza el estado telemétrico del equipo en tiempo real para sugerir resoluciones.</p>
+          </div>
+          <div class="card card-cyan">
+            <h3 style="margin-top:0">🎯 BigQuery KPI Builder</h3>
+            <p style="font-size:12.5px">Constructor interactivo de indicadores. Defina un objetivo (ej. porcentaje de latencia aceptable) y el sistema calculará el progreso consultando BigQuery al instante.</p>
+          </div>
+        </div>
+        
+        <div class="highlight">
+          <strong>Integración WhatsApp:</strong> El canal de Mesa de Ayuda opera de forma unificada con un bot automatizado de WhatsApp para dar soporte instantáneo directo desde dispositivos móviles.
+        </div>
+      </div>
+
+      <!-- PÁGINA 5: INSTALACIÓN Y FALLAS -->
+      <div class="manual-page" id="manual-page-5">
+        <div class="section-label">PÁGINA 5 · SOPORTE TÉCNICO Y DESPLIEGUE</div>
+        <h2>Instalación del Agente y Soporte</h2>
+        <p>Guía simplificada para aprovisionar endpoints y resolver anomalías comunes de conexión.</p>
+
+        <h3>Pasos de Instalación</h3>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Extraer Archivos</h4>
+            <p>Descargue e instale el paquete unificado <code class="code-cell">OnyxMonitor_Setup.zip</code> en el directorio corporativo <code class="code-cell">C:\Onyx\agent\</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Ejecutar Servicio</h4>
+            <p>Haga clic derecho en <code class="code-cell">install_service.bat</code> y seleccione <strong>Ejecutar como administrador</strong> para registrar el servicio del agente.</p>
+          </div>
+        </div>
+
+        <h3>Comando de Validación</h3>
+        <div class="highlight green">
+          <strong>Validación de Actividad:</strong> Si un endpoint no reporta datos, valide el estado del servicio ejecutando en PowerShell:
+          <code style="display:block; margin-top:8px; padding:10px; background:#020810; border-color:rgba(16,185,129,0.3)">Get-Service -Name OnyxMonitor</code>
+          Debe reportar estado **Running**. Puede revisar errores adicionales en el log de eventos en <code class="code-cell">C:\Onyx\agent\onyx_service.log</code>.
+        </div>
+      </div>
+      
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <button class="page-nav-btn" onclick="prevManualPage()">← Anterior</button>
+        <div class="page-indicator" id="manual-page-num">Página 1 de 5</div>
+        <button class="page-nav-btn" onclick="nextManualPage()">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentManualPage = 1;
+  const totalManualPages = 5;
+
+  function switchMasterTab(tabName) {
+    document.getElementById('tab-architect').classList.toggle('active', tabName === 'architect');
+    document.getElementById('tab-manual').classList.toggle('active', tabName === 'manual');
+    document.getElementById('architect-view').classList.toggle('active', tabName === 'architect');
+    document.getElementById('manual-view').classList.toggle('active', tabName === 'manual');
+  }
+
+  function switchManualPage(pageNum) {
+    if (pageNum < 1 || pageNum > totalManualPages) return;
+    document.querySelectorAll('.manual-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    currentManualPage = pageNum;
+    document.getElementById('manual-page-' + pageNum).classList.add('active');
+    document.getElementById('side-page-' + pageNum).classList.add('active');
+    document.getElementById('manual-page-num').innerText = 'Página ' + pageNum + ' de ' + totalManualPages;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function nextManualPage() { if(currentManualPage < totalManualPages) switchManualPage(currentManualPage + 1); }
+  function prevManualPage() { if(currentManualPage > 1) switchManualPage(currentManualPage - 1); }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#manual')) {
+      const p = parseInt(hash.match(/page=(\d+)/)?.[1] || 1);
+      switchMasterTab('manual');
+      switchManualPage(p);
+    }
+  });
+</script>
+</body>
+</html>

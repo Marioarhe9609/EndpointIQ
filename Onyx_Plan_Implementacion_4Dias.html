@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Onyx — Plan de Implementación Express (4 Días)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════ RESET & BASE ═══════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{
+  background:#f5f3ef;
+  color:#0a0b0e;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  line-height:1.7;
+}
+
+/* ═══════════════════════ TOKENS ═══════════════════════ */
+:root{
+  --ink:       #0a0b0e;
+  --ink2:      #2a2d35;
+  --ink3:      #6b7280;
+  --paper:     #f5f3ef;
+  --paper2:    #ece9e3;
+  --paper3:    #ddd9d0;
+  --white:     #ffffff;
+  --gold:      #b8933a;
+  --gold-l:    #f7f0e0;
+  --gold-d:    #8c6e28;
+  --accent:    #1a3a5c;
+  --accent-l:  #e8f0f8;
+  --teal:      #0d5c52;
+  --teal-l:    #e0f2ee;
+  --plum:      #4a1d6e;
+  --plum-l:    #f0e8f8;
+  --green:     #117a55;
+  --green-l:   #e2f0eb;
+  --rule:      rgba(10,11,14,0.09);
+  --serif:     'DM Serif Display',Georgia,serif;
+  --mono:      'DM Mono','Cascadia Code',monospace;
+  --sans:      'Plus Jakarta Sans',system-ui,sans-serif;
+}
+
+/* ═══════════════════════ ANIMATIONS ═══════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.anim-0{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) both}
+.anim-1{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) .1s both}
+.anim-2{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) .2s both}
+.anim-3{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) .3s both}
+
+/* ═══════════════════════ LAYOUT ═══════════════════════ */
+.cover{
+  background:linear-gradient(135deg,#0a0b0e 0%,#171c26 100%);
+  color:#fff;
+  padding:80px 48px 60px;
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.cover-inner{
+  max-width:850px;
+  margin:0 auto;
+  position:relative;
+  z-index:2;
+}
+.cover-eyebrow{
+  font-family:var(--mono);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  color:var(--gold);
+  margin-bottom:12px;
+}
+.cover-headline{
+  font-family:var(--serif);
+  font-size:42px;
+  font-weight:400;
+  line-height:1.15;
+  margin-bottom:18px;
+  letter-spacing:-0.5px;
+}
+.cover-headline em{
+  color:var(--gold);
+  font-style:italic;
+  font-family:var(--serif);
+}
+.cover-tagline{
+  font-size:15px;
+  color:rgba(255,255,255,0.7);
+  max-width:650px;
+  margin-bottom:28px;
+  line-height:1.6;
+}
+.cover-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
+}
+.pill{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  padding:4px 10px;
+  border-radius:4px;
+  font-weight:600;
+}
+.pill-gold{background:rgba(184,147,58,0.15);color:var(--gold)}
+.pill-accent{background:rgba(26,58,92,0.3);color:#6ba4e8}
+.pill-green{background:rgba(17,122,85,0.15);color:#4ade80}
+
+.doc{
+  max-width:850px;
+  margin:0 auto;
+  padding:50px 24px 80px;
+}
+.intro-box{
+  background:var(--white);
+  border:1px solid var(--paper3);
+  border-radius:8px;
+  padding:28px;
+  margin-bottom:40px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.02);
+}
+.intro-text{
+  font-size:14px;
+  color:var(--ink2);
+  line-height:1.75;
+}
+
+/* ═══════════════════════ PLAN DIARIO (GRID & CARDS) ═══════════════════════ */
+.section-title{
+  font-family:var(--serif);
+  font-size:26px;
+  color:var(--ink);
+  margin:40px 0 20px;
+  position:relative;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--paper3);
+}
+.timeline{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  margin:28px 0;
+}
+.day-card {
+  background:var(--white);
+  border:1px solid var(--paper3);
+  border-radius:8px;
+  padding:26px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.02);
+  border-left:4px solid var(--ink);
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+.day-card:hover {
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(0,0,0,0.04);
+}
+.day-1{border-left-color:var(--accent)}
+.day-2{border-left-color:var(--teal)}
+.day-3{border-left-color:var(--plum)}
+.day-4{border-left-color:var(--green)}
+
+.day-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:12px;
+}
+.day-num {
+  font-family:var(--serif);
+  font-size:20px;
+  color:var(--ink);
+}
+.day-1 .day-num {color:var(--accent)}
+.day-2 .day-num {color:var(--teal)}
+.day-3 .day-num {color:var(--plum)}
+.day-4 .day-num {color:var(--green)}
+
+.day-title {
+  font-family:var(--sans);
+  font-size:16px;
+  font-weight:700;
+  color:var(--ink);
+}
+.day-hours {
+  font-family:var(--mono);
+  font-size:9.5px;
+  color:var(--ink3);
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.day-desc {
+  font-size:13.5px;
+  color:var(--ink2);
+  margin-bottom:16px;
+  line-height:1.65;
+}
+.task-list {
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding-left:4px;
+}
+.task-item {
+  font-size:12.5px;
+  color:var(--ink2);
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+.task-item::before {
+  content:'✓';
+  color:var(--gold);
+  font-weight:bold;
+  flex-shrink:0;
+}
+
+/* ═══════════════════════ REQUISITOS & METRICAS ═══════════════════════ */
+.two-col-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px;
+  margin-top:20px;
+}
+.info-card{
+  background:var(--white);
+  border:1px solid var(--paper3);
+  border-radius:8px;
+  padding:24px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.02);
+}
+.info-card h4{
+  font-family:var(--serif);
+  font-size:18px;
+  color:var(--ink);
+  margin-bottom:14px;
+  border-bottom:1px solid var(--paper2);
+  padding-bottom:6px;
+}
+.info-card ul{
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.info-card ul li{
+  font-size:12.5px;
+  color:var(--ink2);
+  display:flex;
+  gap:8px;
+  align-items:baseline;
+}
+.info-card ul li::before{
+  content:'→';
+  color:var(--gold);
+  font-family:var(--mono);
+}
+
+.doc-footer{
+  background:var(--ink);
+  color:rgba(255,255,255,0.25);
+  text-align:center;
+  padding:26px 40px;
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-top:64px;
+}
+
+@media(max-width:760px){
+  .cover{padding:48px 28px 40px}
+  .cover-headline{font-size:32px}
+  .doc{padding:30px 20px 60px}
+  .two-col-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ COVER ══════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-inner anim-0">
+    <div class="cover-eyebrow">Plan de Despliegue Express · Onyx</div>
+    <h1 class="cover-headline">Plan de Implementación <em>POC (4 Días)</em></h1>
+    <p class="cover-tagline">
+      Estrategia ágil para el despliegue de una Prueba de Concepto (POC) funcional de <strong>Onyx</strong> en un entorno piloto. Este plan valida el valor de la telemetría centralizada, el asistente conversacional por WhatsApp y el constructor de KPIs dinámico en solo 4 días de trabajo.
+    </p>
+    <div class="cover-pills">
+      <span class="pill pill-gold">⏱️ Duración: 4 Días</span>
+      <span class="pill pill-accent">🎯 Alcance: Grupo Piloto (10-20 Equipos)</span>
+      <span class="pill pill-green">🚀 Retorno de Valor Inmediato</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <!-- ══════════════════════════════════ INTRODUCCIÓN ══════════════════════════════════ -->
+  <div class="intro-box anim-1">
+    <div class="intro-text">
+      El propósito de este plan de 4 días es habilitar un entorno piloto completamente funcional de <strong>Onyx</strong>. A diferencia del plan integral de producción, este formato express se enfoca en verificar rápidamente la conectividad del agente de telemetría ligero, la estructuración de los datos en la nube y el uso práctico del canal conversacional por WhatsApp con la alta gerencia. Al finalizar el Día 4, la organización dispondrá de datos reales en vivo y métricas simuladas del entorno de TI piloto.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════ TIMELINE ══════════════════════════════════ -->
+  <h2 class="section-title anim-2">Cronograma Diario de Implementación</h2>
+  
+  <div class="timeline anim-3">
+    
+    <!-- DÍA 1 -->
+    <div class="day-card day-1">
+      <div class="day-header">
+        <span class="day-num">Día 1</span>
+        <span class="day-title">Infraestructura Base y Agentes</span>
+        <span class="day-hours">Fase de Inicio</span>
+      </div>
+      <p class="day-desc">
+        Establecimiento del entorno en la nube y despliegue del agente recolector en el grupo piloto.
+      </p>
+      <ul class="task-list">
+        <li class="task-item">Aprovisionamiento e inicialización de la base de datos segura en Google Cloud.</li>
+        <li class="task-item">Configuración de credenciales iniciales de seguridad y roles de acceso (RBAC básico).</li>
+        <li class="task-item">Instalación manual o automatizada del agente ligero en el lote de 10 a 20 equipos del grupo piloto.</li>
+        <li class="task-item">Validación de la conexión y confirmación de recepción del "ping" básico de telemetría de cada equipo.</li>
+      </ul>
+    </div>
+
+    <!-- DÍA 2 -->
+    <div class="day-card day-2">
+      <div class="day-header">
+        <span class="day-num">Día 2</span>
+        <span class="day-title">Estructura de Datos y Seguridad Pasiva</span>
+        <span class="day-hours">Fase de Ingesta</span>
+      </div>
+      <p class="day-desc">
+        Configuración del modelo de datos unificado y activación de alertas preventivas.
+      </p>
+      <ul class="task-list">
+        <li class="task-item">Mapeo de la ingesta de datos: hardware (disco, batería), software y logs de actividad del sistema.</li>
+        <li class="task-item">Establecimiento de las vistas estructuradas de telemetría en la base de datos de almacenamiento.</li>
+        <li class="task-item">Configuración pasiva del módulo de seguridad (detección de puertos expuestos y puertos USB no autorizados).</li>
+        <li class="task-item">Habilitación del motor de alertas preventivas ante incidentes repetidos (ej. fallas en 3 equipos en menos de 1 hora).</li>
+      </ul>
+    </div>
+
+    <!-- DÍA 3 -->
+    <div class="day-card day-3">
+      <div class="day-header">
+        <span class="day-num">Día 3</span>
+        <span class="day-title">Canal WhatsApp y KPI Builder</span>
+        <span class="day-hours">Fase de Integración</span>
+      </div>
+      <p class="day-desc">
+        Conexión del asistente de inteligencia artificial con WhatsApp y setup del constructor de fórmulas.
+      </p>
+      <ul class="task-list">
+        <li class="task-item">Configuración y vinculación de WhatsApp Business API (mediante Twilio o Meta Cloud API) con la base de datos.</li>
+        <li class="task-item">Activación del asistente de inteligencia artificial para interpretar consultas cotidianas por chat.</li>
+        <li class="task-item">Instalación y configuración del KPI Builder en la web del administrador.</li>
+        <li class="task-item">Pruebas internas de consultas conversacionales (ej. solicitar estado general de la flota por WhatsApp).</li>
+      </ul>
+    </div>
+
+    <!-- DÍA 4 -->
+    <div class="day-card day-4">
+      <div class="day-header">
+        <span class="day-num">Día 4</span>
+        <span class="day-title">Pruebas, Simulación y Presentación</span>
+        <span class="day-hours">Fase de Cierre</span>
+      </div>
+      <p class="day-desc">
+        Validación general en vivo y presentación del valor operativo a los líderes organizacionales.
+      </p>
+      <ul class="task-list">
+        <li class="task-item">Pruebas de extremo a extremo: simulación de alertas de disco y verificación de notificaciones preventivas al equipo de TI.</li>
+        <li class="task-item">Verificación de la tasa de acierto del bot de WhatsApp ante preguntas clave del negocio.</li>
+        <li class="task-item">Ajustes finales de latencia de carga de datos en el Dashboard del Administrador.</li>
+        <li class="task-item">Sesión de demostración en vivo con la mesa directiva y evaluación del retorno de inversión (ROI) estimado.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════ REQUISITOS Y METRICAS ══════════════════════════════════ -->
+  <div class="two-col-grid">
+    
+    <div class="info-card">
+      <h4>Requisitos Previos (Día 0)</h4>
+      <ul>
+        <li>Accesos administrativos para el despliegue del agente de telemetría en los equipos piloto seleccionados.</li>
+        <li>Credenciales para la creación del proyecto en la nube (Google Cloud Platform).</li>
+        <li>Un número telefónico limpio dedicado a la API de WhatsApp Business.</li>
+        <li>Definición del listado de 10-20 terminales piloto (mezcla de portátiles y PCs de escritorio).</li>
+      </ul>
+    </div>
+
+    <div class="info-card">
+      <h4>Métricas de Éxito de la POC</h4>
+      <ul>
+        <li>Agente instalado y reportando telemetría de forma continua en el 100% de los equipos del piloto.</li>
+        <li>Base de datos unificada recibiendo registros con una latencia de carga menor a 5 minutos.</li>
+        <li>Canal de WhatsApp respondiendo consultas con una precisión mayor al 90%.</li>
+        <li>Alertas automáticas detonadas con éxito en el canal ante simulaciones de fallas críticas.</li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════ FOOTER ══════════════════════════════════ -->
+<div class="doc-footer">
+  Confidencial · Plan de Implementación Expres · © 2026 <strong>Onyx</strong>
+</div>
+
+</body>
+</html>

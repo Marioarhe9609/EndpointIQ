@@ -1,0 +1,12 @@
+{
+    "device_id": "auto",
+    "project_id": "proy-anla-poc",
+    "dataset": "onyx",
+    "interval_seconds": 300,
+    "offline_buffer_max": 1000,
+    "credentials_file": "onyx_credentials.json",
+    "ping_target": "8.8.8.8",
+    "log_file": "onyx_agent.log",
+    "version": "2.0.0",
+    "update_server": "https://onyx-server-bffpm7ey6a-uc.a.run.app"
+}

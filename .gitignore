@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.bak
+
+# PyInstaller build files
+build/
+dist/
+*.spec
+
+# Onyx Runtime files
+agent/onyx_buffer.db
+agent/onyx_agent.log
+agent/onyx_updater.log
+agent/onyx_credentials.json
+agent/onyx_credentials_new.json
+agent/onyx_credentials_OLD.json
+agent_distribuir/onyx_credentials.json
+
+# Local backups
+data_eq_*.json
+temp_*.json
+
+# OS files
+.DS_Store
+Thumbs.db
