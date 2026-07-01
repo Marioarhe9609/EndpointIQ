@@ -1,0 +1,61 @@
+name: Deploy to Desarrollo (DEV)
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: proy-anla-poc
+  GAR_LOCATION: us-central1
+  REPOSITORY: onyx-server-repo
+  SERVICE: onyx-server-dev
+  REGION: us-central1
+  WORKLOAD_IDENTITY_PROVIDER: projects/631753912632/locations/global/workloadIdentityPools/onyx-github-pool/providers/onyx-github-provider
+  SERVICE_ACCOUNT: onyx-github-sa@proy-anla-poc.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Build & Deploy DEV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Google Auth (Workload Identity)
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker for GCP
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and Push Container Image
+        run: |
+          IMAGE_TAG="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:dev-${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          
+          # Etiquetar también como 'dev-latest'
+          docker tag $IMAGE_TAG "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:dev-latest"
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:dev-latest"
+
+      - name: Deploy to Google Cloud Run (DEV)
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:dev-latest
+          env_vars: |
+            BQ_DATASET=onyx_dev
+            PORT=8080

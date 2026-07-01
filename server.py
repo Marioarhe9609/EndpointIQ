@@ -306,6 +306,9 @@ def run_bq_query_cli(sql):
 
 def run_bq_query(sql):
     """Dispatcher: usa SDK nativo si esta disponible, sino fallback a bq CLI."""
+    dataset = os.environ.get("BQ_DATASET", "onyx")
+    if dataset != "onyx":
+        sql = sql.replace("onyx.", f"{dataset}.")
     if USE_SDK:
         return run_bq_query_sdk(sql)
     else:
@@ -313,10 +316,13 @@ def run_bq_query(sql):
 
 def run_bq_insert(table, row_dict):
     """Inserta una fila en BigQuery usando SDK o bq CLI como fallback."""
+    dataset = os.environ.get("BQ_DATASET", "onyx")
+    if table.startswith("onyx."):
+        table = table.replace("onyx.", f"{dataset}.")
     if USE_SDK:
         # table format: "onyx.eq_kpi_definitions" -> dataset.table
         parts = table.split(".")
-        dataset_id = parts[0] if len(parts) >= 1 else "onyx"
+        dataset_id = parts[0] if len(parts) >= 1 else dataset
         table_id = parts[1] if len(parts) >= 2 else parts[0]
         table_ref = BQ_CLIENT.dataset(dataset_id).table(table_id)
         # Usar insert_rows_json para streaming insert
@@ -339,6 +345,7 @@ def run_bq_insert(table, row_dict):
                     os.remove(temp_file)
                 except Exception:
                     pass
+
 
 def load_local_backups():
     """Carga datos locales de respaldo al caché para disponibilidad inmediata."""
@@ -579,6 +586,13 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         # Desactivar logs del servidor estándar en consola para mantenerla limpia
         pass
+        
+    def end_headers(self):
+        if hasattr(self, 'path') and (self.path == "/" or self.path == "/index.html" or self.path.endswith(".html")):
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+        super().end_headers()
     
     def get_session_token(self):
         """Extract session token from cookie."""
@@ -674,7 +688,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         # ── Auth middleware: protect API routes ──
         PUBLIC_PATHS = {"/api/status", "/api/auth/me", "/api/agent-version", 
                        "/api/agent-download", "/api/updater-download", "/api/launcher-download",
-                       "/api/credentials-download", "/api/installer-download"}
+                       "/api/credentials-download", "/api/credentials-refresh", "/api/installer-download"}
         if path.startswith("/api/") and path not in PUBLIC_PATHS:
             session = self.get_current_session()
             if not session:
@@ -1735,11 +1749,12 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             else:
                 self.send_json({"error": "Launcher file not found"}, 404)
 
-        elif path == "/api/credentials-download":
-            # Serve updated credentials to agents — protected by device_id header
+        elif path == "/api/credentials-download" or path == "/api/credentials-refresh":
+            # Serve updated credentials to agents — protected by device_id header or refresh token
             device_id = self.headers.get("X-Device-ID", "")
-            if not device_id.startswith("eiq-"):
-                self.send_json({"error": "Invalid device ID"}, 403)
+            refresh_token = self.headers.get("X-Refresh-Token", "")
+            if not device_id.startswith("eiq-") and refresh_token != "eiq-cred-refresh-2024-onyx":
+                self.send_json({"error": "Invalid credentials request"}, 403)
                 return
             creds_path = os.path.join(os.path.dirname(__file__), "agent", "onyx_credentials.json")
             if os.path.exists(creds_path):
@@ -1748,7 +1763,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 with open(creds_path, "rb") as f:
                     self.wfile.write(f.read())
-                print(f"[CREDS] Credentials served to device: {device_id}")
+                print(f"[CREDS] Credentials served to device: {device_id or 'rotated-agent'}")
             else:
                 self.send_json({"error": "Credentials file not found"}, 404)
 
@@ -1882,6 +1897,57 @@ Plataforma: https://proy-anla-poc-175647544738.us-central1.run.app
             self.send_json({"ok": True})
             return
 
+        # ── Agent Ingest (no requiere auth) ──
+        if path == "/api/agent-ingest":
+            device_id = self.headers.get("X-Device-ID", "")
+            if not device_id:
+                device_id = body.get("sync", {}).get("device_id", "")
+            if not device_id:
+                self.send_json({"error": "device_id required"}, 400)
+                return
+            
+            metrics = body.get("metrics")
+            sync = body.get("sync")
+            
+            # Capturar la IP pública real del agente
+            client_ip = self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+            if not client_ip:
+                client_ip = self.client_address[0] if self.client_address else "N/A"
+            
+            if sync:
+                sync["last_ip"] = client_ip
+                sync["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            
+            success = True
+            if metrics:
+                try:
+                    run_bq_insert("onyx.eq_hardware_metrics", metrics)
+                except Exception as e:
+                    print(f"[INGEST-ERROR] Error al insertar metrics para {device_id}: {e}")
+                    success = False
+            
+            if sync:
+                try:
+                    run_bq_insert("onyx.eq_sync_status", sync)
+                except Exception as e:
+                    print(f"[INGEST-ERROR] Error al insertar sync para {device_id}: {e}")
+                    success = False
+                    
+            if success:
+                # Actualizar también la información de heartbeat en el caché local
+                with cache_lock:
+                    cache["heartbeats"][device_id] = {
+                        "timestamp": sync.get("timestamp") if sync else datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "status": "Online",
+                        "service_mode": "agent-ingest",
+                        "received_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "public_ip": client_ip
+                    }
+                self.send_json({"ok": True})
+            else:
+                self.send_json({"error": "Failed to ingest telemetry"}, 500)
+            return
+
         # ── Auth: Login ──
         if path == "/api/auth/login":
             email = body.get("email", "").strip().lower()
@@ -1930,7 +1996,7 @@ Plataforma: https://proy-anla-poc-175647544738.us-central1.run.app
             return
         
         # ── Auth middleware for other POST routes ──
-        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error"}
+        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error", "/api/agent-ingest"}
         if path.startswith("/api/") and path not in AUTH_FREE_POSTS:
             session = self.get_current_session()
             if not session:

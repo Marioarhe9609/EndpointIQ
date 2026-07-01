@@ -806,7 +806,7 @@
     <form onsubmit="handleLogin(event)">
       <div class="login-field">
         <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="admin@onyx.local" required autocomplete="email" />
+        <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
       </div>
       <div class="login-field">
         <label>Contraseña</label>
@@ -3722,24 +3722,28 @@ function fetchSecurity() {
         });
       }
       
-      // ?? GOOGLE MAP TELEMETRY UPDATE ??
+      // ── GOOGLE MAP TELEMETRY UPDATE ──
       window.latestConnectionMapData = data.connection_map || [];
       if (window.updateGoogleMapMarkers) {
+        // Al llamar a updateGoogleMapMarkers, las coordenadas se ajustan por dispersión si están solapadas
         window.updateGoogleMapMarkers(window.latestConnectionMapData);
-      }
         // Device cards
+        const mapCards = document.getElementById('secMapDeviceCards');
         const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
         if (mapCards) {
-          mapCards.innerHTML = data.connection_map.map((dev, i) => {
+          mapCards.innerHTML = window.latestConnectionMapData.map((dev, i) => {
             const isOnline = dev.status === 'online';
             const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
-            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:120px;backdrop-filter:blur(8px)">
+            const lat = Number(dev.lat) || 4.6097;
+            const lng = Number(dev.lon) || -74.0817;
+            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:130px;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,0.4)">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                 <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color}88"></div>
                 <span style="color:#F1F5F9;font-weight:700;font-size:12px">${dev.name}</span>
               </div>
               <div style="color:#64748B;font-family:var(--font-mono);font-size:9px">${dev.ip || 'N/A'}</div>
               <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'Bogotá'} · ${dev.country || 'Colombia'}</div>
+              <div style="color:#3B82F6;font-family:monospace;font-size:8px;margin-top:4px">📍 ${lat.toFixed(4)} · ${lng.toFixed(4)}</div>
             </div>`;
           }).join('');
         }
@@ -5310,21 +5314,32 @@ window.initGoogleMap = function() {
   const mapContainer = document.getElementById('googleMap');
   if (!mapContainer) return;
   
-  // Custom styled premium Dark Theme for Onyx
+  // Custom styled premium Dark Theme for Onyx (complete night/charcoal style)
   googleMapInstance = new google.maps.Map(mapContainer, {
     center: { lat: 4.6097, lng: -74.0817 }, // Colombia center (Bogotá)
     zoom: 6,
     styles: [
-      { "elementType": "geometry", "stylers": [{ "color": "#020a18" }] },
-      { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
-      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#020a18" }] },
+      { "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
       { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
       { "featureType": "administrative.country", "elementType": "geometry.stroke", "stylers": [{ "color": "#334155" }, { "weight": 1.5 }] },
-      { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#040d21" }] },
-      { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#061428" }] },
-      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
-      { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000511" }] }
+      { "featureType": "administrative.province", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+      { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+      { "featureType": "landscape.man_made", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+      { "featureType": "landscape.natural", "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
+      { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "poi", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
+      { "featureType": "road", "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
+      { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+      { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "transit", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] },
+      { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#334155" }] }
     ],
     disableDefaultUI: false,
     zoomControl: true,
@@ -5335,7 +5350,7 @@ window.initGoogleMap = function() {
     fullscreenControl: true
   });
   
-  console.log("[MAP] Google Map initialized.");
+  console.log("[MAP] Google Map initialized with Premium Dark Theme.");
   if (window.latestConnectionMapData) {
     window.updateGoogleMapMarkers(window.latestConnectionMapData);
   }
@@ -5352,22 +5367,40 @@ window.updateGoogleMapMarkers = function(devices) {
   let hasPoints = false;
   
   const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
+  const seenCoords = {};
   
   devices.forEach((dev, index) => {
-    const lat = dev.lat || 4.6097;
-    const lng = dev.lon || -74.0817;
+    let lat = Number(dev.lat) || 4.6097;
+    let lng = Number(dev.lon) || -74.0817;
+    
+    // Dispersión / Jitter de coordenadas cuando coinciden exactamente (evita solapamiento)
+    const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (seenCoords[coordKey]) {
+      const count = seenCoords[coordKey];
+      const angle = (count * 2 * Math.PI) / 6; // distribución en espiral
+      const radius = 0.015 * Math.ceil(count / 6); // dispersión aproximada de 1.5km por nivel
+      lat += radius * Math.cos(angle);
+      lng += radius * Math.sin(angle);
+      seenCoords[coordKey]++;
+    } else {
+      seenCoords[coordKey] = 1;
+    }
+    
+    // Guardar las coordenadas ajustadas de vuelta en el objeto para que las tarjetas de abajo coincidan exactamente
+    dev.lat = lat;
+    dev.lon = lng;
+    
     const isOnline = dev.status === 'online';
     const color = isOnline ? pinColors[index % pinColors.length] : '#EF4444';
     
-    // Premium SVG pin matching the look and feel
+    // Premium sleek circular dot (punto) marker instead of a heavy pin icon
     const markerIcon = {
-      path: "M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z",
+      path: google.maps.SymbolPath.CIRCLE,
       fillColor: color,
-      fillOpacity: 0.9,
+      fillOpacity: 1.0,
       strokeColor: '#FFFFFF',
-      strokeWeight: 1.5,
-      scale: 1.1,
-      anchor: new google.maps.Point(0, 0)
+      strokeWeight: 1.8,
+      scale: 8, // Sleek, modern point dot radius
     };
     
     const marker = new google.maps.Marker({
@@ -5387,6 +5420,7 @@ window.updateGoogleMapMarkers = function(devices) {
           <span style="color:#64748B">IP:</span><span style="font-family:monospace; color:#CBD5E1">${dev.ip || 'N/A'}</span>
           <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
           <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
+          <span style="color:#64748B">Coord:</span><span style="font-family:monospace; color:#3B82F6">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
           <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || 'N/A'}</span>
           <span style="color:#64748B">Estado:</span><span style="color:${color}; font-weight:700">${isOnline ? 'Conectado' : 'Desconectado'}</span>
         </div>

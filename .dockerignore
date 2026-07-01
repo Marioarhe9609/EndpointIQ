@@ -19,3 +19,6 @@ README.md
 agent/build
 agent/*.spec
 agent/onyx.ico
+/onyx_credentials.json
+infra/
+.github/

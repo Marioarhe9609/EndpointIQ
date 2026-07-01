@@ -22,6 +22,9 @@ agent_distribuir/onyx_credentials.json
 data_eq_*.json
 temp_*.json
 
+# Credentials / Secrets
+/onyx_credentials.json
+
 # OS files
 .DS_Store
 Thumbs.db
