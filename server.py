@@ -1790,12 +1790,31 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "DESINSTALAR.bat",
             ]
             try:
+                host = self.headers.get("Host", "onyx-server-631753912632.us-central1.run.app")
+                proto = "https"
+                if "localhost" in host or "127.0.0.1" in host:
+                    proto = "http"
+                update_server = f"{proto}://{host}"
+                current_dataset = os.environ.get("BQ_DATASET", "onyx")
+
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                     for fname in installer_files:
                         fpath = os.path.join(agent_dir, fname)
                         if os.path.exists(fpath):
-                            zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                            if fname == "onyx_config.json":
+                                try:
+                                    with open(fpath, "r", encoding="utf-8") as jf:
+                                        conf_data = json.load(jf)
+                                    conf_data["update_server"] = update_server
+                                    conf_data["dataset"] = current_dataset
+                                    conf_str = json.dumps(conf_data, indent=4)
+                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", conf_str)
+                                except Exception as ex:
+                                    print(f"[ZIP] Error dynamic config override: {ex}")
+                                    zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                            else:
+                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
                     readme = """════════════════════════════════════════════════
   ONYX — Agente de Monitoreo v3.0
   By Agentica
