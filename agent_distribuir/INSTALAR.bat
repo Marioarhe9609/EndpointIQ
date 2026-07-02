@@ -26,9 +26,7 @@ color 0B
 echo.
 echo   +==========================================================+
 echo   ^|                                                          ^|
-echo   ^|   ONYX                                                   ^|
-echo   ^|                                                          ^|
-echo   ^|         Agente de Monitoreo - Instalador v3.0            ^|
+echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.0      ^|
 echo   ^|                    By Agentica                           ^|
 echo   ^|                                                          ^|
 echo   +==========================================================+
@@ -68,7 +66,7 @@ echo.
 :: ----------------------------------------------
 :: PASO 2: BARRIDO DE DESINSTALACION DE AGENTES ANTERIORES
 :: ----------------------------------------------
-echo   [2/8] Ejecutando barrido de desinstalacion de versiones anteriores...
+echo   [2/8] Ejecutando barrido de versiones anteriores...
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0onyx_uninstaller.ps1" -Sweep 2>nul
 echo.
@@ -101,7 +99,7 @@ for %%V in (Python314 Python313 Python312 Python311 Python310 Python39) do (
     )
 )
 
-:: Buscar en AppData
+:: Buscar en AppData de todos los usuarios
 for /d %%U in (C:\Users\*) do (
     for %%V in (Python314 Python313 Python312 Python311 Python310 Python39) do (
         if exist "%%U\AppData\Local\Programs\Python\%%V\python.exe" (
@@ -163,49 +161,32 @@ set "INSTALL_DIR=C:\ProgramData\Onyx"
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 
 copy /y "%~dp0onyx_agent.py" "%INSTALL_DIR%\" >nul 2>&1
-echo         [OK] onyx_agent.py copiado a %INSTALL_DIR%
+echo         [OK] onyx_agent.py copiado
 copy /y "%~dp0onyx_updater.py" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_updater.py - auto-actualizador
 copy /y "%~dp0onyx_credentials.json" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_credentials.json - credenciales BigQuery
 copy /y "%~dp0onyx_launcher.vbs" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_launcher.vbs - lanzador invisible
-
-if not exist "%INSTALL_DIR%\onyx_config.json" (
-    copy /y "%~dp0onyx_config.json" "%INSTALL_DIR%\" >nul 2>&1
-    echo         [OK] onyx_config.json - configuracion nueva
-) else (
-    echo         = onyx_config.json ya existe, configuracion conservada
-)
 echo.
 
 :: ----------------------------------------------
-:: PASO 5: CONFIGURACION AUTO-UPDATE
+:: PASO 5: ESCRIBIR CONFIG CORRECTO (sin BOM, dataset=onyx)
 :: ----------------------------------------------
 echo   [5/8] Configurando servidor de actualizaciones...
 echo.
 set "CONFIG=%INSTALL_DIR%\onyx_config.json"
-findstr /c:"proy-anla-poc-175647544738" "%CONFIG%" >nul 2>&1
-if %errorlevel% neq 0 (
-    (
-        echo {
-        echo   "device_id": "auto",
-        echo   "project_id": "proy-anla-poc",
-        echo   "dataset": "onyx",
-        echo   "interval_seconds": 300,
-        echo   "offline_buffer_max": 1000,
-        echo   "credentials_file": "onyx_credentials.json",
-        echo   "ping_target": "8.8.8.8",
-        echo   "log_file": "onyx_agent.log",
-        echo   "version": "3.0.0",
-        echo   "update_server": "https://proy-anla-poc-175647544738.us-central1.run.app"
-        echo }
-    ) > "%CONFIG%"
-    echo         [OK] Servidor configurado: proy-anla-poc-175647544738.us-central1.run.app
+
+:: Escribir config via Python para garantizar UTF-8 sin BOM y valores correctos
+"%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':300,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.0.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
+if %errorlevel%==0 (
+    echo         [OK] Config escrita: dataset=onyx, sin BOM
+    echo         [OK] Servidor: onyx-server-631753912632.us-central1.run.app
 ) else (
-    echo         [OK] Servidor ya configurado correctamente
+    echo         [WARN] No se pudo escribir config via Python, usando copia del ZIP
+    copy /y "%~dp0onyx_config.json" "%CONFIG%" >nul 2>&1
 )
-echo         [OK] Auto-update habilitado - se actualiza solo desde la nube
+echo         [OK] Auto-update habilitado
 echo.
 
 :: ----------------------------------------------
@@ -230,7 +211,7 @@ echo.
 :: Exclusion Defender
 powershell -NoProfile -Command "try { Add-MpPreference -ExclusionPath '%INSTALL_DIR%' -ErrorAction Stop; Write-Host '        [OK] Exclusion de Windows Defender configurada' } catch { Write-Host '        [WARN] Defender no disponible - otro antivirus activo' }" 2>nul
 
-:: Limpiar TODAS las tareas anteriores
+:: Limpiar tareas anteriores
 schtasks /delete /tn "Onyx-Agent" /f >nul 2>&1
 schtasks /delete /tn "Onyx_Monitor" /f >nul 2>&1
 schtasks /delete /tn "Onyx Monitor" /f >nul 2>&1
@@ -240,12 +221,10 @@ echo         [OK] Tareas anteriores limpiadas
 set "LAUNCHER=%INSTALL_DIR%\onyx_launcher.vbs"
 schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc minute /mo 5 /ru SYSTEM /rl HIGHEST /f >nul 2>&1
 if %errorlevel%==0 (
-    echo         [OK] Tarea programada creada como SYSTEM
-    echo           Frecuencia: cada 5 minutos, ejecucion invisible
+    echo         [OK] Tarea programada creada como SYSTEM - cada 5 minutos
 ) else (
     schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc minute /mo 5 /f >nul 2>&1
-    echo         [OK] Tarea programada creada para usuario actual
-    echo           Frecuencia: cada 5 minutos
+    echo         [OK] Tarea programada creada para usuario actual - cada 5 minutos
 )
 echo.
 
@@ -257,11 +236,11 @@ echo.
 echo         [..] Recolectando metricas del equipo...
 "%PYTHON_EXE%" "%INSTALL_DIR%\onyx_agent.py" --once 2>nul
 if %errorlevel%==0 (
-    echo         [OK] Primera recoleccion completada exitosamente
-    echo           Datos enviados a BigQuery
+    echo         [OK] Primera recoleccion completada
+    echo           Datos enviados correctamente
 ) else (
     echo         [WARN] La primera recoleccion tuvo un problema menor
-    echo           El agente reintentara automaticamente
+    echo           El agente reintentara automaticamente en 5 minutos
 )
 echo.
 
@@ -285,10 +264,10 @@ echo   ^|    - CPU, RAM, Disco, Red, Bateria
 echo   ^|    - Procesos activos
 echo   ^|    - Historial de navegacion
 echo   ^|    - Informacion de red e interfaces
-echo   ^|    - Puertos USB - tipo, estado, dispositivos
-echo   ^|    - Visor de Sucesos - errores, advertencias, login
+echo   ^|    - Puertos USB
+echo   ^|    - Visor de Sucesos
 echo   +==========================================================+
-echo   ^|  Plataforma: proy-anla-poc-175647544738.us-central1.run.app
+echo   ^|  Servidor: onyx-server-631753912632.us-central1.run.app
 echo   ^|  Onyx v3.0 - By Agentica
 echo   +==========================================================+
 echo.
