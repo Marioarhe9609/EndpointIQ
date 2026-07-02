@@ -137,7 +137,7 @@ $jsonContent = [PSCustomObject]@{
     ping_target         = "8.8.8.8"
     log_file            = "onyx_agent.log"
     version             = "3.0.0"
-    update_server       = "https://proy-anla-poc-175647544738.us-central1.run.app"
+    update_server       = "https://onyx-server-631753912632.us-central1.run.app"
 }
 # IMPORTANTE: Usar WriteAllText con UTF8 sin BOM (NO Set-Content -Encoding UTF8)
 # PowerShell 5.x Set-Content -Encoding UTF8 agrega BOM que rompe json.load() en Python

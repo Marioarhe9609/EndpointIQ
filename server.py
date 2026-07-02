@@ -1846,7 +1846,7 @@ Click derecho en "DESINSTALAR.bat"
 
 SOPORTE:
 ──────────────────────────────
-Plataforma: https://proy-anla-poc-175647544738.us-central1.run.app
+Plataforma: https://onyx-server-631753912632.us-central1.run.app
 """
                     zf.writestr("Onyx-Agent-v3.0/LEEME.txt", readme)
 

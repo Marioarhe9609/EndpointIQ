@@ -104,7 +104,7 @@ DEVICE_ID = get_device_id()
 # ===========================================================================
 # Auto-Update from central server
 # ===========================================================================
-UPDATE_SERVER = CONFIG.get("update_server", "https://proy-anla-poc-175647544738.us-central1.run.app")
+UPDATE_SERVER = CONFIG.get("update_server", "https://onyx-server-631753912632.us-central1.run.app")
 
 def check_for_updates():
     """Check central server for agent updates and auto-apply if available."""
@@ -472,7 +472,7 @@ def send_via_http(metrics_row, sync_row):
     try:
         import urllib.request as _ur
         server = CONFIG.get("update_server",
-                            "https://proy-anla-poc-175647544738.us-central1.run.app")
+                            "https://onyx-server-631753912632.us-central1.run.app")
         url    = server.rstrip("/") + "/api/agent-ingest"
         payload = json.dumps(
             {"metrics": metrics_row, "sync": sync_row},
