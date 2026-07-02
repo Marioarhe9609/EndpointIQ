@@ -64,8 +64,14 @@ def load_config():
     if not CONFIG_PATH.exists():
         print("[ERROR] Config file not found: " + str(CONFIG_PATH))
         sys.exit(1)
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        # utf-8-sig strips the BOM silently if PowerShell wrote it with -Encoding UTF8
+        with open(CONFIG_PATH, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print("[ERROR] onyx_config.json is invalid JSON: " + str(e))
+        print("[ERROR] Delete " + str(CONFIG_PATH) + " and re-run the installer.")
+        sys.exit(1)
 
 CONFIG = load_config()
 

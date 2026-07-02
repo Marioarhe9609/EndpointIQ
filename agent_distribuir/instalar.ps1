@@ -117,12 +117,9 @@ foreach ($f in @("onyx_agent.py","onyx_updater.py","onyx_credentials.json","onyx
     Copy-Item "$SourceDir\$f" "$InstallDir\$f" -Force
     Write-Host "        [OK] $f copiado" -ForegroundColor Green
 }
-if (-not (Test-Path "$InstallDir\onyx_config.json")) {
-    Copy-Item "$SourceDir\onyx_config.json" "$InstallDir\onyx_config.json" -Force
-    Write-Host "        [OK] onyx_config.json copiado - configuracion nueva" -ForegroundColor Green
-} else {
-    Write-Host "        =  onyx_config.json ya existe - configuracion conservada" -ForegroundColor DarkGray
-}
+# Siempre copiar onyx_config.json para garantizar dataset correcto en reinstalaciones
+Copy-Item "$SourceDir\onyx_config.json" "$InstallDir\onyx_config.json" -Force
+Write-Host "        [OK] onyx_config.json copiado" -ForegroundColor Green
 Write-Host ""
 
 # -----------------------------------------------
@@ -130,25 +127,23 @@ Write-Host ""
 # -----------------------------------------------
 Write-Host "  [5/8] Configurando servidor de actualizaciones..." -ForegroundColor Yellow
 $configFile = "$InstallDir\onyx_config.json"
-$configContent = Get-Content $configFile -Raw -ErrorAction SilentlyContinue
-if (-not $configContent -or $configContent -notlike "*proy-anla-poc-175647544738*") {
-    $json = @{
-        device_id           = "auto"
-        project_id          = "proy-anla-poc"
-        dataset             = "onyx"
-        interval_seconds    = 300
-        offline_buffer_max  = 1000
-        credentials_file    = "onyx_credentials.json"
-        ping_target         = "8.8.8.8"
-        log_file            = "onyx_agent.log"
-        version             = "3.0.0"
-        update_server       = "https://proy-anla-poc-175647544738.us-central1.run.app"
-    }
-    $json | ConvertTo-Json | Set-Content $configFile -Encoding UTF8
-    Write-Host "        [OK] Config actualizada con servidor de actualizaciones" -ForegroundColor Green
-} else {
-    Write-Host "        [OK] Config ya correcta" -ForegroundColor Green
+$jsonContent = [PSCustomObject]@{
+    device_id           = "auto"
+    project_id          = "proy-anla-poc"
+    dataset             = "onyx"
+    interval_seconds    = 300
+    offline_buffer_max  = 1000
+    credentials_file    = "onyx_credentials.json"
+    ping_target         = "8.8.8.8"
+    log_file            = "onyx_agent.log"
+    version             = "3.0.0"
+    update_server       = "https://proy-anla-poc-175647544738.us-central1.run.app"
 }
+# IMPORTANTE: Usar WriteAllText con UTF8 sin BOM (NO Set-Content -Encoding UTF8)
+# PowerShell 5.x Set-Content -Encoding UTF8 agrega BOM que rompe json.load() en Python
+$jsonStr = $jsonContent | ConvertTo-Json -Depth 3
+[System.IO.File]::WriteAllText($configFile, $jsonStr, [System.Text.Encoding]::UTF8)
+Write-Host "        [OK] Config escrita sin BOM (dataset=onyx)" -ForegroundColor Green
 Write-Host ""
 
 # -----------------------------------------------
