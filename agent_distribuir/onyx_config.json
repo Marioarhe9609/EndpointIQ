@@ -7,6 +7,6 @@
     "credentials_file": "onyx_credentials.json",
     "ping_target": "8.8.8.8",
     "log_file": "onyx_agent.log",
-    "version": "2.0.0",
-    "update_server": "https://onyx-server-631753912632.us-central1.run.app"
+    "version": "3.0.0",
+    "update_server": "https://proy-anla-poc-175647544738.us-central1.run.app"
 }

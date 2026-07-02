@@ -1,20 +1,21 @@
 """
-Onyx Agent v2.3.0
+Onyx Agent v3.0.0
 =================
-Monitoring agent for Windows. Sends metrics via Pub/Sub (primary) or
+Monitoring agent for Windows. Sends metrics via HTTP (primary) or
 directly to BigQuery (fallback). Works offline with SQLite buffer.
 
 Architecture:
-  Online  → Pub/Sub Topic → Cloud Run /api/internal/ingest → BigQuery
-  Fallback → BigQuery DML INSERT (direct, if Pub/Sub unavailable)
-  Offline  → SQLite buffer → flush on reconnect
+  Online  → HTTP POST to Cloud Run /api/agent-ingest (primary, no SDK needed)
+  Pub/Sub → Cloud Run push subscription → BigQuery (fallback)
+  BQ DML  → BigQuery direct INSERT (last resort)
+  Offline → SQLite buffer → flush on reconnect
 
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
   --verbose Show detailed output in console
 
 Metrics: CPU, RAM, Disk, Network latency, Battery, Top processes, Idle time
-Target: Pub/Sub topic onyx-metrics → BigQuery proy-anla-poc dataset
+Target: BigQuery proy-anla-poc dataset: onyx
 """
 
 import os
@@ -371,7 +372,7 @@ def bq_insert_row(table_name, row_dict, retries=3):
     Direct DML INSERT into BigQuery — used as fallback when Pub/Sub is unavailable.
     Skips None values to avoid schema errors for new optional fields.
     """
-    dataset    = CONFIG.get("dataset", "proy-anla-poc")
+    dataset    = CONFIG.get("dataset", "onyx")
     full_table = dataset + "." + table_name
 
     cols, vals = [], []
@@ -419,7 +420,7 @@ def bq_upsert_sync(sync_row):
     client = get_bq_client()
     if client is None:
         return False
-    dataset    = CONFIG.get("dataset", "proy-anla-poc")
+    dataset    = CONFIG.get("dataset", "onyx")
     full_table = dataset + ".eq_sync_status"
 
     def sv(v):
