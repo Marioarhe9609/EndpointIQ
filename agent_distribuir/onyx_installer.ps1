@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Onyx Agent - Instalador Universal para Windows 10/11
 .DESCRIPTION
@@ -46,6 +46,11 @@ if (-not $isAdmin) {
     exit 1
 }
 Write-Host "  [OK] Permisos de Administrador verificados" -ForegroundColor Green
+
+# --- 1.5. Barrido de Desinstalación de Agentes Anteriores ---
+if (Test-Path (Join-Path $PSScriptRoot "onyx_uninstaller.ps1")) {
+    & (Join-Path $PSScriptRoot "onyx_uninstaller.ps1") -Sweep -InstallDir $InstallDir
+}
 
 # --- 2. Verificar Python ---
 Write-Host "  [..] Buscando Python 3..." -ForegroundColor Yellow

@@ -55,7 +55,7 @@ echo.
 :: ──────────────────────────────────────────────
 :: PASO 1: VERIFICAR ARCHIVOS
 :: ──────────────────────────────────────────────
-echo   [1/7] Verificando archivos de instalacion...
+echo   [1/8] Verificando archivos de instalacion...
 echo.
 
 set "MISSING=0"
@@ -89,9 +89,17 @@ echo         Resultado: Todos los archivos presentes
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 2: BUSCAR / INSTALAR PYTHON
+:: PASO 2: BARRIDO DE DESINSTALACION DE AGENTES ANTERIORES
 :: ──────────────────────────────────────────────
-echo   [2/7] Buscando Python 3...
+echo   [2/8] Ejecutando barrido de desinstalacion de versiones anteriores...
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0onyx_uninstaller.ps1" -Sweep
+echo.
+
+:: ──────────────────────────────────────────────
+:: PASO 3: BUSCAR / INSTALAR PYTHON
+:: ──────────────────────────────────────────────
+echo   [3/8] Buscando Python 3...
 echo.
 set "PYTHON_EXE="
 
@@ -170,9 +178,9 @@ echo           Ruta: %PYTHON_EXE%
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 3: CREAR DIRECTORIO E INSTALAR ARCHIVOS
+:: PASO 4: CREAR DIRECTORIO E INSTALAR ARCHIVOS
 :: ──────────────────────────────────────────────
-echo   [3/7] Instalando archivos del agente...
+echo   [4/8] Instalando archivos del agente...
 echo.
 set "INSTALL_DIR=C:\ProgramData\Onyx"
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
@@ -195,9 +203,9 @@ if not exist "%INSTALL_DIR%\onyx_config.json" (
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 4: CONFIGURACION AUTO-UPDATE
+:: PASO 5: CONFIGURACION AUTO-UPDATE
 :: ──────────────────────────────────────────────
-echo   [4/7] Configurando servidor de actualizaciones...
+echo   [5/8] Configurando servidor de actualizaciones...
 echo.
 set "CONFIG=%INSTALL_DIR%\onyx_config.json"
 findstr /c:"proy-anla-poc-175647544738" "%CONFIG%" >nul 2>&1
@@ -224,9 +232,9 @@ echo         ✓ Auto-update habilitado (se actualiza solo desde la nube)
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 5: INSTALAR DEPENDENCIAS PYTHON
+:: PASO 6: INSTALAR DEPENDENCIAS PYTHON
 :: ──────────────────────────────────────────────
-echo   [5/7] Instalando dependencias de Python...
+echo   [6/8] Instalando dependencias de Python...
 echo.
 echo         ⏳ psutil (monitoreo de hardware)...
 "%PYTHON_EXE%" -m pip install --quiet --upgrade psutil 2>nul
@@ -237,9 +245,9 @@ echo         ✓ google-cloud-bigquery instalado
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 6: CONFIGURAR SEGURIDAD Y TAREA
+:: PASO 7: CONFIGURAR SEGURIDAD Y TAREA
 :: ──────────────────────────────────────────────
-echo   [6/7] Configurando seguridad y tarea programada...
+echo   [7/8] Configurando seguridad y tarea programada...
 echo.
 
 :: Exclusion Defender
@@ -266,9 +274,9 @@ if %errorlevel%==0 (
 echo.
 
 :: ──────────────────────────────────────────────
-:: PASO 7: PRIMERA EJECUCION
+:: PASO 8: PRIMERA EJECUCION
 :: ──────────────────────────────────────────────
-echo   [7/7] Ejecutando primera recoleccion de datos...
+echo   [8/8] Ejecutando primera recoleccion de datos...
 echo.
 echo         ⏳ Recolectando metricas del equipo...
 "%PYTHON_EXE%" "%INSTALL_DIR%\onyx_agent.py" --once 2>nul
