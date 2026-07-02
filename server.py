@@ -1784,7 +1784,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "onyx_config.json",
                 "onyx_credentials.json",
                 "onyx_launcher.vbs",
-                "onyx_installer.ps1",
+                "instalar.ps1",
                 "onyx_uninstaller.ps1",
                 "INSTALAR.bat",
                 "DESINSTALAR.bat",
@@ -1804,7 +1804,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         if os.path.exists(fpath):
                             if fname == "onyx_config.json":
                                 try:
-                                    with open(fpath, "r", encoding="utf-8") as jf:
+                                    with open(fpath, "r", encoding="utf-8-sig") as jf:
                                         conf_data = json.load(jf)
                                     conf_data["update_server"] = update_server
                                     conf_data["dataset"] = current_dataset
