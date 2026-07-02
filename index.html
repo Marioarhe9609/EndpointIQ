@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Onyx — Enterprise Monitoring Platform</title>
+<title>Onyx — Plataforma de Monitoreo Inteligente</title>
 <meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -800,13 +800,13 @@
     <div class="login-logo">
       <img src="/onyx_logo.jpeg" alt="Onyx" style="width:180px;height:auto;margin-bottom:8px;border-radius:8px;">
       <h1 style="display:none">Onyx</h1>
-      <p>Intelligent Monitoring Platform</p>
+      <p>Plataforma de Monitoreo Inteligente</p>
     </div>
     <div class="login-error" id="loginError"></div>
     <form onsubmit="handleLogin(event)">
       <div class="login-field">
         <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="admin@onyx.local" required autocomplete="email" />
+        <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
       </div>
       <div class="login-field">
         <label>Contraseña</label>
@@ -814,7 +814,7 @@
       </div>
       <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
     </form>
-    <div class="login-footer">Onyx v2.0 · Powered by Google Cloud</div>
+    <div class="login-footer">Onyx v1.0 · By Agentica</div>
   </div>
 </div>
 
@@ -1095,12 +1095,24 @@
             <div style="overflow-x:auto">
               <table class="data-table">
                 <thead><tr>
-                  <th>Equipo</th><th>Tipo</th><th>CPU</th><th>RAM</th><th>Red</th><th>Estado</th><th>Accion</th>
+                  <th>Equipo</th><th>Tipo</th><th>CPU</th><th>RAM</th><th>Red</th><th>Actividad</th><th>Estado</th><th>Accion</th>
                 </tr></thead>
                 <tbody id="fleetTableBody">
-                  <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Cargando equipos reales...</td></tr>
+                  <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Cargando equipos reales...</td></tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Latencia por Equipo -->
+          <div class="card">
+            <div class="card-header">
+              <span>📶</span>
+              <span class="card-title">Latencia por Equipo</span>
+              <span class="card-sub" style="font-family:var(--font-mono);font-size:11px">ms (ping)</span>
+            </div>
+            <div class="card-body" id="latencyChartBody" style="padding:12px 16px">
+              <div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">Cargando datos de latencia...</div>
             </div>
           </div>
 
@@ -1213,6 +1225,42 @@
           </div>
         </div>
 
+        <!-- Tarjetas de Actividad del Equipo (compactas) -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="activityInfoGrid">
+          <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:12px">⏱️</span>
+              <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Tiempo Activo</span>
+            </div>
+            <div style="font-size:17px;font-weight:800;font-family:var(--font-disp);color:var(--green)" id="actInfoUptime">—</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px" id="actInfoUptimeSub">Desde última conexión</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:12px">🕐</span>
+              <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Hora de Inicio</span>
+            </div>
+            <div style="font-size:17px;font-weight:800;font-family:var(--font-disp);color:var(--blue)" id="actInfoStartTime">—</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px" id="actInfoStartSub">Hora de activación</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:12px">📡</span>
+              <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Última Emisión</span>
+            </div>
+            <div style="font-size:17px;font-weight:800;font-family:var(--font-disp);color:var(--purple)" id="actInfoLastEmit">—</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px" id="actInfoLastEmitSub">Última vez que envió datos</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:12px">🔋</span>
+              <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Estado</span>
+            </div>
+            <div style="font-size:17px;font-weight:800;font-family:var(--font-disp)" id="actInfoStatus">—</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px" id="actInfoStatusSub">Salud del equipo</div>
+          </div>
+        </div>
+
         <!-- Anillos de metricas en tiempo real -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">
@@ -1222,6 +1270,44 @@
           </div>
           <div class="rings-row" id="ringsRow">
             <!-- Se llena dinamicamente -->
+          </div>
+        </div>
+
+        <!-- USB PORT MONITORING (Per-device) -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🔌</span>
+            <span class="card-title">Monitoreo de Puertos USB</span>
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#10B981"><div style="width:7px;height:7px;border-radius:50%;background:#10B981"></div>Conectado</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#FBBF24"><div style="width:7px;height:7px;border-radius:50%;background:#FBBF24"></div>Libre</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#EF4444"><div style="width:7px;height:7px;border-radius:50%;background:#EF4444"></div>Bloqueado</div>
+            </div>
+          </div>
+          <div class="card-body" id="secUsbPortsEquipo">
+            <div style="color:var(--text3);font-size:12.5px;text-align:center;padding:20px 0">
+              <div style="font-size:24px;margin-bottom:6px">🔌</div>
+              Seleccione un equipo para ver sus puertos USB
+            </div>
+          </div>
+        </div>
+
+        <!-- VISOR DE SUCESOS (Event Viewer) -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>📋</span>
+            <span class="card-title">Visor de Sucesos — Registro de Windows</span>
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#EF4444"><div style="width:7px;height:7px;border-radius:50%;background:#EF4444"></div>Crítico/Error</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#FBBF24"><div style="width:7px;height:7px;border-radius:50%;background:#FBBF24"></div>Advertencia</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#6C9FFF"><div style="width:7px;height:7px;border-radius:50%;background:#6C9FFF"></div>Info</div>
+            </div>
+          </div>
+          <div class="card-body" id="secEventViewerPanel" style="padding:0">
+            <div style="color:var(--text3);font-size:12.5px;text-align:center;padding:24px 0">
+              <div style="font-size:24px;margin-bottom:6px">📋</div>
+              Seleccione un equipo para ver el visor de sucesos
+            </div>
           </div>
         </div>
 
@@ -1260,13 +1346,13 @@
               </div>
               <!-- Dispositivos conectados -->
               <div>
-                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Dispositivos en la Red (<span id="netDeviceCount">0</span>)</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Dispositivos en la Red (<span id="netDeviceCount2">0</span>)</div>
                 <div id="netDevicesList" style="font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto">Sin datos</div>
               </div>
               <!-- Mapa de Topologia Local -->
               <div>
                 <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Mapa de Topología Local (Subred)</div>
-                <div id="subnetGraphCanvas" style="position:relative;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                <div id="subnetGraphCanvas" style="position:relative;height:250px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
                   <svg id="subnetGraphSvg" style="width:100%;height:100%"></svg>
                 </div>
               </div>
@@ -1795,21 +1881,9 @@
             <div class="card">
               <div class="card-header"><span>🗺️</span><span class="card-title">Mapa Global de Conexiones — Monitoreo en Tiempo Real</span></div>
               <div class="card-body" style="padding:0;overflow:hidden;border-radius:0 0 12px 12px">
-                <div style="position:relative;height:360px;overflow:hidden;background:#040d21" id="secWorldMapContainer">
-                  <!-- Canvas for dot-matrix world -->
-                  <canvas id="secWorldCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
-                  <!-- SVG overlay for pins -->
-                  <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" id="secWorldMapSvg" style="position:absolute;top:0;left:0;z-index:2">
-                    <defs>
-                      <radialGradient id="glowG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#10B981" stop-opacity="0.8"/><stop offset="100%" stop-color="#10B981" stop-opacity="0"/></radialGradient>
-                      <radialGradient id="glowB" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#6C9FFF" stop-opacity="0.8"/><stop offset="100%" stop-color="#6C9FFF" stop-opacity="0"/></radialGradient>
-                      <radialGradient id="glowY" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FBBF24" stop-opacity="0.8"/><stop offset="100%" stop-color="#FBBF24" stop-opacity="0"/></radialGradient>
-                      <radialGradient id="glowR" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#EF4444" stop-opacity="0.8"/><stop offset="100%" stop-color="#EF4444" stop-opacity="0"/></radialGradient>
-                    </defs>
-                  </svg>
-                  <!-- Scan line -->
-                  <div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,rgba(16,185,129,0.5),transparent);z-index:3;animation:mapScan 5s linear infinite"></div>
-                  <style>@keyframes mapScan{0%{transform:translateY(0)}100%{transform:translateY(360px)}}@keyframes pinPulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.8);opacity:0}}</style>
+                <div style="position:relative;width:100%;aspect-ratio:2/1;min-height:320px;overflow:hidden;background:#040d21" id="secWorldMapContainer">
+          <!-- Google Map Container -->
+          <div id="googleMap" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1"></div>
                   <!-- Tooltip -->
                   <div id="secMapTooltip" style="display:none;position:absolute;z-index:10;background:rgba(4,13,33,0.95);border:1px solid rgba(108,159,255,0.35);border-radius:10px;padding:12px 16px;pointer-events:none;backdrop-filter:blur(12px);min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.6)">
                     <div id="secMapTooltipContent"></div>
@@ -1834,6 +1908,7 @@
             </div>
           </div>
         </div>
+          
       </div>
 
       <!-- ════════════════════════════════════════════
@@ -2048,6 +2123,7 @@
             <p style="color:var(--text3);font-size:13px;margin-top:4px">Administra los accesos y roles de la plataforma</p>
           </div>
           <div style="display:flex;gap:10px">
+            <button onclick="downloadInstaller(this)" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px;background:linear-gradient(135deg,#10b981,#059669)" title="Descargar instalador del agente Onyx para Windows">⬇️ Descargar Agente</button>
             <button onclick="openChangePasswordModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px;background:linear-gradient(135deg,#A78BFA,#7C3AED)">🔑 Cambiar Mi Contraseña</button>
             <button onclick="openUserModal()" class="login-btn" style="width:auto;padding:10px 18px;font-size:12px">➕ Nuevo Usuario</button>
           </div>
@@ -2210,6 +2286,7 @@ function fetchDevices() {
       updateAlertsFeed();
       updateFleetTable();
       updateDashboardNetwork();
+      renderLatencyChart();
       updateEquipoReport();
     });
 }
@@ -2490,7 +2567,7 @@ function updateFleetTable() {
   if (!tbody) return;
   
   if (fleetDevices.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No hay equipos registrados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">No hay equipos registrados</td></tr>';
     return;
   }
   
@@ -2523,6 +2600,7 @@ function updateFleetTable() {
       <td style="color:${cpuColor};font-family:var(--font-mono)">${cpu.toFixed(0)}%</td>
       <td style="color:${ramColor};font-family:var(--font-mono)">${ram.toFixed(0)}%</td>
       <td style="color:${latColor};font-family:var(--font-mono)">${latency.toFixed(0)}ms</td>
+      <td>${dev.status === 'Online' ? '<span class="badge ok" style="font-size:10px;padding:2px 8px">● Activo</span>' : '<span class="badge off" style="font-size:10px;padding:2px 8px">○ Inactivo</span>'}</td>
       <td>${statusBadge}</td>
       <td><span style="color:var(--blue);cursor:pointer;font-size:12px" onclick="selectedDeviceId='${dev.device_id}';showView('equipo')">Ver \u2192</span></td>`;
     tbody.appendChild(tr);
@@ -2543,7 +2621,7 @@ function updateDashboardNetwork() {
           net.interfaces.forEach(i => { if (i.type === 'WiFi') wifiConns++; });
         }
         if (net.wifi_ssid) {
-          const clean = net.wifi_ssid.replace(/[\r\n]+/g, ' ').trim().split(' ')[0];
+          const clean = net.wifi_ssid.replace(/[\s\r\n]+/g, ' ').trim();
           if (clean) ssids.add(clean);
         }
         if (net.connected_devices) totalDevices += net.connected_devices.length;
@@ -2768,11 +2846,119 @@ function loadDeviceDetail(id) {
       }
 
       renderRings(m);
+      renderActivityInfo(m, data);
       renderNetworkInfo(m);
       renderSubnetGraph(m);
       updateDiagnosticBox(m);
       updateEventTimeline(data.metrics_history, data.security_events);
+      renderUsbPortsEquipo(data);
+      renderEventViewer(data);
     });
+}
+
+function renderActivityInfo(m, data) {
+  const uptimeEl = document.getElementById('actInfoUptime');
+  const uptimeSubEl = document.getElementById('actInfoUptimeSub');
+  const startEl = document.getElementById('actInfoStartTime');
+  const startSubEl = document.getElementById('actInfoStartSub');
+  const emitEl = document.getElementById('actInfoLastEmit');
+  const emitSubEl = document.getElementById('actInfoLastEmitSub');
+  if (!uptimeEl) return;
+
+  const now = new Date();
+  
+  // Last emission timestamp
+  let lastTs = m.timestamp || '';
+  if (lastTs.includes(' ') && !lastTs.includes('T')) lastTs = lastTs.replace(' ', 'T');
+  const lastDate = new Date(lastTs);
+  const validTs = !isNaN(lastDate.getTime());
+
+  // Uptime calculation
+  if (validTs) {
+    const diffMs = now - lastDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const isActive = diffMins < 10;
+
+    // First seen / start time from metrics_history
+    let startDate = lastDate;
+    if (data.metrics_history && data.metrics_history.length > 0) {
+      const sorted = data.metrics_history.slice().sort((a, b) => {
+        const ta = new Date(a.timestamp || 0);
+        const tb = new Date(b.timestamp || 0);
+        return ta - tb;
+      });
+      const firstTs = sorted[0].timestamp || '';
+      const fd = new Date(firstTs.includes(' ') && !firstTs.includes('T') ? firstTs.replace(' ', 'T') : firstTs);
+      if (!isNaN(fd.getTime())) startDate = fd;
+    }
+
+    // Uptime: diff between now and start
+    const uptimeMs = now - startDate;
+    const uptimeHrs = Math.floor(uptimeMs / 3600000);
+    const uptimeMins = Math.floor((uptimeMs % 3600000) / 60000);
+    if (uptimeHrs > 0) {
+      uptimeEl.textContent = uptimeHrs + 'h ' + uptimeMins + 'm';
+    } else {
+      uptimeEl.textContent = uptimeMins + ' min';
+    }
+    uptimeEl.style.color = isActive ? 'var(--green)' : 'var(--amber)';
+    uptimeSubEl.textContent = isActive ? '● Equipo activo ahora' : '○ Sin actividad reciente';
+
+    // Start time
+    startEl.textContent = startDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const startDay = startDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+    startSubEl.textContent = 'Desde ' + startDay;
+
+    // Last emission
+    if (diffMins < 1) {
+      emitEl.textContent = 'Ahora';
+      emitEl.style.color = 'var(--green)';
+    } else if (diffMins < 60) {
+      emitEl.textContent = 'Hace ' + diffMins + 'm';
+      emitEl.style.color = diffMins < 5 ? 'var(--green)' : 'var(--purple)';
+    } else {
+      const hrs = Math.floor(diffMins / 60);
+      emitEl.textContent = 'Hace ' + hrs + 'h';
+      emitEl.style.color = 'var(--amber)';
+    }
+    emitSubEl.textContent = lastDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+    // Status card
+    const statusEl = document.getElementById('actInfoStatus');
+    const statusSubEl = document.getElementById('actInfoStatusSub');
+    if (statusEl) {
+      const hasCause = m.cause_root && m.cause_root.length > 0;
+      const cpu = m.cpu_usage || 0;
+      const ram = m.ram_usage || 0;
+      if (hasCause) {
+        statusEl.textContent = '⚠ Alerta';
+        statusEl.style.color = 'var(--red)';
+        statusSubEl.textContent = m.cause_root;
+      } else if (cpu > 80 || ram > 85) {
+        statusEl.textContent = 'Carga alta';
+        statusEl.style.color = 'var(--amber)';
+        statusSubEl.textContent = 'CPU ' + Math.round(cpu) + '% · RAM ' + Math.round(ram) + '%';
+      } else if (isActive) {
+        statusEl.textContent = '✓ Óptimo';
+        statusEl.style.color = 'var(--green)';
+        statusSubEl.textContent = 'CPU ' + Math.round(cpu) + '% · RAM ' + Math.round(ram) + '%';
+      } else {
+        statusEl.textContent = 'Inactivo';
+        statusEl.style.color = 'var(--text3)';
+        statusSubEl.textContent = 'Sin actividad reciente';
+      }
+    }
+  } else {
+    uptimeEl.textContent = '—';
+    uptimeSubEl.textContent = 'Sin datos disponibles';
+    startEl.textContent = '—';
+    startSubEl.textContent = 'Sin datos';
+    emitEl.textContent = '—';
+    emitSubEl.textContent = 'Sin datos';
+    const statusEl = document.getElementById('actInfoStatus');
+    const statusSubEl = document.getElementById('actInfoStatusSub');
+    if (statusEl) { statusEl.textContent = '—'; statusSubEl.textContent = 'Sin datos'; }
+  }
 }
 
 function renderRings(m) {
@@ -2887,7 +3073,7 @@ function renderNetworkInfo(m) {
     return;
   }
   
-  const cleanSSID = netInfo.wifi_ssid ? netInfo.wifi_ssid.replace(/[\r\n]+/g, ' ').trim().split(' ')[0] : null;
+  const cleanSSID = netInfo.wifi_ssid ? netInfo.wifi_ssid.replace(/[\s\r\n]+/g, ' ').trim() : null;
   const hasWifi = cleanSSID && cleanSSID.length > 0;
   if (wifiLabel) wifiLabel.textContent = hasWifi ? `📡 ${cleanSSID}` : '🔌 Ethernet';
   if (statType) { statType.textContent = hasWifi ? 'WiFi' : 'Ethernet'; statType.style.color = hasWifi ? 'var(--cyan)' : 'var(--blue)'; }
@@ -2897,6 +3083,8 @@ function renderNetworkInfo(m) {
   if (statIfaceCount) statIfaceCount.textContent = ifCount;
   const devCount = netInfo.connected_devices ? netInfo.connected_devices.length : 0;
   if (deviceCount) deviceCount.textContent = devCount;
+  const deviceCount2 = document.getElementById('netDeviceCount2');
+  if (deviceCount2) deviceCount2.textContent = devCount;
   
   if (ifacesList && netInfo.interfaces) {
     ifacesList.innerHTML = '';
@@ -2939,14 +3127,16 @@ function renderNetworkInfo(m) {
       devicesList.innerHTML = '<div style="color:var(--text3);padding:12px;text-align:center;font-size:11px">Sin dispositivos detectados</div>';
       return;
     }
-    let html = '<div class="net-device-row" style="font-weight:700;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px">';
-    html += '<div>IP</div><div>MAC</div><div>Tipo</div></div>';
+    let html = '<div class="net-device-row" style="font-weight:700;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;grid-template-columns:1.2fr 1fr 1.5fr 0.6fr">';
+    html += '<div>Equipo</div><div>IP</div><div>MAC</div><div>Tipo</div></div>';
     netInfo.connected_devices.forEach((dev, i) => {
       const isDynamic = dev.type === 'dynamic' || dev.type === 'dinámico';
-      html += `<div class="net-device-row" style="${i % 2 === 0 ? 'background:rgba(255,255,255,0.015);' : ''}">`;
-      html += `<div style="color:var(--text2);font-family:var(--font-mono);font-size:11px">${dev.ip}</div>`;
-      html += `<div style="color:var(--text3);font-family:var(--font-mono);font-size:10px">${dev.mac}</div>`;
-      html += `<div><span class="badge ${isDynamic ? 'ok' : 'off'}" style="font-size:9px;padding:1px 6px">${isDynamic ? 'DHCP' : (dev.type || 'static')}</span></div>`;
+      const hostname = dev.hostname || '—';
+      html += '<div class="net-device-row" style="grid-template-columns:1.2fr 1fr 1.5fr 0.6fr;' + (i % 2 === 0 ? 'background:rgba(255,255,255,0.015);' : '') + '">';
+      html += '<div style="color:var(--cyan);font-weight:600;font-size:11px">' + hostname + '</div>';
+      html += '<div style="color:var(--text2);font-family:var(--font-mono);font-size:11px">' + dev.ip + '</div>';
+      html += '<div style="color:var(--text3);font-family:var(--font-mono);font-size:10px">' + dev.mac + '</div>';
+      html += '<div><span class="badge ' + (isDynamic ? 'ok' : 'off') + '" style="font-size:9px;padding:1px 6px">' + (isDynamic ? 'DHCP' : (dev.type || 'static')) + '</span></div>';
       html += '</div>';
     });
     devicesList.innerHTML = html;
@@ -3325,6 +3515,90 @@ function loadUserProductivity(userId) {
       </tr>`;
     });
   }
+
+  // == Populate Tiempo por Categoría blocks ==
+  if (filteredWebPages && filteredWebPages.length > 0) {
+    var catStats = {Trabajo: {h:0, m:0, count:0}, 'Comun.': {h:0, m:0, count:0}, Web: {h:0, m:0, count:0}, Ocio: {h:0, m:0, count:0}};
+    var totalNavH = 0, totalNavM = 0;
+    filteredWebPages.forEach(function(p) {
+      var cat = p.category || 'Web';
+      if (!catStats[cat]) catStats[cat] = {h:0, m:0, count:0};
+      catStats[cat].count++;
+      // Parse time like "1h 28m" or "0h 47m"
+      var tm = (p.time || '').match(/(\d+)h\s*(\d+)m/);
+      if (tm) {
+        catStats[cat].h += parseInt(tm[1]) || 0;
+        catStats[cat].m += parseInt(tm[2]) || 0;
+        totalNavH += parseInt(tm[1]) || 0;
+        totalNavM += parseInt(tm[2]) || 0;
+      }
+    });
+    // Normalize minutes overflow
+    Object.keys(catStats).forEach(function(k) {
+      catStats[k].h += Math.floor(catStats[k].m / 60);
+      catStats[k].m = catStats[k].m % 60;
+    });
+    totalNavH += Math.floor(totalNavM / 60);
+    totalNavM = totalNavM % 60;
+    
+    var eT = document.getElementById('catBlockTrabajo');
+    var eTc = document.getElementById('catBlockTrabajoCount');
+    if (eT) eT.textContent = catStats.Trabajo.h + 'h';
+    if (eTc) eTc.textContent = catStats.Trabajo.count + ' sitios';
+    
+    var eC = document.getElementById('catBlockComun');
+    var eCc = document.getElementById('catBlockComunCount');
+    if (eC) eC.textContent = catStats['Comun.'].h + 'h';
+    if (eCc) eCc.textContent = catStats['Comun.'].count + ' sitios';
+    
+    var eW = document.getElementById('catBlockWeb');
+    var eWc = document.getElementById('catBlockWebCount');
+    if (eW) eW.textContent = catStats.Web.h + 'h';
+    if (eWc) eWc.textContent = catStats.Web.count + ' sitios';
+    
+    var eO = document.getElementById('catBlockOcio');
+    var eOc = document.getElementById('catBlockOcioCount');
+    if (eO) eO.textContent = catStats.Ocio.h + 'h';
+    if (eOc) eOc.textContent = catStats.Ocio.count + ' sitios';
+    
+    var eNav = document.getElementById('catTotalTime');
+    if (eNav) eNav.textContent = totalNavH + 'h ' + (totalNavM < 10 ? '0' : '') + totalNavM + 'm';
+  }
+
+  // == Render Web Pages (Detalle de Navegacion) ==
+  const wpContainer = document.getElementById('prodWebPagesCards');
+  if (wpContainer) {
+    if (filteredWebPages && filteredWebPages.length > 0) {
+      const catIcons = {'Trabajo':'\uD83D\uDCBC','Comun.':'\uD83D\uDCAC','Ocio':'\uD83C\uDFAE','Web':'\uD83C\uDF10'};
+      const catColors = {'Trabajo':'#3B82F6','Comun.':'#10B981','Ocio':'#EF4444','Web':'#8B5CF6'};
+      let wpHtml = '';
+      filteredWebPages.forEach(function(page) {
+        const icon = catIcons[page.category] || '\uD83C\uDF10';
+        const color = catColors[page.category] || '#8B5CF6';
+        wpHtml += '<div style="background:var(--surface2);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid var(--border)"><div style="width:32px;height:32px;border-radius:8px;background:' + color + '18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">' + icon + '</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + page.domain + '</div><div style="display:flex;gap:8px;margin-top:3px;font-size:10px"><span class="cat-pill ' + page.cat_class + '" style="font-size:9px;padding:1px 6px">' + page.category + '</span><span style="color:var(--text3)">' + page.time + '</span><span style="color:var(--text3)">' + page.visits + ' visitas</span></div></div></div>';
+      });
+      wpContainer.innerHTML = wpHtml;
+    } else {
+      wpContainer.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:30px 10px"><div style="font-size:24px;margin-bottom:8px">\uD83C\uDF10</div><div style="font-weight:600;margin-bottom:4px">Sin datos de navegacion</div><div style="font-size:10px;opacity:0.7">El agente reportara historial en la proxima actualizacion</div></div>';
+    }
+  }
+
+  // == Render Desktop Apps ==
+  const daContainer = document.getElementById('prodDesktopApps');
+  if (daContainer) {
+    if (filteredDesktopApps && filteredDesktopApps.length > 0) {
+      let daHtml = '';
+      filteredDesktopApps.forEach(function(app) {
+        daHtml += '<div style="background:var(--surface2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);min-width:180px"><div style="width:30px;height:30px;border-radius:8px;background:' + (app.color || '#64748B') + '18;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">' + (app.icon || '\u2699\uFE0F') + '</div><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + app.name + '</div><div style="font-size:10px;color:var(--text3)">' + (app.hours || '') + ' \u00B7 ' + (app.pct_label || app.pct + '%') + '</div></div></div>';
+      });
+      daContainer.innerHTML = daHtml;
+    } else {
+      daContainer.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:12px">Sin datos de apps de escritorio</div>';
+    }
+  }
+
+  // Render the web traffic concentration graph
+  renderWebTrafficGraph(userId);
 }
 
 function exportProductivityCSV() {
@@ -3448,213 +3722,28 @@ function fetchSecurity() {
         });
       }
       
-      // ── WORLD MAP: Dot Matrix Canvas + SVG Pins ──
-      const mapCanvas = document.getElementById('secWorldCanvas');
-      const mapSvg = document.getElementById('secWorldMapSvg');
-      const mapCards = document.getElementById('secMapDeviceCards');
-      const tooltip = document.getElementById('secMapTooltip');
-      const tooltipContent = document.getElementById('secMapTooltipContent');
-      const mapContainer = document.getElementById('secWorldMapContainer');
-
-      if (mapCanvas && mapContainer) {
-        const W = mapContainer.clientWidth || 800;
-        const H = mapContainer.clientHeight || 360;
-        mapCanvas.width = W * 2; mapCanvas.height = H * 2;
-        mapCanvas.style.width = W + 'px'; mapCanvas.style.height = H + 'px';
-        const ctx = mapCanvas.getContext('2d');
-        if (!ctx) return;
-        ctx.scale(2, 2);
-
-        // Dot-matrix world map bitmap (72x36, each char: 0=ocean, 1=land)
-        // Covers -180..180 lon (cols), 90..-90 lat (rows), 5° per cell
-        const worldBits = [
-          "000000000000000000000000000000000000000000000000000000000000000000000000",
-          "000000000000000000000000000011100000000000000000000000000000000000000000",
-          "000000000000001100000000001111111100000001111111111111111100000000000000",
-          "000000000000011111000000011111111110000011111111111111111110000000000000",
-          "000000000000111111100001111111111111000111111111111111111111100000000000",
-          "000000000001111111100001111111111111001111111111111111111111100000000000",
-          "000000000011111111110001111111111111011111111111111111111111110000000000",
-          "000000000011111111111000111111111111111111111111111111111111110000000000",
-          "000001100111111111111000011111111111111111110111111111111111111000000000",
-          "000011111111111111110000011111111111111111100111111111111111111000000000",
-          "000011111111111111100000001111111111111111100011111111111111111000000000",
-          "000001111111111111100000001111101111111111100001111111111111110000000000",
-          "000000111111111111000000000111100111111111100000111111111111100000000000",
-          "000000011111111110000000000011100011111111000000011111111111000000000000",
-          "000000001111111100000000000001100001111110000000001111111110000000000000",
-          "000000000111111000000000000000100001111100000000001111111100000000000000",
-          "000000000011110000000000000000000000111000000000000111111000000000000000",
-          "000000000001100000000000000000000000010000000000000011110000000000000000",
-          "000000000001100000000000000000000000000000000000000001100000000000000000",
-          "000000000011110000000000000000000000000000000000000000000000000000000000",
-          "000000000011110000000000000000000000000000000000000000000000000000000000",
-          "000000000111111000000000000000000000000000000000000000000000000000000000",
-          "000000000111111000000000001100000000000000000000000000000000000000000000",
-          "000000001111111100000000011100000000000000000000000000001100000000000000",
-          "000000001111111100000000111110000000000000000000000000011110000000000000",
-          "000000001111111110000001111110000000000000000000000000111111000000000000",
-          "000000000111111110000001111111000000000000000000000001111111100000000000",
-          "000000000011111100000001111111000000000000000000000011111111100000000000",
-          "000000000011111000000000111111000000000000000000000011111111110000000000",
-          "000000000001110000000000011110000000000000000000000001111111110000000000",
-          "000000000000100000000000001100000000000000000000000000111111100000000000",
-          "000000000000000000000000000000000000000000000000000000011111000000000000",
-          "000000000000000000000000000000000000000000000000000000001110000000000000",
-          "000000000000000000000000000000000000000000000000000000000100000000000000",
-          "000000000000000000000000000000000000000000000000000000000000000000000000",
-          "000000000000000000000000000000000000000000000000000000000000000000000000"
-        ];
-
-        // Background gradient
-        const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, '#040d21');
-        grad.addColorStop(0.5, '#071530');
-        grad.addColorStop(1, '#040d21');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-
-        // Grid lines (subtle)
-        ctx.strokeStyle = 'rgba(108,159,255,0.06)';
-        ctx.lineWidth = 0.5;
-        for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, H*i/6); ctx.lineTo(W, H*i/6); ctx.stroke(); }
-        for (let i = 1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(W*i/8, 0); ctx.lineTo(W*i/8, H); ctx.stroke(); }
-        // Equator
-        ctx.strokeStyle = 'rgba(108,159,255,0.12)';
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath(); ctx.moveTo(0, H*0.5); ctx.lineTo(W, H*0.5); ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Draw dot matrix world
-        const rows = worldBits.length;
-        const cols = worldBits[0].length;
-        const dotSpacingX = W / cols;
-        const dotSpacingY = H / rows;
-        
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const px = dotSpacingX * c + dotSpacingX / 2;
-            const py = dotSpacingY * r + dotSpacingY / 2;
-            if (worldBits[r][c] === '1') {
-              // Land dot — cyan glow
-              ctx.beginPath();
-              ctx.arc(px, py, 2.2, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(108,159,255,0.45)';
-              ctx.fill();
-              // Glow
-              ctx.beginPath();
-              ctx.arc(px, py, 4, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(108,159,255,0.08)';
-              ctx.fill();
-            } else {
-              // Ocean dot — very subtle
-              ctx.beginPath();
-              ctx.arc(px, py, 0.8, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(108,159,255,0.04)';
-              ctx.fill();
-            }
-          }
-        }
-
-        // Labels
-        ctx.font = '9px JetBrains Mono';
-        ctx.fillStyle = 'rgba(108,159,255,0.25)';
-        ctx.fillText('90°N', 4, 14);
-        ctx.fillText('0° EC', 4, H * 0.5 + 14);
-        ctx.fillText('90°S', 4, H - 4);
-      }
-
-      // Render pins on SVG overlay
-      if (mapSvg && data.connection_map && data.connection_map.length > 0) {
-        mapSvg.querySelectorAll('.map-pin').forEach(p => p.remove());
-        
-        const toSvgX = (lon) => ((lon + 180) / 360) * 1000;
-        const toSvgY = (lat) => ((90 - lat) / 180) * 500;
-        
-        const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
-        const glowIds = ['glowG', 'glowB', 'glowY', 'glowG', 'glowB', 'glowR'];
-        
-        // Offset overlapping pins
-        const usedPositions = [];
-        data.connection_map.forEach((dev, i) => {
-          let x = toSvgX(dev.lon || -74.1);
-          let y = toSvgY(dev.lat || 4.6);
-          // Spread overlapping pins in a circle
-          const overlap = usedPositions.filter(p => Math.abs(p.x - x) < 20 && Math.abs(p.y - y) < 20).length;
-          if (overlap > 0) {
-            const angle = (overlap * 2.1);
-            x += Math.cos(angle) * 45;
-            y += Math.sin(angle) * 35;
-          }
-          usedPositions.push({x, y});
-          
-          const isOnline = dev.status === 'online';
-          const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
-          const gId = isOnline ? glowIds[i % glowIds.length] : 'glowR';
-          
-          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          g.setAttribute('class', 'map-pin');
-          g.style.cursor = 'pointer';
-          g.style.opacity = '0';
-          g.style.transition = `opacity 0.8s ease ${i * 400}ms`;
-          
-          g.innerHTML = `
-            <circle cx="${x}" cy="${y}" r="28" fill="url(#${gId})" opacity="0.5">
-              <animate attributeName="r" values="20;35;20" dur="2.5s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.5s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="${x}" cy="${y}" r="14" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.4">
-              <animate attributeName="r" values="14;22;14" dur="3s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" style="filter:drop-shadow(0 0 8px ${color})"/>
-            <text x="${x}" y="${y - 18}" text-anchor="middle" fill="#F1F5F9" font-size="11" font-family="DM Sans" font-weight="700" style="text-shadow:0 2px 6px rgba(0,0,0,0.9)">${dev.name}</text>
-            <text x="${x}" y="${y + 26}" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="JetBrains Mono" style="text-shadow:0 1px 4px rgba(0,0,0,0.9)">${dev.city || 'Bogotá'}, ${dev.country || 'Colombia'}</text>
-          `;
-          mapSvg.appendChild(g);
-
-          // Tooltip
-          g.addEventListener('mouseenter', (e) => {
-            if (tooltip && tooltipContent && mapContainer) {
-              const rect = mapContainer.getBoundingClientRect();
-              tooltip.style.display = 'block';
-              tooltip.style.left = (e.clientX - rect.left + 16) + 'px';
-              tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
-              tooltipContent.innerHTML = `
-                <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">${isOnline ? '🟢' : '🔴'} ${dev.name}</div>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px">
-                  <span style="color:#64748B">IP:</span><span style="font-family:var(--font-mono);color:#CBD5E1">${dev.ip || 'N/A'}</span>
-                  <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
-                  <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
-                  <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || '—'}</span>
-                  <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? '● Conectado' : '● Desconectado'}</span>
-                </div>`;
-            }
-          });
-          g.addEventListener('mouseleave', () => { if (tooltip) tooltip.style.display = 'none'; });
-          g.addEventListener('mousemove', (e) => {
-            if (tooltip && mapContainer) {
-              const rect = mapContainer.getBoundingClientRect();
-              tooltip.style.left = (e.clientX - rect.left + 16) + 'px';
-              tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
-            }
-          });
-          
-          setTimeout(() => { g.style.opacity = '1'; }, 150);
-        });
-        
+      // ── GOOGLE MAP TELEMETRY UPDATE ──
+      window.latestConnectionMapData = data.connection_map || [];
+      if (window.updateGoogleMapMarkers) {
+        // Al llamar a updateGoogleMapMarkers, las coordenadas se ajustan por dispersión si están solapadas
+        window.updateGoogleMapMarkers(window.latestConnectionMapData);
         // Device cards
+        const mapCards = document.getElementById('secMapDeviceCards');
+        const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
         if (mapCards) {
-          mapCards.innerHTML = data.connection_map.map((dev, i) => {
+          mapCards.innerHTML = window.latestConnectionMapData.map((dev, i) => {
             const isOnline = dev.status === 'online';
             const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
-            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:120px;backdrop-filter:blur(8px)">
+            const lat = Number(dev.lat) || 4.6097;
+            const lng = Number(dev.lon) || -74.0817;
+            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:130px;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,0.4)">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                 <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color}88"></div>
                 <span style="color:#F1F5F9;font-weight:700;font-size:12px">${dev.name}</span>
               </div>
               <div style="color:#64748B;font-family:var(--font-mono);font-size:9px">${dev.ip || 'N/A'}</div>
               <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'Bogotá'} · ${dev.country || 'Colombia'}</div>
+              <div style="color:#3B82F6;font-family:monospace;font-size:8px;margin-top:4px">📍 ${lat.toFixed(4)} · ${lng.toFixed(4)}</div>
             </div>`;
           }).join('');
         }
@@ -3680,6 +3769,155 @@ function fetchSecurity() {
           </div>`;
         });
         catPanel.innerHTML = cp;
+      }
+      
+      // ── USB PORTS RENDERING ──
+      const usbPanel = document.getElementById('secUsbPortsPanel');
+      if (usbPanel && data.usb_ports_data) {
+        const statusColors = {'Conectado':'#10B981','Libre':'#FBBF24','Bloqueado':'#EF4444','Desconectado':'#64748B'};
+        const catIcons2 = {'Teclado':'⌨️','Mouse':'🖱️','Almacenamiento':'💾','Camara':'📷','Audio':'🎧','Bluetooth':'📶','Impresora':'🖨️','Telefono':'📱','Controlador':'🔧','Periferico':'🔌','Hub':'🔗'};
+        
+        let usbHtml = '';
+        const deviceIds = Object.keys(data.usb_ports_data);
+        
+        // Global summary across all devices
+        let totalInUse = 0, totalSystem = 0, totalFree = 0, totalBlocked = 0, totalPorts = 0;
+        deviceIds.forEach(function(devId) {
+          const ports = data.usb_ports_data[devId];
+          if (!ports) return;
+          totalPorts += ports.length;
+          ports.forEach(function(p) {
+            if (p.status === 'Conectado' && p.category !== 'Controlador' && p.category !== 'Hub') totalInUse++;
+            else if (p.category === 'Controlador' || p.category === 'Hub') totalSystem++;
+            else if (p.status === 'Libre') totalFree++;
+            else if (p.status === 'Bloqueado') totalBlocked++;
+          });
+        });
+        
+        // Global summary bar
+        usbHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">';
+        usbHtml += '<div style="display:flex;gap:16px;align-items:center">';
+        usbHtml += '<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + totalPorts + '</div><div style="font-size:9px;color:var(--text3)">Total Puertos</div></div>';
+        usbHtml += '<div style="width:1px;height:30px;background:var(--border)"></div>';
+        usbHtml += '<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#10B981">' + totalInUse + '</div><div style="font-size:9px;color:#10B981">En Uso</div></div>';
+        usbHtml += '<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#6C9FFF">' + totalSystem + '</div><div style="font-size:9px;color:#6C9FFF">Sistema</div></div>';
+        if (totalFree > 0) usbHtml += '<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#FBBF24">' + totalFree + '</div><div style="font-size:9px;color:#FBBF24">Libres</div></div>';
+        if (totalBlocked > 0) usbHtml += '<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#EF4444">' + totalBlocked + '</div><div style="font-size:9px;color:#EF4444">Bloqueados</div></div>';
+        usbHtml += '</div>';
+        // Global usage bar
+        var gt = Math.max(totalPorts, 1);
+        usbHtml += '<div style="display:flex;height:12px;width:200px;border-radius:6px;overflow:hidden;background:var(--surface2)">';
+        if (totalInUse > 0) usbHtml += '<div style="width:' + Math.round((totalInUse/gt)*100) + '%;background:#10B981"></div>';
+        if (totalSystem > 0) usbHtml += '<div style="width:' + Math.round((totalSystem/gt)*100) + '%;background:#6C9FFF"></div>';
+        if (totalFree > 0) usbHtml += '<div style="width:' + Math.round((totalFree/gt)*100) + '%;background:#FBBF24"></div>';
+        if (totalBlocked > 0) usbHtml += '<div style="width:' + Math.round((totalBlocked/gt)*100) + '%;background:#EF4444"></div>';
+        usbHtml += '</div></div>';
+        
+        deviceIds.forEach(function(devId) {
+          const ports = data.usb_ports_data[devId];
+          if (!ports || !ports.length) return;
+          
+          const devName = devId.replace('eiq-','').replace(/-[a-f0-9]{5,}$/,'');
+          const inUse = ports.filter(function(p){ return p.status==='Conectado' && p.category!=='Controlador' && p.category!=='Hub'; });
+          const ctrls = ports.filter(function(p){ return p.category==='Controlador' || p.category==='Hub'; });
+          const free = ports.filter(function(p){ return p.status==='Libre'; });
+          const blocked = ports.filter(function(p){ return p.status==='Bloqueado'; });
+          
+          usbHtml += '<div style="background:var(--surface1);border-radius:12px;padding:16px;margin-bottom:14px;border:1px solid var(--border)">';
+          
+          // Device header
+          usbHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
+          usbHtml += '<div style="display:flex;align-items:center;gap:10px">';
+          usbHtml += '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6C9FFF,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff">💻</div>';
+          usbHtml += '<div><div style="font-weight:700;font-size:13px;color:var(--text)">' + devName + '</div>';
+          usbHtml += '<div style="font-size:10px;color:var(--text3)">' + ports.length + ' puertos detectados</div></div></div>';
+          
+          // Summary badges
+          usbHtml += '<div style="display:flex;gap:8px">';
+          usbHtml += '<div style="background:#10B98118;color:#10B981;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #10B98133">' + inUse.length + ' en uso</div>';
+          usbHtml += '<div style="background:#6C9FFF18;color:#6C9FFF;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #6C9FFF33">' + ctrls.length + ' sistema</div>';
+          if (free.length > 0) usbHtml += '<div style="background:#FBBF2418;color:#FBBF24;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #FBBF2433">' + free.length + ' libres</div>';
+          if (blocked.length > 0) usbHtml += '<div style="background:#EF444418;color:#EF4444;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #EF444433">⚠ ' + blocked.length + ' bloqueados</div>';
+          usbHtml += '</div></div>';
+          
+          // Visual port slots
+          usbHtml += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px">';
+          
+          ports.forEach(function(port, idx) {
+            var sc = statusColors[port.status] || '#64748B';
+            var ci = catIcons2[port.category] || '🔧';
+            var isInUse = port.status === 'Conectado';
+            var isFree = port.status === 'Libre';
+            var isBlocked = port.status === 'Bloqueado';
+            
+            var borderStyle = isInUse ? '2px solid ' + sc : (isFree ? '2px dashed #FBBF2488' : (isBlocked ? '2px solid #EF4444' : '1px solid var(--border)'));
+            var bgColor = isInUse ? sc + '12' : (isFree ? '#FBBF2408' : (isBlocked ? '#EF444412' : 'var(--surface2)'));
+            var glowShadow = isInUse ? '0 0 10px ' + sc + '25' : (isBlocked ? '0 0 10px #EF444425' : 'none');
+            
+            usbHtml += '<div style="width:120px;background:' + bgColor + ';border:' + borderStyle + ';border-radius:10px;padding:9px;position:relative;box-shadow:' + glowShadow + '">';
+            usbHtml += '<div style="position:absolute;top:3px;right:5px;font-size:7px;font-weight:700;color:var(--text3);opacity:.5">P' + (idx+1) + '</div>';
+            
+            // Connector type badge
+            var cType = port.port_type === 'USB-C' ? 'USB-C' : 'USB-A';
+            var cClr = port.port_type === 'USB-C' ? '#A78BFA' : '#6C9FFF';
+            usbHtml += '<div style="text-align:center;margin-bottom:5px"><span style="display:inline-block;padding:1px 8px;border-radius:' + (cType==='USB-C'?'8px':'3px') + ';background:' + cClr + '22;border:1px solid ' + cClr + '44;font-size:7px;font-weight:800;color:' + cClr + '">' + cType + '</span></div>';
+            
+            // Icon
+            usbHtml += '<div style="text-align:center;margin-bottom:3px"><div style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:' + sc + '22;font-size:12px">';
+            if (isInUse) usbHtml += ci;
+            else if (isFree) usbHtml += '<div style="width:8px;height:8px;border-radius:50%;border:2px dashed #FBBF2488"></div>';
+            else if (isBlocked) usbHtml += '🔒';
+            else usbHtml += '<div style="width:8px;height:8px;border-radius:50%;background:#64748B44"></div>';
+            usbHtml += '</div></div>';
+            
+            // Status
+            usbHtml += '<div style="text-align:center;font-size:8px;font-weight:700;color:' + sc + ';margin-bottom:2px">';
+            if (isInUse) usbHtml += '● EN USO';
+            else if (isFree) usbHtml += '○ LIBRE';
+            else if (isBlocked) usbHtml += '⊘ BLOQUEADO';
+            else usbHtml += '○ INACTIVO';
+            usbHtml += '</div>';
+            
+            // Name
+            if (isInUse) {
+              var sn = port.name.length > 16 ? port.name.substring(0,14) + '…' : port.name;
+              usbHtml += '<div style="text-align:center;font-size:7px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + port.name + '">' + sn + '</div>';
+              usbHtml += '<div style="text-align:center;font-size:6px;color:var(--text3)">' + port.category + '</div>';
+            } else if (isFree) {
+              usbHtml += '<div style="text-align:center;font-size:7px;color:var(--text3)">Disponible</div>';
+            }
+            
+            usbHtml += '</div>';
+          });
+          
+          usbHtml += '</div>';
+          
+          // Devices table
+          var devicesInUse = ports.filter(function(p){ return p.status === 'Conectado'; });
+          if (devicesInUse.length > 0) {
+            usbHtml += '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:10px">';
+            usbHtml += '<thead><tr style="background:var(--surface2)"><th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--text3);font-size:8px;text-transform:uppercase;border-bottom:1px solid var(--border)">Puerto</th><th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--text3);font-size:8px;text-transform:uppercase;border-bottom:1px solid var(--border)">Dispositivo</th><th style="padding:6px 8px;text-align:left;font-weight:700;color:var(--text3);font-size:8px;text-transform:uppercase;border-bottom:1px solid var(--border)">Uso</th><th style="padding:6px 8px;text-align:center;font-weight:700;color:var(--text3);font-size:8px;text-transform:uppercase;border-bottom:1px solid var(--border)">Estado</th></tr></thead><tbody>';
+            devicesInUse.forEach(function(port, i) {
+              var ci2 = catIcons2[port.category] || '🔧';
+              var sc2 = statusColors[port.status] || '#64748B';
+              usbHtml += '<tr style="background:' + (i%2===0?'transparent':'var(--surface2)') + '">';
+              usbHtml += '<td style="padding:5px 8px;border-bottom:1px solid var(--border)"><span style="background:#6C9FFF22;color:#6C9FFF;font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px">' + port.port_type + '</span></td>';
+              usbHtml += '<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600">' + ci2 + ' ' + port.name + '</td>';
+              usbHtml += '<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text3)">' + port.category + '</td>';
+              usbHtml += '<td style="padding:5px 8px;border-bottom:1px solid var(--border);text-align:center"><span style="background:' + sc2 + '18;color:' + sc2 + ';font-size:8px;font-weight:700;padding:2px 8px;border-radius:12px">● ' + port.status + '</span></td>';
+              usbHtml += '</tr>';
+            });
+            usbHtml += '</tbody></table>';
+          }
+          
+          usbHtml += '</div>';
+        });
+        
+        if (!usbHtml) {
+          usbHtml = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:30px"><div style="font-size:28px;margin-bottom:8px">🔌</div>No se detectaron puertos USB en los equipos</div>';
+        }
+        
+        usbPanel.innerHTML = usbHtml;
       }
     })
     .catch(err => console.error('Error fetching security:', err));
@@ -3744,7 +3982,7 @@ function fetchWhatsAppHistory() {
       // Limpiar y restaurar burbuja de bienvenida
       container.innerHTML = `
         <div style="align-self:flex-start; background:var(--surface2); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:85%; font-size:12.5px">
-          🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de EndpointIQ. Hazme una pregunta como:
+          🤖 <strong>Bot:</strong> ¡Hola! Soy el asistente cognitivo de Onyx. Hazme una pregunta como:
           <div style="margin-top:6px; font-style:italic; opacity:0.8; font-size:11.5px">
             - "¿Cómo está la flota hoy?"<br>
             - "¿Hay alertas críticas de hardware?"<br>
@@ -4163,6 +4401,59 @@ async function deleteUser(userId, userName) {
   else alert(data.error || 'Error');
 }
 
+async function downloadInstaller(btnElement) {
+  const btn = btnElement || (window.event ? window.event.target : null);
+  let origText = '⬇️ Descargar Agente';
+  if (btn) {
+    origText = btn.textContent;
+    btn.textContent = '⏳ Descargando...';
+    btn.disabled = true;
+  }
+  try {
+    const res = await fetch('/api/installer-download');
+    if (res.status === 403) {
+      alert('Solo los administradores pueden descargar el instalador.');
+      if (btn) {
+        btn.textContent = origText;
+        btn.disabled = false;
+      }
+      return;
+    }
+    if (res.status === 404) {
+      alert('El instalador no está disponible en el servidor. Contacta al administrador del sistema.');
+      if (btn) {
+        btn.textContent = origText;
+        btn.disabled = false;
+      }
+      return;
+    }
+    if (!res.ok) throw new Error('Error del servidor');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Onyx-Agent-v3.0.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (btn) {
+      btn.textContent = '✅ Descargado';
+      btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+      setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000);
+    }
+  } catch(e) {
+    console.error('Download error:', e);
+    alert('Error al descargar el instalador.');
+    if (btn) {
+      btn.textContent = '⬇️ Descargar Agente';
+      btn.disabled = false;
+    }
+  }
+}
+
 function openChangePasswordModal() {
   document.getElementById('cpCurrent').value = '';
   document.getElementById('cpNew').value = '';
@@ -4189,6 +4480,50 @@ async function changePassword() {
     errEl.textContent = data.error || 'Error';
     errEl.style.display = 'block';
   }
+}
+
+function renderLatencyChart() {
+  const container = document.getElementById('latencyChartBody');
+  if (!container || fleetDevices.length === 0) return;
+
+  const seen = new Set();
+  const devices = [];
+  fleetDevices.forEach(d => {
+    if (seen.has(d.device_id)) return;
+    seen.add(d.device_id);
+    devices.push(d);
+  });
+
+  const maxLat = Math.max(...devices.map(d => d.network_latency_ms || d.latency_ms || 0), 1);
+  const barMax = Math.max(maxLat * 1.2, 50);
+
+  let html = '';
+  devices.forEach(d => {
+    const lat = d.network_latency_ms || d.latency_ms || 0;
+    const pct = Math.min(lat / barMax * 100, 100);
+    const name = d.device_id.replace('eiq-', '').split('-').slice(0,2).join('-');
+    let color, bg;
+    if (lat < 50) { color = '#10B981'; bg = 'rgba(16,185,129,0.15)'; }
+    else if (lat < 100) { color = '#F59E0B'; bg = 'rgba(245,158,11,0.15)'; }
+    else { color = '#EF4444'; bg = 'rgba(239,68,68,0.15)'; }
+
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+      '<div style="width:110px;font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">' + name + '</div>' +
+      '<div style="flex:1;height:18px;background:var(--surface);border-radius:4px;overflow:hidden;position:relative">' +
+        '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:4px;transition:width 0.6s ease"></div>' +
+      '</div>' +
+      '<div style="width:50px;text-align:right;font-size:11px;font-weight:700;font-family:var(--font-mono);color:' + color + '">' + Math.round(lat) + ' ms</div>' +
+    '</div>';
+  });
+
+  // Legend
+  html += '<div style="display:flex;gap:14px;margin-top:8px;font-size:9px;color:var(--text3);justify-content:flex-end">' +
+    '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#10B981;margin-right:3px"></span>< 50ms</span>' +
+    '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F59E0B;margin-right:3px"></span>50-100ms</span>' +
+    '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#EF4444;margin-right:3px"></span>> 100ms</span>' +
+  '</div>';
+
+  container.innerHTML = html;
 }
 
 function updateEquipoReport() {
@@ -4265,166 +4600,346 @@ function timeAgo(dateString) {
   }
 }
 
+// ── Render Event Viewer (Visor de Sucesos) ──
+function renderEventViewer(data) {
+  const panel = document.getElementById('secEventViewerPanel');
+  if (!panel) return;
+  
+  const events = data.event_logs;
+  if (!events || !events.length) {
+    panel.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:24px 0"><div style="font-size:24px;margin-bottom:6px">📋</div>No se encontraron eventos recientes</div>';
+    return;
+  }
+  
+  const sevColors = {'Crítico':'#EF4444','Error':'#F87171','Advertencia':'#FBBF24','Info':'#6C9FFF'};
+  const sevIcons = {'Crítico':'🔴','Error':'🟠','Advertencia':'🟡','Info':'🔵'};
+  const logColors = {'System':'#3B82F6','Application':'#A78BFA','Security':'#FBBF24'};
+  const logLabels = {'System':'Sistema','Application':'Aplicación','Security':'Seguridad'};
+  const typeIcons = {'inicio_sesion':'🔐','gestion_cuenta':'👤','servicio':'⚙️','apagado':'🔌','error_app':'💥','disco':'💿','energia':'⚡','general':'📋'};
+  
+  const critCount = events.filter(function(e){return e.severity==='Crítico'}).length;
+  const errCount = events.filter(function(e){return e.severity==='Error'}).length;
+  const warnCount = events.filter(function(e){return e.severity==='Advertencia'}).length;
+  const infoCount = events.filter(function(e){return e.severity==='Info'}).length;
+  
+  let h = '';
+  
+  // Summary bar
+  h += '<div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:center">';
+  h += '<div style="font-size:11px;color:var(--text3);font-weight:600">RESUMEN 24H:</div>';
+  if (critCount > 0) h += '<div style="background:#EF444418;color:#EF4444;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;border:1px solid #EF444433">🔴 ' + critCount + ' Críticos</div>';
+  if (errCount > 0) h += '<div style="background:#F8717118;color:#F87171;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;border:1px solid #F8717133">🟠 ' + errCount + ' Errores</div>';
+  if (warnCount > 0) h += '<div style="background:#FBBF2418;color:#FBBF24;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;border:1px solid #FBBF2433">🟡 ' + warnCount + ' Advertencias</div>';
+  h += '<div style="background:#6C9FFF18;color:#6C9FFF;font-size:10px;font-weight:700;padding:3px 10px;border-radius:5px;border:1px solid #6C9FFF33">🔵 ' + infoCount + ' Info</div>';
+  h += '<div style="margin-left:auto;font-size:10px;color:var(--text3)">' + events.length + ' eventos totales</div>';
+  h += '</div>';
+  
+  // Table
+  h += '<div style="overflow-x:auto;max-height:400px;overflow-y:auto">';
+  h += '<table class="data-table" style="width:100%"><thead><tr>';
+  h += '<th style="width:30px"></th><th>Severidad</th><th>Tipo</th><th>Origen</th><th>Registro</th><th>Mensaje</th><th>Hora</th>';
+  h += '</tr></thead><tbody>';
+  
+  events.sort(function(a, b) {
+    var order = {'Crítico':0,'Error':1,'Advertencia':2,'Info':3};
+    return (order[a.severity]||3) - (order[b.severity]||3);
+  });
+  
+  events.forEach(function(ev) {
+    var sc = sevColors[ev.severity] || '#6C9FFF';
+    var si = sevIcons[ev.severity] || '🔵';
+    var lc = logColors[ev.log] || '#6C9FFF';
+    var ll = logLabels[ev.log] || ev.log;
+    var ti = typeIcons[ev.event_type] || '📋';
+    var msg = (ev.message || '').substring(0, 120);
+    if (ev.message && ev.message.length > 120) msg += '...';
+    var time = ev.time ? ev.time.split('T')[1] || ev.time : '';
+    var date = ev.time ? ev.time.split('T')[0] || '' : '';
+    
+    h += '<tr>';
+    h += '<td style="font-size:14px;text-align:center">' + ti + '</td>';
+    h += '<td><span style="background:' + sc + '22;color:' + sc + ';font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;border:1px solid ' + sc + '44;white-space:nowrap">' + si + ' ' + ev.severity + '</span></td>';
+    h += '<td style="font-size:10px;color:var(--text2)">' + (ev.event_type || '').replace(/_/g,' ') + '<div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ID: ' + ev.id + '</div></td>';
+    h += '<td style="font-size:10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (ev.source||'') + '">' + (ev.source || '') + '</td>';
+    h += '<td><span style="background:' + lc + '18;color:' + lc + ';font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px">' + ll + '</span></td>';
+    h += '<td style="font-size:10px;color:var(--text2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + msg.replace(/"/g,'&quot;') + '">' + msg + '</td>';
+    h += '<td style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--font-mono)">' + time + '<div style="font-size:8px;color:var(--text3)">' + date + '</div></td>';
+    h += '</tr>';
+  });
+  
+  h += '</tbody></table></div>';
+  panel.innerHTML = h;
+}
+
+function renderUsbPortsEquipo(data) {
+  const panel = document.getElementById('secUsbPortsEquipo');
+  if (!panel) return;
+  
+  // Parse usb_ports - may come as JSON string from BigQuery
+  var ports = data.usb_ports;
+  if (typeof ports === 'string') {
+    try { ports = JSON.parse(ports); } catch(e) { ports = null; }
+  }
+  if (!ports || !Array.isArray(ports) || !ports.length) {
+    panel.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px 0"><div style="font-size:24px;margin-bottom:6px">🔌</div>No se detectaron puertos USB<br><span style="font-size:10px;opacity:.7">El agente no ha reportado datos de puertos</span></div>';
+    return;
+  }
+  
+  // Status config: En Uso (peripherals) / Disponible (controllers/hubs)
+  var statusCfg = {
+    'En Uso':       { color: '#10B981', icon: '●', label: 'EN USO',       bg: '#10B98112', border: '2px solid #10B981', glow: '0 0 12px #10B98130' },
+    'Disponible':   { color: '#FBBF24', icon: '○', label: 'DISPONIBLE',   bg: '#FBBF2410', border: '2px dashed #FBBF2466', glow: 'none' },
+    'Bloqueado':    { color: '#EF4444', icon: '⊘', label: 'BLOQUEADO',   bg: '#EF444412', border: '2px solid #EF4444', glow: '0 0 12px #EF444430' },
+    'Desconectado': { color: '#64748B', icon: '○', label: 'DESCONECTADO',bg: '#64748B08', border: '1px dashed #64748B55', glow: 'none' }
+  };
+  // Resolve any status to En Uso or Disponible
+  function resolveStatus(p) {
+    if (p.status === 'Bloqueado') return 'Bloqueado';
+    if (p.status === 'Desconectado') return 'Desconectado';
+    return (p.category === 'Controlador' || p.category === 'Hub') ? 'Disponible' : 'En Uso';
+  }
+  var catIcons2 = {'Teclado':'⌨️','Mouse':'🖱️','Almacenamiento':'💾','Camara':'📷','Audio':'🎧','Bluetooth':'📶','Impresora':'🖨️','Telefono':'📱','Controlador':'🔧','Periferico':'🔌','Hub':'🔗'};
+  
+  var devName = (data.device_id || '').replace('eiq-','').replace(/-[a-f0-9]{5,}$/,'');
+  
+  // Classify ports
+  var userDevices = ports.filter(function(p){ return resolveStatus(p) === 'En Uso'; });
+  var availPorts = ports.filter(function(p){ return resolveStatus(p) === 'Disponible'; });
+  var blockedPorts = ports.filter(function(p){ return p.status === 'Bloqueado'; });
+  var disconnected = ports.filter(function(p){ return p.status === 'Desconectado'; });
+  
+  var h = '';
+  
+  // Summary header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">';
+  h += '<div style="display:flex;align-items:center;gap:10px">';
+  h += '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#6C9FFF,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">💻</div>';
+  h += '<div><div style="font-weight:700;font-size:14px;color:var(--text)">' + devName + '</div>';
+  h += '<div style="font-size:10px;color:var(--text3)">' + ports.length + ' dispositivos USB detectados</div></div></div>';
+  
+  // Usage bar
+  var totalPorts = Math.max(ports.length, 1);
+  var pctUser = Math.round((userDevices.length / totalPorts) * 100);
+  var pctAvail = Math.round((availPorts.length / totalPorts) * 100);
+  var pctBlk = Math.round((blockedPorts.length / totalPorts) * 100);
+  var pctDisc = Math.round((disconnected.length / totalPorts) * 100);
+  
+  h += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
+  h += '<div style="font-size:10px;font-weight:600;color:var(--text3)">Estado de puertos</div>';
+  h += '<div style="display:flex;height:10px;width:160px;border-radius:6px;overflow:hidden;background:var(--surface2)">';
+  if (userDevices.length > 0) h += '<div style="width:' + pctUser + '%;background:#10B981" title="' + userDevices.length + ' en uso"></div>';
+  if (availPorts.length > 0) h += '<div style="width:' + pctAvail + '%;background:#FBBF24" title="' + availPorts.length + ' disponibles"></div>';
+  if (blockedPorts.length > 0) h += '<div style="width:' + pctBlk + '%;background:#EF4444" title="' + blockedPorts.length + ' bloqueados"></div>';
+  if (disconnected.length > 0) h += '<div style="width:' + pctDisc + '%;background:#64748B" title="' + disconnected.length + ' desconectados"></div>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:10px;font-size:9px">';
+  if (userDevices.length > 0) h += '<span style="color:#10B981">● ' + userDevices.length + ' en uso</span>';
+  if (availPorts.length > 0) h += '<span style="color:#FBBF24">○ ' + availPorts.length + ' disponibles</span>';
+  if (blockedPorts.length > 0) h += '<span style="color:#EF4444">⊘ ' + blockedPorts.length + ' bloqueados</span>';
+  if (disconnected.length > 0) h += '<span style="color:#64748B">○ ' + disconnected.length + ' desconectados</span>';
+  h += '</div></div></div>';
+  
+  // VISUAL PORT DIAGRAM
+  h += '<div style="margin-bottom:16px">';
+  h += '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="font-size:14px">🖥️</span> Diagrama de Puertos</div>';
+  h += '<div style="background:var(--surface1);border-radius:12px;padding:16px;border:1px solid var(--border)">';
+  h += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">';
+  
+  ports.forEach(function(port, idx) {
+    var st = resolveStatus(port);
+    var cfg = statusCfg[st] || statusCfg['Desconectado'];
+    var ci = catIcons2[port.category] || '🔧';
+    var isUser = (st === 'En Uso');
+    var isAvail = (st === 'Disponible');
+    
+    h += '<div style="width:130px;background:' + cfg.bg + ';border:' + cfg.border + ';border-radius:10px;padding:10px;position:relative;box-shadow:' + cfg.glow + ';transition:transform .2s" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'none\'">';
+    h += '<div style="position:absolute;top:4px;right:6px;font-size:8px;font-weight:700;color:var(--text3);opacity:.6">P' + (idx + 1) + '</div>';
+    
+    // USB connector badge
+    var connType = port.port_type === 'USB-C' ? 'USB-C' : 'USB-A';
+    var connClr = port.port_type === 'USB-C' ? '#A78BFA' : '#6C9FFF';
+    h += '<div style="text-align:center;margin-bottom:6px"><div style="display:inline-block;padding:2px 10px;border-radius:' + (connType === 'USB-C' ? '10px' : '3px') + ';background:' + connClr + '22;border:1px solid ' + connClr + '55;font-size:8px;font-weight:800;color:' + connClr + '">' + connType + '</div></div>';
+    
+    // Device icon
+    h += '<div style="text-align:center;margin-bottom:4px"><div style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:' + cfg.color + '22;font-size:14px">';
+    if (isUser) h += ci;
+    else if (isAvail) h += '<div style="width:10px;height:10px;border-radius:50%;border:2px dashed #FBBF2488"></div>';
+    else if (st === 'Bloqueado') h += '🔒';
+    else h += '<div style="width:10px;height:10px;border-radius:50%;background:#64748B44"></div>';
+    h += '</div></div>';
+    
+    // Status label
+    h += '<div style="text-align:center;font-size:9px;font-weight:700;color:' + cfg.color + ';margin-bottom:2px">' + cfg.icon + ' ' + cfg.label + '</div>';
+    
+    // Device name (always show for real data)
+    var shortName = port.name.length > 18 ? port.name.substring(0, 16) + '…' : port.name;
+    h += '<div style="text-align:center;font-size:8px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + port.name + '">' + shortName + '</div>';
+    h += '<div style="text-align:center;font-size:7px;color:var(--text3);margin-top:1px">' + port.category + '</div>';
+    
+    h += '</div>';
+  });
+  
+  h += '</div></div></div>';
+  
+  // DETAIL TABLE - show ALL ports with real info
+  h += '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="font-size:14px">📋</span> Detalle de Dispositivos (' + ports.length + ')</div>';
+  h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:11px">';
+  h += '<thead><tr style="background:var(--surface1)">';
+  h += '<th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Puerto</th>';
+  h += '<th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Dispositivo</th>';
+  h += '<th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Categoría</th>';
+  h += '<th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Fabricante</th>';
+  h += '<th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Estado</th>';
+  h += '</tr></thead><tbody>';
+  
+  // Show user devices first, then system
+  var sorted = userDevices.concat(blockedPorts).concat(disconnected).concat(availPorts);
+  sorted.forEach(function(port, idx) {
+    var st2 = resolveStatus(port);
+    var cfg2 = statusCfg[st2] || statusCfg['Desconectado'];
+    var ci2 = catIcons2[port.category] || '🔧';
+    var connClr2 = port.port_type === 'USB-C' ? '#A78BFA' : '#6C9FFF';
+    var bgRow = idx % 2 === 0 ? 'transparent' : 'var(--surface1)';
+    h += '<tr style="background:' + bgRow + '">';
+    h += '<td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span style="background:' + connClr2 + '22;color:' + connClr2 + ';font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px">' + port.port_type + '</span></td>';
+    h += '<td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600"><span style="margin-right:4px">' + ci2 + '</span>' + port.name + '</td>';
+    h += '<td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3)">' + port.category + '</td>';
+    h += '<td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3)">' + (port.manufacturer || 'N/A') + '</td>';
+    h += '<td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center"><span style="display:inline-flex;align-items:center;gap:4px;background:' + cfg2.color + '18;color:' + cfg2.color + ';font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ' + cfg2.color + '33"><span style="width:6px;height:6px;border-radius:50%;background:' + cfg2.color + '"></span>' + cfg2.label + '</span></td>';
+    h += '</tr>';
+  });
+  
+  h += '</tbody></table></div>';
+  
+  panel.innerHTML = h;
+}
+
 function renderSubnetGraph(m) {
   const svg = document.getElementById('subnetGraphSvg');
   if (!svg) return;
   svg.innerHTML = '';
-  
   let netInfo = null;
   if (m.network_info) {
-    try {
-      netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info;
-    } catch (e) {
-      netInfo = null;
-    }
+    try { netInfo = typeof m.network_info === 'string' ? JSON.parse(m.network_info) : m.network_info; } catch(e) {}
   }
-  
-  const width = svg.clientWidth || 300;
+  const width = svg.clientWidth || 400;
   const height = svg.clientHeight || 200;
   const cx = width / 2;
   const cy = height / 2;
-  
   if (!netInfo || !netInfo.connected_devices || netInfo.connected_devices.length === 0) {
-    svg.innerHTML = `
-      <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/>
-      <text x="${cx}" y="${cy + 25}" text-anchor="middle" fill="var(--text2)" font-size="10.5" font-family="var(--font-ui)">${m.device_id}</text>
-      <text x="${cx}" y="${cy - 20}" text-anchor="middle" fill="var(--text3)" font-size="9.5" font-family="var(--font-ui)">Sin red local detectada</text>
-    `;
+    svg.innerHTML = '<circle cx="'+cx+'" cy="'+cy+'" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2"/><text x="'+cx+'" y="'+(cy+25)+'" text-anchor="middle" fill="var(--text2)" font-size="10.5">'+m.device_id+'</text><text x="'+cx+'" y="'+(cy-20)+'" text-anchor="middle" fill="var(--text3)" font-size="9.5">Sin red detectada</text>';
     return;
   }
-  
-  const devices = netInfo.connected_devices.slice(0, 10);
+  const devices = netInfo.connected_devices.slice(0, 12);
   const N = devices.length;
-  const radius = 65;
-  
-  let content = '';
-  
-  // Nodos satélites y líneas
-  devices.forEach((dev, i) => {
-    const angle = i * (2 * Math.PI / N);
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    
-    const isGateway = dev.ip.endsWith('.1');
-    const color = isGateway ? 'var(--amber)' : 'var(--green)';
-    const size = isGateway ? 9 : 7;
-    
-    // Línea al nodo central
-    content += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
-    
-    // Nodo satélite
-    content += `
-      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="cursor:help">
-        <title>IP: ${dev.ip}\nMAC: ${dev.mac}\nTipo: ${dev.type}</title>
-      </circle>
-    `;
+  const radius = Math.min(width, height) * 0.33;
+  let c = '';
+  c += '<defs><filter id="gl-b"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  c += '<filter id="gl-g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  c += '<filter id="gl-a"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  devices.forEach(function(dev, i) {
+    var angle = (i * (2 * Math.PI / N)) - Math.PI / 2;
+    var x = cx + radius * Math.cos(angle);
+    var y = cy + radius * Math.sin(angle);
+    var isGW = dev.type === 'static' || (dev.ip && dev.ip.endsWith('.1'));
+    var col = isGW ? '#F59E0B' : '#10B981';
+    var flt = isGW ? 'gl-a' : 'gl-g';
+    var sz = isGW ? 10 : 8;
+    var lbl = dev.hostname || dev.ip || '?';
+    if (lbl.length > 15) lbl = lbl.substring(0, 13) + '..';
+    c += '<line x1="'+cx+'" y1="'+cy+'" x2="'+x+'" y2="'+y+'" stroke="rgba(100,116,139,0.3)" stroke-width="1.5" stroke-dasharray="3 3"/>';
+    c += '<circle cx="'+x+'" cy="'+y+'" r="'+sz+'" fill="'+col+'" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" style="cursor:help;filter:url(#'+flt+')"><title>'+(dev.hostname?dev.hostname+'\n':'')+'IP: '+dev.ip+'\nMAC: '+dev.mac+'</title></circle>';
+    var ly = y > cy ? y + sz + 12 : y - sz - 5;
+    c += '<text x="'+x+'" y="'+ly+'" text-anchor="middle" fill="'+(isGW?'#F59E0B':'#94A3B8')+'" font-size="8" font-weight="600" font-family="monospace">'+lbl+'</text>';
   });
-  
-  // Nodo central
-  content += `
-    <circle cx="${cx}" cy="${cy}" r="12" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--blue))">
-      <title>Este equipo: ${m.device_id}</title>
-    </circle>
-  `;
-  
-  svg.innerHTML = content;
+  c += '<circle cx="'+cx+'" cy="'+cy+'" r="14" fill="#3B82F6" stroke="rgba(0,0,0,0.4)" stroke-width="2" style="filter:url(#gl-b);cursor:help"><title>Este equipo: '+m.device_id+'</title></circle>';
+  c += '<text x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle" fill="white" font-size="8" font-weight="700">YO</text>';
+  var netName = netInfo.wifi_ssid || 'Red Local';
+  c += '<text x="'+cx+'" y="'+(height-4)+'" text-anchor="middle" fill="#64748B" font-size="8">'+netName+' - '+N+' dispositivos</text>';
+  svg.innerHTML = c;
 }
 
 function renderWebTrafficGraph(userId) {
   const svg = document.getElementById('webTrafficGraphSvg');
   if (!svg) return;
   svg.innerHTML = '';
-  
   const width = svg.clientWidth || 500;
   const height = svg.clientHeight || 350;
   
-  // Obtener los usuarios/equipos a graficar
-  let users = [];
+  // Get users to graph
+  var users = [];
   if (userId === '__all__') {
-    users = fleetDevices.slice(0, 8); // Límite de 8 usuarios
+    users = fleetDevices.slice(0, 8);
   } else {
-    const dev = fleetDevices.find(d => d.device_id === userId);
+    var dev = fleetDevices.find(function(d) { return d.device_id === userId; });
     if (dev) users = [dev];
   }
   
-  // Obtener los dominios top
-  let domains = [];
+  // Get top domains from productivity data
+  var domains = [];
   if (_prodData && _prodData.web_pages) {
-    domains = _prodData.web_pages.slice(0, 8); // Top 8 dominios
+    domains = _prodData.web_pages.slice(0, 8);
   }
   
   if (users.length === 0 || domains.length === 0) {
-    svg.innerHTML = `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>`;
+    svg.innerHTML = '<text x="' + (width/2) + '" y="' + (height/2) + '" text-anchor="middle" fill="var(--text3)" font-size="13">Sin datos para graficar</text>';
     return;
   }
   
-  const uCount = users.length;
-  const dCount = domains.length;
+  var uCount = users.length;
+  var dCount = domains.length;
+  var uX = 100;
+  var dX = width - 150;
+  var c = '';
   
-  const uX = 80;
-  const dX = width - 130;
+  // Get per-device web data for connections
+  var perDevWeb = (_prodData && _prodData.per_device_web) ? _prodData.per_device_web : {};
   
-  let content = '';
-  
-  // Mapa de posiciones de los nodos para dibujar líneas
-  const userPos = {};
-  const domainPos = {};
-  
-  // Dibujar líneas/enlaces (Edges) primero
-  users.forEach((user, ui) => {
-    const uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
-    userPos[user.device_id] = { x: uX, y: uy };
+  // Draw edges first
+  users.forEach(function(user, ui) {
+    var uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
+    var deviceWeb = perDevWeb[user.device_id] || [];
     
-    // Parsear historial del navegador del equipo
-    let history = [];
-    if (user.browser_history) {
-      try {
-        history = typeof user.browser_history === 'string' ? JSON.parse(user.browser_history) : user.browser_history;
-      } catch(e) { history = []; }
-    }
-    
-    domains.forEach((dom, di) => {
-      const dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
-      domainPos[dom.domain] = { x: dX, y: dy };
+    domains.forEach(function(dom, di) {
+      var dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
       
-      // Buscar visitas de este usuario a este dominio
-      const visitRecord = (history || []).find(h => h.domain === dom.domain);
+      // Find if this device visits this domain
+      var visitRecord = deviceWeb.find(function(w) { return w.domain === dom.domain; });
       if (visitRecord) {
-        const visits = visitRecord.visits || 1;
-        const strokeWidth = Math.min(1 + visits * 0.5, 6);
-        const opacity = Math.min(0.1 + visits * 0.05, 0.7);
-        content += `<line x1="${uX}" y1="${uy}" x2="${dX}" y2="${dy}" stroke="var(--purple)" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
+        var visits = visitRecord.visits || 1;
+        var sw = Math.min(1 + visits * 0.4, 5);
+        var op = Math.min(0.15 + visits * 0.04, 0.65);
+        c += '<line x1="' + uX + '" y1="' + uy + '" x2="' + dX + '" y2="' + dy + '" stroke="var(--purple)" stroke-width="' + sw + '" opacity="' + op + '"/>';
       }
     });
   });
   
-  // Dibujar nodos de Usuarios (Azul)
-  users.forEach((user, ui) => {
-    const pos = userPos[user.device_id];
-    content += `
-      <g class="graph-node-group" style="cursor:pointer" onclick="selectedDeviceId='${user.device_id}';showView('equipo')">
-        <circle cx="${pos.x}" cy="${pos.y}" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue))"/>
-        <text x="${pos.x - 12}" y="${pos.y + 4}" text-anchor="end" fill="var(--text2)" font-size="10.5" font-family="var(--font-mono)">${user.device_id}</text>
-      </g>
-    `;
+  // Draw user nodes (blue, left)
+  users.forEach(function(user, ui) {
+    var uy = (uCount === 1) ? height / 2 : (ui * (height - 60) / (uCount - 1)) + 30;
+    var parts = user.device_id.split("-");
+    var label = parts.length >= 3 ? parts[1] + "-" + parts[2] : user.device_id;
+    if (label.length > 16) label = label.substring(0, 14) + '..';
+    c += '<circle cx="' + uX + '" cy="' + uy + '" r="8" fill="var(--blue)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 3px var(--blue));cursor:pointer"/>';
+    c += '<text x="' + (uX - 14) + '" y="' + (uy + 4) + '" text-anchor="end" fill="var(--text2)" font-size="10" font-family="var(--font-mono)">' + label + '</text>';
   });
   
-  // Dibujar nodos de Dominios Web (Púrpura)
-  domains.forEach((dom, di) => {
-    const pos = domainPos[dom.domain];
-    const visits = dom.visits || 1;
-    const size = Math.min(8 + visits * 0.3, 22);
-    
-    content += `
-      <g class="graph-node-group">
-        <circle cx="${pos.x}" cy="${pos.y}" r="${size}" fill="var(--purple)" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px var(--purple))"/>
-        <text x="${pos.x + size + 8}" y="${pos.y + 4}" text-anchor="start" fill="var(--text)" font-size="11" font-weight="600">${dom.domain}</text>
-        <text x="${pos.x + size + 8}" y="${pos.y + 14}" text-anchor="start" fill="var(--text3)" font-size="9" font-family="var(--font-mono)">Visitas: ${visits}</text>
-      </g>
-    `;
+  // Draw domain nodes (purple, right)
+  domains.forEach(function(dom, di) {
+    var dy = (dCount === 1) ? height / 2 : (di * (height - 60) / (dCount - 1)) + 30;
+    var visits = dom.visits || 1;
+    var size = Math.min(8 + visits * 0.3, 20);
+    var catColor = dom.cat_class === 'cat-trabajo' ? '#3B82F6' : dom.cat_class === 'cat-comun' ? '#10B981' : dom.cat_class === 'cat-social' ? '#EF4444' : '#8B5CF6';
+    c += '<circle cx="' + dX + '" cy="' + dy + '" r="' + size + '" fill="' + catColor + '" stroke="var(--surface)" stroke-width="2" style="filter:drop-shadow(0 0 4px ' + catColor + ')"><title>' + dom.domain + ' - ' + visits + ' visitas</title></circle>';
+    c += '<text x="' + (dX + size + 8) + '" y="' + (dy + 1) + '" text-anchor="start" fill="var(--text)" font-size="10.5" font-weight="600">' + dom.domain + '</text>';
+    c += '<text x="' + (dX + size + 8) + '" y="' + (dy + 12) + '" text-anchor="start" fill="var(--text3)" font-size="9">' + dom.category + ' · ' + visits + ' visitas</text>';
   });
   
-  svg.innerHTML = content;
+  // Labels
+  c += '<text x="' + uX + '" y="14" text-anchor="middle" fill="var(--text3)" font-size="9" font-weight="700" text-transform="uppercase">EQUIPOS</text>';
+  c += '<text x="' + dX + '" y="14" text-anchor="middle" fill="var(--text3)" font-size="9" font-weight="700" text-transform="uppercase">SITIOS WEB</text>';
+  
+  svg.innerHTML = c;
 }
 
 // ── Inicializacion ──
@@ -4788,7 +5303,158 @@ window.onload = () => {
       body.scrollTop = body.scrollHeight;
     }
   }
+
+// ----------------------------------------------------
+// ?? GOOGLE MAPS INTEGRATION ??
+// ----------------------------------------------------
+var googleMapInstance = null;
+var googleMapMarkers = [];
+
+window.initGoogleMap = function() {
+  const mapContainer = document.getElementById('googleMap');
+  if (!mapContainer) return;
+  
+  // Custom styled premium Dark Theme for Onyx (complete night/charcoal style)
+  googleMapInstance = new google.maps.Map(mapContainer, {
+    center: { lat: 4.6097, lng: -74.0817 }, // Colombia center (Bogotá)
+    zoom: 6,
+    styles: [
+      { "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
+      { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "administrative.country", "elementType": "geometry.stroke", "stylers": [{ "color": "#334155" }, { "weight": 1.5 }] },
+      { "featureType": "administrative.province", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+      { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+      { "featureType": "landscape.man_made", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+      { "featureType": "landscape.natural", "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
+      { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "poi", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
+      { "featureType": "road", "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
+      { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+      { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+      { "featureType": "transit", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] },
+      { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#334155" }] }
+    ],
+    disableDefaultUI: false,
+    zoomControl: true,
+    mapTypeControl: false,
+    scaleControl: true,
+    streetViewControl: false,
+    rotateControl: false,
+    fullscreenControl: true
+  });
+  
+  console.log("[MAP] Google Map initialized with Premium Dark Theme.");
+  if (window.latestConnectionMapData) {
+    window.updateGoogleMapMarkers(window.latestConnectionMapData);
+  }
+};
+
+window.updateGoogleMapMarkers = function(devices) {
+  if (!googleMapInstance) return;
+  
+  // Clear old markers
+  googleMapMarkers.forEach(m => m.setMap(null));
+  googleMapMarkers = [];
+  
+  const bounds = new google.maps.LatLngBounds();
+  let hasPoints = false;
+  
+  const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
+  const seenCoords = {};
+  
+  devices.forEach((dev, index) => {
+    let lat = Number(dev.lat) || 4.6097;
+    let lng = Number(dev.lon) || -74.0817;
+    
+    // Dispersión / Jitter de coordenadas cuando coinciden exactamente (evita solapamiento)
+    const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (seenCoords[coordKey]) {
+      const count = seenCoords[coordKey];
+      const angle = (count * 2 * Math.PI) / 6; // distribución en espiral
+      const radius = 0.015 * Math.ceil(count / 6); // dispersión aproximada de 1.5km por nivel
+      lat += radius * Math.cos(angle);
+      lng += radius * Math.sin(angle);
+      seenCoords[coordKey]++;
+    } else {
+      seenCoords[coordKey] = 1;
+    }
+    
+    // Guardar las coordenadas ajustadas de vuelta en el objeto para que las tarjetas de abajo coincidan exactamente
+    dev.lat = lat;
+    dev.lon = lng;
+    
+    const isOnline = dev.status === 'online';
+    const color = isOnline ? pinColors[index % pinColors.length] : '#EF4444';
+    
+    // Premium sleek circular dot (punto) marker instead of a heavy pin icon
+    const markerIcon = {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: color,
+      fillOpacity: 1.0,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 1.8,
+      scale: 8, // Sleek, modern point dot radius
+    };
+    
+    const marker = new google.maps.Marker({
+      position: { lat: lat, lng: lng },
+      map: googleMapInstance,
+      title: dev.name,
+      icon: markerIcon,
+      animation: google.maps.Animation.DROP
+    });
+    
+    const infoContent = `
+      <div style="background:#040d21; color:#F1F5F9; font-family:'DM Sans', sans-serif; padding:12px 16px; border-radius:10px; border:1px solid ${color}44; min-width:180px; box-shadow:0 12px 40px rgba(0,0,0,0.6)">
+        <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:${color}">
+          ● ${dev.name}
+        </div>
+        <div style="display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:11px">
+          <span style="color:#64748B">IP:</span><span style="font-family:monospace; color:#CBD5E1">${dev.ip || 'N/A'}</span>
+          <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
+          <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
+          <span style="color:#64748B">Coord:</span><span style="font-family:monospace; color:#3B82F6">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+          <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || 'N/A'}</span>
+          <span style="color:#64748B">Estado:</span><span style="color:${color}; font-weight:700">${isOnline ? 'Conectado' : 'Desconectado'}</span>
+        </div>
+      </div>
+    `;
+    
+    const infowindow = new google.maps.InfoWindow({
+      content: infoContent
+    });
+    
+    marker.addListener('click', () => {
+      infowindow.open(googleMapInstance, marker);
+    });
+    
+    googleMapMarkers.push(marker);
+    bounds.extend(marker.getPosition());
+    hasPoints = true;
+  });
+  
+  if (hasPoints) {
+    if (devices.length === 1) {
+      googleMapInstance.setCenter(bounds.getCenter());
+      googleMapInstance.setZoom(11);
+    } else {
+      googleMapInstance.fitBounds(bounds);
+      const listener = google.maps.event.addListener(googleMapInstance, "idle", () => {
+        if (googleMapInstance.getZoom() > 14) googleMapInstance.setZoom(14);
+        google.maps.event.removeListener(listener);
+      });
+    }
+  }
+};
 </script>
+  <script src="https://maps.googleapis.com/maps/api/js?callback=initGoogleMap" async defer></script>
 </body>
 </html>
 

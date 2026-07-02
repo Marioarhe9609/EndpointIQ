@@ -1,8 +1,8 @@
 @echo off
-title EndpointIQ Agent - Desinstalador
+title Onyx Agent - Desinstalador
 echo.
 echo  +==================================================+
-echo  ^|       EndpointIQ Agent - Desinstalador           ^|
+echo  ^|       Onyx Agent - Desinstalador           ^|
 echo  +==================================================+
 echo.
 
@@ -18,6 +18,6 @@ if %errorlevel% neq 0 (
 
 echo  [OK] Permisos de Administrador verificados
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0eiq_uninstaller.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0onyx_uninstaller.ps1"
 echo.
 pause

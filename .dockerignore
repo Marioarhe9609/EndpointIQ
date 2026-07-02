@@ -16,3 +16,9 @@ data_sync_status.json
 Antivirus_Compatibility_Report.md
 README.md
 .gitignore
+agent/build
+agent/*.spec
+agent/onyx.ico
+/onyx_credentials.json
+infra/
+.github/

@@ -1,0 +1,85 @@
+name: Deploy to Producción (PROD)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: proy-anla-poc
+  GAR_LOCATION: us-central1
+  REPOSITORY: onyx-server-repo
+  SERVICE: onyx-server-prod
+  REGION: us-central1
+  WORKLOAD_IDENTITY_PROVIDER: projects/631753912632/locations/global/workloadIdentityPools/onyx-github-pool/providers/onyx-github-provider
+  SERVICE_ACCOUNT: onyx-github-sa@proy-anla-poc.iam.gserviceaccount.com
+
+jobs:
+  deploy-prod:
+    name: Canary Deploy PROD
+    runs-on: ubuntu-latest
+    # Recomendar configurar un ambiente de GitHub con protección de aprobación manual (Manual Approval Gate)
+    environment:
+      name: Production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Google Auth (Workload Identity)
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker for GCP
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and Push Container Image
+        run: |
+          IMAGE_TAG="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:prod-${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          
+          # Etiquetar también como 'latest'
+          docker tag $IMAGE_TAG "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:latest"
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:latest"
+
+      - name: Deploy Canary Revision (10% Traffic Split)
+        id: deploy
+        run: |
+          IMAGE="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/onyx-server:latest"
+          
+          echo "[INFO] Desplegando nueva revisión en Producción..."
+          # Desplegar la nueva revisión sin asignarle el 100% del tráfico inmediatamente
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image=$IMAGE \
+            --region=${{ env.REGION }} \
+            --no-traffic \
+            --set-env-vars=BQ_DATASET=onyx_prod,PORT=8080 \
+            --tag=canary-${{ github.sha }} \
+            --quiet
+            
+          # Obtener el nombre de la última revisión creada
+          LATEST_REV=$(gcloud run revisions list --service=${{ env.SERVICE }} --region=${{ env.REGION }} --limit=1 --format="value(name)")
+          echo "[INFO] Nueva revisión canary creada: $LATEST_REV"
+          
+          # Obtener el nombre de la revisión que actualmente tiene el tráfico activo (anterior revisión)
+          ACTIVE_REVS=$(gcloud run services describe ${{ env.SERVICE }} --region=${{ env.REGION }} --format="value(status.traffic.revisionName)")
+          
+          echo "[INFO] Aplicando Rollout Canary: 10% a la nueva revisión ($LATEST_REV) y 90% a la revisión activa..."
+          # Configurar la división de tráfico: 90% al tráfico base y 10% al canary
+          gcloud run services update-traffic ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} \
+            --to-revisions=$LATEST_REV=10 \
+            --quiet
+            
+          echo "La versión Canary al 10% está en línea para verificación."

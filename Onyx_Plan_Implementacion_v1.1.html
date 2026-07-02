@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Onyx — Plan de Implementación v1.1</title>
+<!-- Fuentes del sistema — sin dependencias externas -->
+<style>
+:root {
+  --ink:       #0A0F1C;
+  --ink2:      #2D3A52;
+  --ink3:      #6B7A99;
+  --paper:     #F8F7F3;
+  --paper2:    #EEECEA;
+  --paper3:    #E3E0DB;
+  --blue:      #1E40AF;
+  --blue-l:    #DBEAFE;
+  --cyan:      #0E7490;
+  --cyan-l:    #CFFAFE;
+  --green:     #065F46;
+  --green-l:   #D1FAE5;
+  --amber:     #92400E;
+  --amber-l:   #FEF3C7;
+  --red:       #991B1B;
+  --red-l:     #FEE2E2;
+  --purple:    #4C1D95;
+  --purple-l:  #EDE9FE;
+  --teal:      #115E59;
+  --teal-l:    #CCFBF1;
+  --rule:      rgba(10,15,28,0.10);
+  --font-body: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', 'SF Mono', 'Monaco', 'Menlo', monospace;
+  --font-disp: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  padding: 0;
+}
+
+/* COVER */
+.cover {
+  background: linear-gradient(135deg, #0A0F1C 0%, #1a1f3a 50%, #0d1829 100%);
+  color: var(--paper);
+  padding: 72px 56px 56px;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 48px),
+  repeating-linear-gradient(180deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 48px);
+}
+.cover::after {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.cover-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 28px;
+  position: relative;
+}
+.cover-title {
+  font-family: var(--font-disp);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  color: #fff;
+  margin-bottom: 8px;
+  position: relative;
+}
+.cover-title span {
+  background: linear-gradient(90deg, #60A5FA, #22D3EE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cover-version {
+  font-family: var(--font-disp);
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 6px;
+  position: relative;
+}
+.cover-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.42);
+  font-weight: 300;
+  letter-spacing: 0.3px;
+  margin-bottom: 44px;
+  position: relative;
+  max-width: 600px;
+}
+.cover-badges {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  position: relative; margin-bottom: 32px;
+}
+.cover-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px; font-weight: 500;
+  color: rgba(255,255,255,0.7);
+}
+.cover-badge .badge-icon { font-size: 15px; }
+.cover-meta {
+  display: flex; gap: 32px; flex-wrap: wrap;
+  position: relative;
+}
+.cover-meta-item { display: flex; flex-direction: column; gap: 4px; }
+.cover-meta-label {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+.cover-meta-value {
+  font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.8);
+}
+.cover-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 28px;
+  position: relative;
+}
+
+/* LAYOUT */
+.doc { max-width: 960px; margin: 0 auto; padding: 0 40px 80px; }
+
+/* SECTION HEADERS */
+.section-block { margin-top: 56px; }
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 6px;
+}
+.section-title {
+  font-family: var(--font-disp);
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.5px; color: var(--ink);
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--rule);
+  margin-bottom: 24px;
+}
+
+/* PROSE */
+p { color: var(--ink2); font-size: 14px; margin-bottom: 12px; }
+p:last-child { margin-bottom: 0; }
+strong { color: var(--ink); font-weight: 600; }
+
+/* INTRO BOX */
+.intro-box {
+  background: var(--ink);
+  color: rgba(255,255,255,0.82);
+  border-radius: 8px;
+  padding: 28px 32px;
+  font-size: 15px; line-height: 1.75;
+  margin-bottom: 32px;
+}
+.intro-box strong { color: #fff; }
+
+/* CAPABILITY CARDS */
+.cap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px; margin: 20px 0;
+}
+.cap-card {
+  border-radius: 10px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid;
+}
+.cap-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 4px;
+}
+.cap-card.c1 { background: #EFF6FF; border-color: #BFDBFE; }
+.cap-card.c1::before { background: linear-gradient(90deg, #3B82F6, #06B6D4); }
+.cap-card.c2 { background: #F0FDF4; border-color: #BBF7D0; }
+.cap-card.c2::before { background: linear-gradient(90deg, #10B981, #34D399); }
+.cap-card.c3 { background: #FAF5FF; border-color: #DDD6FE; }
+.cap-card.c3::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+.cap-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+.cap-num {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cap-card.c1 .cap-num { color: var(--blue); }
+.cap-card.c2 .cap-num { color: var(--green); }
+.cap-card.c3 .cap-num { color: var(--purple); }
+.cap-name {
+  font-family: var(--font-disp);
+  font-size: 17px; font-weight: 700;
+  color: var(--ink); margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+.cap-desc { font-size: 13px; color: var(--ink2); line-height: 1.55; }
+
+/* SUMMARY TABLE */
+.sum-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.sum-table th {
+  background: var(--ink);
+  color: rgba(255,255,255,0.7);
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 11px 16px; text-align: left; font-weight: 400;
+}
+.sum-table td {
+  padding: 12px 16px; color: var(--ink2);
+  border-top: 1px solid var(--paper3);
+  vertical-align: top;
+}
+.sum-table tr:nth-child(even) td { background: var(--paper2); }
+.sum-table td:first-child { font-weight: 600; color: var(--ink); }
+
+/* BADGE */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 4px;
+}
+.badge-blue { background: var(--blue-l); color: var(--blue); }
+.badge-green { background: var(--green-l); color: var(--green); }
+.badge-purple { background: var(--purple-l); color: var(--purple); }
+.badge-amber { background: var(--amber-l); color: var(--amber); }
+.badge-red { background: var(--red-l); color: var(--red); }
+.badge-teal { background: var(--teal-l); color: var(--teal); }
+.badge-cyan { background: var(--cyan-l); color: var(--cyan); }
+
+/* ARCHITECTURE */
+.arch-flow {
+  display: flex; flex-direction: column; gap: 4px;
+  margin: 24px 0;
+}
+.arch-box {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--paper3);
+}
+.arch-box-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+}
+.arch-box-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--paper3);
+  background: var(--paper);
+}
+.arch-tag {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  color: #fff; background: var(--ink);
+  padding: 3px 8px; border-radius: 4px;
+  flex-shrink: 0;
+}
+.arch-title { font-weight: 600; font-size: 13.5px; }
+.arch-services {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--ink3);
+  margin-left: auto; flex-shrink: 0;
+}
+.arch-bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.arch-bullets li {
+  font-size: 13px; color: var(--ink2);
+  display: flex; gap: 10px; align-items: baseline;
+}
+.arch-bullets li::before {
+  content: '→'; font-family: var(--font-mono);
+  font-size: 11px; color: var(--ink3); flex-shrink: 0;
+}
+.a-blue { background: #EFF6FF; }
+.a-blue .arch-box-head { background: #DBEAFE; }
+.a-blue .arch-title { color: #1E40AF; }
+.a-green { background: #F0FDF4; }
+.a-green .arch-box-head { background: #DCFCE7; }
+.a-green .arch-title { color: #065F46; }
+.a-purple { background: #FAF5FF; }
+.a-purple .arch-box-head { background: #EDE9FE; }
+.a-purple .arch-title { color: #4C1D95; }
+.a-amber { background: #FFFBEB; }
+.a-amber .arch-box-head { background: #FEF3C7; }
+.a-amber .arch-title { color: #92400E; }
+
+/* SECURITY MODEL */
+.sec-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px; margin: 20px 0;
+}
+.sec-col {
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.sec-col-head {
+  padding: 13px 18px;
+  font-size: 13px; font-weight: 600;
+  color: #fff; display: flex; gap: 8px; align-items: center;
+}
+.sec-col ul {
+  list-style: none; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.sec-col ul li {
+  font-size: 12.5px; color: var(--ink2);
+  display: flex; gap: 8px; align-items: baseline; line-height: 1.45;
+}
+.sec-col ul li::before {
+  content: '▸'; font-size: 10px; color: var(--ink3); flex-shrink: 0;
+}
+.sec-a .sec-col-head { background: linear-gradient(135deg, #1E40AF, #0E7490); }
+.sec-b .sec-col-head { background: linear-gradient(135deg, #065F46, #14532D); }
+.sec-c .sec-col-head { background: linear-gradient(135deg, #4C1D95, #6D28D9); }
+
+/* ROLE TABLE */
+.role-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12.5px; margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.role-table th {
+  background: var(--ink2);
+  color: rgba(255,255,255,0.75);
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 14px; text-align: left; font-weight: 400;
+}
+.role-table td {
+  padding: 10px 14px; color: var(--ink2);
+  border-top: 1px solid var(--paper3); vertical-align: middle;
+}
+.role-table tr:nth-child(even) td { background: var(--paper2); }
+.role-table td:first-child { font-weight: 600; color: var(--ink); }
+.check { color: var(--green); font-size: 14px; }
+.cross { color: var(--red); font-size: 14px; }
+.partial { color: var(--amber); font-size: 14px; }
+
+/* CHAT MOCK */
+.chat-mock {
+  background: #0B141A;
+  border-radius: 14px;
+  overflow: hidden;
+  max-width: 380px;
+  margin: 20px auto;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+}
+.chat-header {
+  background: #1F2C34;
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.chat-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #06B6D4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: white; font-weight: 700;
+}
+.chat-name { color: #E9EDEF; font-size: 14px; font-weight: 600; }
+.chat-status { color: #8696A0; font-size: 11px; }
+.chat-body {
+  padding: 12px 14px;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  min-height: 280px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.msg {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px; line-height: 1.5;
+  position: relative;
+}
+.msg-bot {
+  background: #1F2C34;
+  color: #E9EDEF;
+  align-self: flex-start;
+  border-top-left-radius: 0;
+}
+.msg-user {
+  background: #005C4B;
+  color: #E9EDEF;
+  align-self: flex-end;
+  border-top-right-radius: 0;
+}
+.msg-time {
+  font-size: 10px; color: rgba(255,255,255,0.4);
+  text-align: right; margin-top: 3px;
+}
+.msg-img {
+  width: 100%; border-radius: 6px;
+  height: 120px;
+  background: linear-gradient(135deg, #1a2332, #0f1923);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* LEARNING CYCLE */
+.cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin: 20px 0;
+}
+.cycle-step {
+  background: var(--paper);
+  border: 1px solid var(--paper3);
+  border-radius: 8px;
+  padding: 18px 16px;
+  text-align: center;
+  position: relative;
+}
+.cycle-step::after {
+  content: '→';
+  position: absolute; right: -12px; top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 16px; color: var(--ink3);
+}
+.cycle-step:last-child::after { content: ''; }
+.cycle-num {
+  font-family: var(--font-disp);
+  font-size: 24px; font-weight: 800;
+  margin-bottom: 4px;
+}
+.cycle-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--ink); margin-bottom: 4px;
+}
+.cycle-desc {
+  font-size: 11px; color: var(--ink3); line-height: 1.4;
+}
+
+/* EPIC CARDS */
+.epics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px; margin: 20px 0;
+}
+.epic-card {
+  border: 1px solid var(--paper3);
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: var(--paper);
+}
+.epic-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.epic-num {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  background: var(--ink); color: rgba(255,255,255,0.7);
+  padding: 3px 8px; border-radius: 4px;
+}
+.epic-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.epic-stories { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.epic-stories li {
+  font-size: 12px; color: var(--ink2);
+  display: flex; gap: 8px; align-items: baseline; line-height: 1.45;
+}
+.epic-stories li::before { content: '·'; color: var(--ink3); flex-shrink: 0; }
+.epic-pts {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--ink3);
+  display: flex; gap: 6px; align-items: center;
+}
+.epic-pts span {
+  background: var(--paper2);
+  padding: 2px 7px; border-radius: 3px;
+  font-weight: 600;
+}
+.epic-card.eb .epic-pts span { color: var(--blue); }
+.epic-card.eg .epic-pts span { color: var(--green); }
+.epic-card.ep .epic-pts span { color: var(--purple); }
+
+/* DATA TABLE CARDS */
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px; margin: 20px 0;
+}
+.table-card {
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.table-card-head {
+  padding: 10px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.table-card-name {
+  font-family: var(--font-mono);
+  font-size: 11px; color: #fff; font-weight: 600;
+}
+.table-card-ret {
+  font-family: var(--font-mono);
+  font-size: 9px; color: rgba(255,255,255,0.4);
+}
+.tc-blue .table-card-head { background: #1E40AF; }
+.tc-green .table-card-head { background: #065F46; }
+.tc-purple .table-card-head { background: #4C1D95; }
+.table-card-body { padding: 12px 14px; background: var(--paper); }
+.table-card-desc { font-size: 12px; color: var(--ink2); margin-bottom: 8px; line-height: 1.45; }
+.table-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px; color: var(--ink3);
+  background: var(--paper2);
+  padding: 2px 7px; border-radius: 3px;
+  margin-right: 4px; margin-top: 2px;
+}
+
+/* AGENT TABLE */
+.agent-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.agent-table th {
+  background: var(--ink2);
+  color: rgba(255,255,255,0.8);
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 14px; text-align: left; font-weight: 400;
+}
+.agent-table td {
+  padding: 11px 14px; color: var(--ink2);
+  border-top: 1px solid var(--paper3); vertical-align: top;
+}
+.agent-table tr:first-child td { border-top: none; }
+.agent-table tr:nth-child(even) td { background: var(--paper2); }
+.agt-id {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--ink3);
+}
+
+/* ROADMAP */
+.roadmap {
+  display: flex; flex-direction: column; gap: 0;
+  margin: 20px 0;
+  border: 1px solid var(--paper3);
+  border-radius: 8px; overflow: hidden;
+}
+.roadmap-row {
+  display: grid;
+  grid-template-columns: 160px 90px 1fr;
+  gap: 0;
+  border-top: 1px solid var(--paper3);
+}
+.roadmap-row:first-child { border-top: none; }
+.roadmap-row.head { background: var(--ink); }
+.roadmap-row.head > * {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  padding: 9px 16px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.roadmap-cell {
+  padding: 12px 16px; font-size: 12.5px;
+  color: var(--ink2);
+  border-right: 1px solid var(--paper3);
+  line-height: 1.5;
+}
+.roadmap-cell:last-child { border-right: none; }
+.roadmap-cell strong { color: var(--ink); }
+.roadmap-weeks {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+}
+.roadmap-row:nth-child(even) .roadmap-cell { background: var(--paper2); }
+.rw-blue { color: var(--blue); }
+.rw-green { color: var(--green); }
+.rw-purple { color: var(--purple); }
+
+/* KPI CARDS */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px; margin: 20px 0;
+}
+.kpi-card {
+  border: 1px solid var(--paper3);
+  border-radius: 8px;
+  padding: 16px; background: var(--paper);
+}
+.kpi-name { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
+.kpi-value {
+  font-family: var(--font-disp);
+  font-size: 22px; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.kpi-desc { font-size: 11.5px; color: var(--ink2); line-height: 1.45; }
+
+/* CALLOUT */
+.callout {
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 20px 0;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.callout-body { flex: 1; }
+.callout-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.callout-desc { font-size: 12.5px; line-height: 1.55; }
+.callout-warn {
+  background: #FEF3C7; border: 1px solid #FDE68A;
+}
+.callout-warn .callout-title { color: var(--amber); }
+.callout-warn .callout-desc { color: #78350F; }
+.callout-danger {
+  background: #FEE2E2; border: 1px solid #FECACA;
+}
+.callout-danger .callout-title { color: var(--red); }
+.callout-danger .callout-desc { color: #7F1D1D; }
+.callout-info {
+  background: #DBEAFE; border: 1px solid #BFDBFE;
+}
+.callout-info .callout-title { color: var(--blue); }
+.callout-info .callout-desc { color: #1E3A5F; }
+
+/* FLOW DIAGRAM */
+.flow-row {
+  display: flex; align-items: center; gap: 0;
+  margin: 20px 0; overflow-x: auto;
+}
+.flow-step {
+  background: var(--paper);
+  border: 1.5px solid var(--paper3);
+  border-radius: 10px;
+  padding: 14px 18px;
+  min-width: 140px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.flow-step-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+.flow-step-label { font-size: 11.5px; font-weight: 600; color: var(--ink); }
+.flow-step-sub { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+.flow-arrow {
+  font-family: var(--font-mono);
+  font-size: 18px; color: var(--ink3);
+  padding: 0 6px; flex-shrink: 0;
+}
+
+/* KPI BUILDER MOCKUP */
+.builder-mock {
+  background: var(--paper);
+  border: 2px solid var(--paper3);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+.builder-bar {
+  background: var(--ink);
+  padding: 10px 18px;
+  display: flex; align-items: center; gap: 10px;
+}
+.builder-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.builder-bar-title {
+  font-family: var(--font-mono);
+  font-size: 11px; color: rgba(255,255,255,0.5);
+}
+.builder-body { padding: 24px; }
+.builder-field {
+  margin-bottom: 16px;
+}
+.builder-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--ink3); text-transform: uppercase;
+  letter-spacing: 0.8px; margin-bottom: 6px;
+}
+.builder-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--paper3);
+  border-radius: 6px;
+  font-size: 13px; color: var(--ink);
+  font-family: var(--font-body);
+  background: #fff;
+}
+.builder-suggestion {
+  background: linear-gradient(135deg, #EFF6FF, #F0FDF4);
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+}
+.builder-sugg-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.builder-sugg-icon { font-size: 16px; }
+.builder-sugg-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.builder-sugg-formula {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--blue);
+  background: var(--blue-l);
+  padding: 4px 10px; border-radius: 4px;
+  display: inline-block; margin-bottom: 6px;
+}
+.builder-sugg-desc { font-size: 12px; color: var(--ink2); line-height: 1.45; }
+.builder-btns {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.builder-btn {
+  padding: 6px 14px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+  border: none; cursor: pointer;
+  font-family: var(--font-body);
+}
+.builder-btn-primary { background: var(--blue); color: white; }
+.builder-btn-ghost { background: var(--paper2); color: var(--ink2); border: 1px solid var(--paper3); }
+
+/* OPEN Q */
+.oq-list {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 16px 0;
+}
+.oq-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 18px;
+  background: var(--paper);
+  border: 1px solid var(--paper3);
+  border-radius: 8px;
+}
+.oq-num {
+  font-family: var(--font-disp);
+  font-size: 18px; font-weight: 800;
+  color: var(--blue); flex-shrink: 0;
+  width: 28px;
+}
+.oq-text { font-size: 13px; color: var(--ink2); line-height: 1.55; }
+.oq-text strong { color: var(--ink); }
+
+/* FOOTER */
+.doc-footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  padding: 24px 40px;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1px;
+  margin-top: 60px;
+}
+
+/* FEATURE ROW */
+.feat-row {
+  border-left: 3px solid;
+  padding: 0 0 0 20px;
+  margin-bottom: 16px;
+}
+.feat-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.feat-desc { font-size: 13.5px; color: var(--ink2); line-height: 1.65; }
+
+@media print {
+  .section-block { page-break-inside: avoid; }
+  .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <div class="cover-tag">Plan de Implementación · Evolución v1.1 · Junio 2025</div>
+  <div class="cover-title">Endpoint<span>IQ</span></div>
+  <div class="cover-version">Evolución v1.1</div>
+  <div class="cover-subtitle">WhatsApp Analytics · Aprendizaje Continuo · KPI Builder Dinámico — Plan integral de arquitectura, seguridad y desarrollo para tres nuevas capacidades estratégicas.</div>
+
+  <div class="cover-badges">
+    <div class="cover-badge"><span class="badge-icon">📱</span> WhatsApp Analytics</div>
+    <div class="cover-badge"><span class="badge-icon">🧠</span> Aprendizaje Continuo</div>
+    <div class="cover-badge"><span class="badge-icon">📐</span> KPI Builder</div>
+  </div>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Nuevos módulos</span>
+      <span class="cover-meta-value">3 módulos · M11 – M13</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Nuevos agentes IA</span>
+      <span class="cover-meta-value">4 agentes · AGT-11 – AGT-14</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Duración adicional</span>
+      <span class="cover-meta-value">14 semanas · 7 sprints</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Nuevas HU</span>
+      <span class="cover-meta-value">16 historias · 152 puntos</span>
+    </div>
+  </div>
+  <div class="cover-pill">CONFIDENCIAL · Uso interno</div>
+</div>
+
+<div class="doc">
+
+<!-- ═══════════════════════════════════════════════ 01. RESUMEN -->
+<div class="section-block">
+  <div class="section-num">01</div>
+  <div class="section-title">Resumen ejecutivo</div>
+
+  <div class="intro-box">
+    Este documento describe el plan de implementación para la <strong>evolución v1.1 de Onyx</strong>, que incorpora tres nuevas capacidades estratégicas al sistema base: <strong>acceso analítico visual desde WhatsApp</strong> con gobierno completo de roles y permisos, un <strong>motor de aprendizaje continuo</strong> a partir de errores sistémicos que auto-mejora los agentes IA, y un <strong>KPI Builder dinámico</strong> que permite crear indicadores de negocio con asistencia de inteligencia artificial.<br><br>
+    Las tres capacidades se integran nativamente con la arquitectura existente en <strong>Google Cloud Platform</strong> y amplían la plataforma de 10 a <strong>13 módulos funcionales</strong> y de 10 a <strong>14 agentes inteligentes</strong>.
+  </div>
+
+  <div class="cap-grid">
+    <div class="cap-card c1">
+      <span class="cap-icon">📱</span>
+      <div class="cap-num">Módulo M11</div>
+      <div class="cap-name">WhatsApp Analytics</div>
+      <div class="cap-desc">Capa visual de analítica accesible desde WhatsApp Business con autenticación OTP, gobierno de roles (RBAC), generación de gráficos en tiempo real, y audit log completo. Los datos sensibles se enmascaran automáticamente.</div>
+    </div>
+    <div class="cap-card c2">
+      <span class="cap-icon">🧠</span>
+      <div class="cap-num">Módulo M12</div>
+      <div class="cap-name">Aprendizaje Continuo</div>
+      <div class="cap-desc">Motor que detecta patrones de error sistémico, clasifica alertas como verdaderos/falsos positivos, y propone ajustes automáticos de umbrales. Incluye reentrenamiento periódico de los modelos de predicción de Vertex AI.</div>
+    </div>
+    <div class="cap-card c3">
+      <span class="cap-icon">📐</span>
+      <div class="cap-num">Módulo M13</div>
+      <div class="cap-name">KPI Builder Dinámico</div>
+      <div class="cap-desc">Interfaz para crear indicadores de negocio personalizados con asistencia de un agente IA que sugiere fórmulas y metas según el contexto de negocio. Los KPIs se publican en el dashboard y/o en el canal WhatsApp.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 02. WHATSAPP -->
+<div class="section-block">
+  <div class="section-num">02</div>
+  <div class="section-title">M11 — Canal WhatsApp Analytics</div>
+
+  <p>El módulo habilita a los usuarios autorizados a consultar la analítica de Onyx directamente desde WhatsApp, recibiendo <strong>gráficos visuales, KPIs y alertas</strong> en tiempo real. Todo el acceso se rige por un modelo estricto de roles y permisos.</p>
+
+  <!-- Arquitectura -->
+  <div class="section-num" style="margin-top:28px;">Arquitectura del canal</div>
+
+  <div class="flow-row">
+    <div class="flow-step" style="border-color: #22C55E;">
+      <span class="flow-step-icon">📱</span>
+      <div class="flow-step-label">Usuario WhatsApp</div>
+      <div class="flow-step-sub">Envía consulta</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #3B82F6;">
+      <span class="flow-step-icon">🔗</span>
+      <div class="flow-step-label">Webhook</div>
+      <div class="flow-step-sub">Cloud Run</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #F59E0B;">
+      <span class="flow-step-icon">🔐</span>
+      <div class="flow-step-label">Autenticación</div>
+      <div class="flow-step-sub">RBAC + JWT</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #8B5CF6;">
+      <span class="flow-step-icon">🗄️</span>
+      <div class="flow-step-label">BigQuery</div>
+      <div class="flow-step-sub">Query + datos</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #06B6D4;">
+      <span class="flow-step-icon">📊</span>
+      <div class="flow-step-label">Chart Renderer</div>
+      <div class="flow-step-sub">Plotly → PNG</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #22C55E;">
+      <span class="flow-step-icon">✅</span>
+      <div class="flow-step-label">Respuesta</div>
+      <div class="flow-step-sub">Imagen + texto</div>
+    </div>
+  </div>
+
+  <!-- Gobierno de roles -->
+  <div class="section-num" style="margin-top:28px;">Gobierno de roles y permisos</div>
+  <p>Cada número telefónico se vincula a un rol en la tabla <code style="font-family:var(--font-mono);font-size:12px;background:var(--paper2);padding:1px 5px;border-radius:3px;">eq_whatsapp_users</code>. El rol determina el alcance de datos accesible.</p>
+
+  <table class="role-table">
+    <thead>
+      <tr>
+        <th>Rol</th>
+        <th>Puede consultar</th>
+        <th>Nivel de detalle</th>
+        <th>Productividad</th>
+        <th>Seguridad</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Super Admin</td>
+        <td>Todo</td>
+        <td>Individual + Agregado</td>
+        <td><span class="check">✓</span> Completo</td>
+        <td><span class="check">✓</span> Completo</td>
+      </tr>
+      <tr>
+        <td>Admin TI</td>
+        <td>Todo</td>
+        <td>Individual + Agregado</td>
+        <td><span class="check">✓</span> Completo</td>
+        <td><span class="check">✓</span> Completo</td>
+      </tr>
+      <tr>
+        <td>Gerente de Área</td>
+        <td>Solo su departamento</td>
+        <td>Por equipo (su área)</td>
+        <td><span class="partial">◐</span> Solo su área</td>
+        <td><span class="partial">◐</span> Alertas su área</td>
+      </tr>
+      <tr>
+        <td>Analista</td>
+        <td>Métricas globales</td>
+        <td>Solo agregado</td>
+        <td><span class="partial">◐</span> Solo % globales</td>
+        <td><span class="cross">✗</span></td>
+      </tr>
+      <tr>
+        <td>Viewer</td>
+        <td>KPIs globales</td>
+        <td>Solo dashboard</td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Chat mock -->
+  <div class="section-num" style="margin-top:28px;">Experiencia de usuario — WhatsApp</div>
+
+  <div style="display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;">
+    <div class="chat-mock">
+      <div class="chat-header">
+        <div class="chat-avatar">EQ</div>
+        <div>
+          <div class="chat-name">Onyx Bot</div>
+          <div class="chat-status">🟢 en línea</div>
+        </div>
+      </div>
+      <div class="chat-body">
+        <div class="msg msg-bot">
+          👋 ¡Hola! Soy Onyx Bot.<br>
+          Tu rol: <strong>Admin TI</strong> ✅<br><br>
+          📋 <strong>Menú Principal:</strong><br>
+          1️⃣ Dashboard General<br>
+          2️⃣ Estado de un equipo<br>
+          3️⃣ Alertas activas<br>
+          4️⃣ KPIs de productividad<br>
+          5️⃣ Resumen de seguridad<br>
+          6️⃣ Tickets abiertos<br>
+          7️⃣ Mi indicador personalizado
+          <div class="msg-time">9:42 PM ✓✓</div>
+        </div>
+        <div class="msg msg-user">
+          1
+          <div class="msg-time">9:42 PM ✓✓</div>
+        </div>
+        <div class="msg msg-bot">
+          📊 <strong>Dashboard General — Ahora</strong>
+          <div class="msg-img">
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);font-family:var(--font-mono);letter-spacing:1px;">GRÁFICO GENERADO</div>
+              <div style="display:flex;gap:16px;margin-top:8px;justify-content:center;">
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#3B82F6;">1,248</div><div style="font-size:8px;color:rgba(255,255,255,0.4);">EQUIPOS</div></div>
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#10B981;">95.1%</div><div style="font-size:8px;color:rgba(255,255,255,0.4);">ONLINE</div></div>
+                <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#EF4444;">14</div><div style="font-size:8px;color:rgba(255,255,255,0.4);">ALERTAS</div></div>
+              </div>
+            </div>
+          </div>
+          🟢 Online: 1,187 · ⚫ Offline: 61<br>
+          ⚠️ Alertas: 14 (2 críticas)<br>
+          🎫 Tickets: 7 abiertos
+          <div class="msg-time">9:42 PM ✓✓</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Seguridad -->
+      <div class="sec-cols" style="grid-template-columns:1fr;">
+        <div class="sec-col sec-a">
+          <div class="sec-col-head">🔐 Seguridad del Canal WhatsApp</div>
+          <ul>
+            <li>Solo números registrados en <code style="font-family:var(--font-mono);font-size:11px;">eq_whatsapp_users</code> pueden interactuar</li>
+            <li>Primera autenticación requiere OTP enviado al correo corporativo</li>
+            <li>Token JWT con TTL de 8 horas; después se requiere re-autenticación</li>
+            <li>Rate limiting: máximo 30 consultas/hora por usuario</li>
+            <li>Toda interacción queda en <code style="font-family:var(--font-mono);font-size:11px;">eq_whatsapp_audit_log</code></li>
+            <li>Datos PII se enmascaran automáticamente (ej: "M. R***s")</li>
+            <li>Datos sensibles enviados como mensajes temporales (view-once)</li>
+            <li>Alertas proactivas por WhatsApp solo a Admin TI y Super Admin</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <div class="callout-title">Privacidad en WhatsApp</div>
+          <div class="callout-desc">Los datos de productividad individual <strong>no se envían por WhatsApp</strong> para evitar exposición accidental por capturas de pantalla o reenvíos. Solo datos agregados por área/departamento, salvo para roles Admin TI y Super Admin.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 03. APRENDIZAJE -->
+<div class="section-block">
+  <div class="section-num">03</div>
+  <div class="section-title">M12 — Motor de Aprendizaje Continuo</div>
+
+  <p>El módulo cierra el ciclo de retroalimentación del sistema: cada alerta, ticket y resolución alimenta un motor que <strong>detecta patrones de error sistémico</strong>, identifica falsos positivos, propone ajustes de umbrales, y reentrena automáticamente los modelos de predicción de Vertex AI.</p>
+
+  <!-- Definición -->
+  <div class="callout callout-info">
+    <div class="callout-icon">📌</div>
+    <div class="callout-body">
+      <div class="callout-title">Definición de Error Sistémico</div>
+      <div class="callout-desc">Un error sistémico es un patrón de falla que: (a) afecta ≥3 equipos en la misma ventana temporal de 1h, (b) genera ≥10 alertas en 24h sin resolución efectiva, (c) produce tickets que se reabren ≥2 veces por la misma causa raíz, o (d) una falla no predicha por el Predictor de Fallas (falso negativo).</div>
+    </div>
+  </div>
+
+  <!-- Ciclo -->
+  <div class="section-num" style="margin-top:24px;">Ciclo de aprendizaje</div>
+
+  <div class="cycle-grid">
+    <div class="cycle-step">
+      <div class="cycle-num" style="color:var(--red);">01</div>
+      <div class="cycle-label">Capturar</div>
+      <div class="cycle-desc">Alertas, tickets cerrados, feedback TP/FP/FN de operadores</div>
+    </div>
+    <div class="cycle-step">
+      <div class="cycle-num" style="color:var(--amber);">02</div>
+      <div class="cycle-label">Analizar</div>
+      <div class="cycle-desc">Detector de patrones, clasificador de errores, correlaciones</div>
+    </div>
+    <div class="cycle-step">
+      <div class="cycle-num" style="color:var(--blue);">03</div>
+      <div class="cycle-label">Proponer</div>
+      <div class="cycle-desc">Ajuste de umbrales, nuevas reglas, reentrenamiento de modelos</div>
+    </div>
+    <div class="cycle-step">
+      <div class="cycle-num" style="color:var(--green);">04</div>
+      <div class="cycle-label">Aplicar</div>
+      <div class="cycle-desc">Aprobación del Admin → aplicación automática → medición de impacto</div>
+    </div>
+  </div>
+
+  <!-- Tipos de aprendizaje -->
+  <div class="section-num" style="margin-top:24px;">Tipos de aprendizaje</div>
+
+  <table class="sum-table">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Frecuencia</th>
+        <th>Acción</th>
+        <th>Aprobación</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ajuste de umbral</td>
+        <td>Continuo</td>
+        <td>Si Z-score > 3 genera >40% falsos positivos → sugiere Z-score > 3.5</td>
+        <td><span class="badge badge-amber">Admin</span></td>
+      </tr>
+      <tr>
+        <td>Nueva regla</td>
+        <td>Semanal</td>
+        <td>Si 3+ equipos fallan por causa no cubierta → propone nueva regla</td>
+        <td><span class="badge badge-amber">Admin</span></td>
+      </tr>
+      <tr>
+        <td>Reentrenamiento modelo</td>
+        <td>Quincenal</td>
+        <td>Incorpora datos de resolución al modelo de predicción Vertex AI</td>
+        <td><span class="badge badge-green">Automático</span></td>
+      </tr>
+      <tr>
+        <td>Correlación nueva</td>
+        <td>Mensual</td>
+        <td>Identifica correlaciones entre métricas no detectadas previamente</td>
+        <td><span class="badge badge-blue">Informativo</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Flujo feedback -->
+  <div class="section-num" style="margin-top:24px;">Flujo de feedback en el portal</div>
+
+  <div class="flow-row">
+    <div class="flow-step" style="border-color: #EF4444;">
+      <span class="flow-step-icon">🚨</span>
+      <div class="flow-step-label">Alerta se dispara</div>
+      <div class="flow-step-sub">Agente AGT-XX</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #F59E0B;">
+      <span class="flow-step-icon">👤</span>
+      <div class="flow-step-label">Operador resuelve</div>
+      <div class="flow-step-sub">Cierra ticket</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #3B82F6;">
+      <span class="flow-step-icon">📝</span>
+      <div class="flow-step-label">Clasifica alerta</div>
+      <div class="flow-step-sub">TP / FP / FN</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #8B5CF6;">
+      <span class="flow-step-icon">🧠</span>
+      <div class="flow-step-label">Motor aprende</div>
+      <div class="flow-step-sub">Detecta patrones</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: #10B981;">
+      <span class="flow-step-icon">✅</span>
+      <div class="flow-step-label">Mejora aplicada</div>
+      <div class="flow-step-sub">Menos FP/FN</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 04. KPI BUILDER -->
+<div class="section-block">
+  <div class="section-num">04</div>
+  <div class="section-title">M13 — KPI Builder Dinámico</div>
+
+  <p>Permite a usuarios autorizados <strong>crear indicadores de negocio personalizados</strong> a partir de las métricas existentes en BigQuery, con asistencia del agente IA <strong>AGT-14 KPI Advisor</strong> que sugiere fórmulas relevantes según el contexto empresarial descrito en lenguaje natural.</p>
+
+  <!-- Métricas disponibles -->
+  <div class="section-num" style="margin-top:24px;">Métricas base disponibles</div>
+
+  <table class="sum-table">
+    <thead>
+      <tr><th>Tabla fuente</th><th>Métricas derivables</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>eq_hardware_metrics</td><td>CPU promedio, RAM promedio, Temperatura máx, Uptime, Picos de congestión</td></tr>
+      <tr><td>eq_activity_log</td><td>Tiempo productivo, Tiempo ocio, Tiempo comunicación, Top apps, Horas activas</td></tr>
+      <tr><td>eq_alerts</td><td>Alertas por tipo, por severidad, Tiempo medio de resolución</td></tr>
+      <tr><td>eq_helpdesk_tickets</td><td>Tickets por área, MTTR, % auto-creados, Tickets reabiertos</td></tr>
+      <tr><td>eq_security_events</td><td>Intentos fallidos, IPs extranjeras, Software no autorizado</td></tr>
+      <tr><td>eq_software_inventory</td><td>Cobertura de licencias, Apps obsoletas, % actualizado</td></tr>
+      <tr><td>eq_sync_status</td><td>Equipos offline, Tiempo sin sincronizar, Uptime de flota</td></tr>
+      <tr><td>eq_systemic_errors <span class="badge badge-green">Nuevo</span></td><td>Errores sistémicos activos, Tiempo medio de mitigación</td></tr>
+      <tr><td>eq_learning_log <span class="badge badge-green">Nuevo</span></td><td>Tasa de mejora, Falsos positivos reducidos, Reglas aplicadas</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Mockup builder -->
+  <div class="section-num" style="margin-top:24px;">Interfaz de creación — Preview</div>
+
+  <div class="builder-mock">
+    <div class="builder-bar">
+      <div class="builder-dot" style="background:#EF4444;"></div>
+      <div class="builder-dot" style="background:#F59E0B;"></div>
+      <div class="builder-dot" style="background:#22C55E;"></div>
+      <div class="builder-bar-title">Onyx — KPI Builder</div>
+    </div>
+    <div class="builder-body">
+      <div class="builder-field">
+        <div class="builder-label">Contexto de negocio</div>
+        <div class="builder-input" style="color:var(--ink2);">Medir la eficiencia del equipo de ventas considerando tiempo productivo vs improductivo y salud de los equipos</div>
+      </div>
+
+      <div class="builder-label">🤖 Sugerencias del Agente IA (AGT-14)</div>
+
+      <div class="builder-suggestion" style="border-color: #3B82F6; background: linear-gradient(135deg, #EFF6FF, #F0FFFE);">
+        <div class="builder-sugg-head">
+          <span class="builder-sugg-icon">✨</span>
+          <span class="builder-sugg-name">Índice de Productividad Neta</span>
+          <span class="badge badge-blue" style="margin-left:auto;">Recomendado</span>
+        </div>
+        <div class="builder-sugg-formula">(T_productivo − T_ocio) / Jornada × 100</div>
+        <div class="builder-sugg-desc">Mide el porcentaje de la jornada dedicado a actividad productiva neta. Fuente: <code style="font-family:var(--font-mono);font-size:10px;">eq_activity_log</code>. Meta sugerida: > 70%</div>
+        <div class="builder-btns">
+          <button class="builder-btn builder-btn-primary">✓ Usar este</button>
+          <button class="builder-btn builder-btn-ghost">Personalizar</button>
+        </div>
+      </div>
+
+      <div class="builder-suggestion">
+        <div class="builder-sugg-head">
+          <span class="builder-sugg-icon">📊</span>
+          <span class="builder-sugg-name">Ratio Incidentes / Colaborador</span>
+        </div>
+        <div class="builder-sugg-formula">COUNT(tickets WHERE dept='Ventas') / COUNT(users WHERE dept='Ventas')</div>
+        <div class="builder-sugg-desc">Cantidad de incidentes por persona en el área. Fuente: <code style="font-family:var(--font-mono);font-size:10px;">eq_helpdesk_tickets</code>. Meta sugerida: < 0.5/semana</div>
+        <div class="builder-btns">
+          <button class="builder-btn builder-btn-ghost">✓ Usar este</button>
+          <button class="builder-btn builder-btn-ghost">Personalizar</button>
+        </div>
+      </div>
+
+      <div class="builder-suggestion">
+        <div class="builder-sugg-head">
+          <span class="builder-sugg-icon">🏥</span>
+          <span class="builder-sugg-name">Score de Salud de Equipos</span>
+        </div>
+        <div class="builder-sugg-formula">AVG(uptime) × (1 − COUNT(alertas_criticas) / total_equipos)</div>
+        <div class="builder-sugg-desc">Combina disponibilidad y alertas críticas del área. Fuente: <code style="font-family:var(--font-mono);font-size:10px;">eq_hardware_metrics</code> + <code style="font-family:var(--font-mono);font-size:10px;">eq_alerts</code>. Meta sugerida: > 0.90</div>
+        <div class="builder-btns">
+          <button class="builder-btn builder-btn-ghost">✓ Usar este</button>
+          <button class="builder-btn builder-btn-ghost">Personalizar</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--paper3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3);"><input type="checkbox" checked style="accent-color:var(--blue);"> Publicar en Dashboard</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3);"><input type="checkbox" checked style="accent-color:var(--blue);"> Disponible en WhatsApp</div>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="builder-btn builder-btn-ghost">Vista Previa</button>
+          <button class="builder-btn builder-btn-primary">Publicar KPI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 05. AGENTES -->
+<div class="section-block">
+  <div class="section-num">05</div>
+  <div class="section-title">Nuevos agentes inteligentes — AGT-11 a AGT-14</div>
+
+  <p>Se agregan <strong>4 nuevos agentes</strong> al catálogo existente de 10, todos ejecutados en <strong>Vertex AI Agent Builder</strong> con acceso a BigQuery y Spanner.</p>
+
+  <table class="agent-table">
+    <thead>
+      <tr><th>ID</th><th>Agente</th><th>Disparador</th><th>Acción</th><th>Severidad</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="agt-id">AGT-11</span></td>
+        <td><strong>WhatsApp Analytics Bot</strong></td>
+        <td>Mensaje recibido en WhatsApp Business API</td>
+        <td>Valida rol → Ejecuta query → Genera gráfico → Envía respuesta</td>
+        <td><span class="badge badge-blue">Servicio</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-12</span></td>
+        <td><strong>Detector de Errores Sistémicos</strong></td>
+        <td>≥3 equipos con el mismo tipo de falla en 1h</td>
+        <td>Genera informe de error sistémico + notificación prioritaria al admin</td>
+        <td><span class="badge badge-red">Crítica</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-13</span></td>
+        <td><strong>Optimizador de Umbrales</strong></td>
+        <td>Análisis semanal de falsos positivos y negativos</td>
+        <td>Propone ajustes de umbrales con justificación estadística</td>
+        <td><span class="badge badge-amber">Media</span></td>
+      </tr>
+      <tr>
+        <td><span class="agt-id">AGT-14</span></td>
+        <td><strong>KPI Advisor</strong></td>
+        <td>Solicitud de creación de KPI por usuario autorizado</td>
+        <td>Analiza contexto de negocio → Consulta métricas → Sugiere fórmulas y metas</td>
+        <td><span class="badge badge-blue">Servicio</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 06. MODELO DE DATOS -->
+<div class="section-block">
+  <div class="section-num">06</div>
+  <div class="section-title">Nuevas tablas — BigQuery</div>
+
+  <p>Se agregan <strong>7 nuevas tablas</strong> al data warehouse, agrupadas por módulo. Todas las tablas usan particionamiento por fecha y son compatibles con el esquema existente.</p>
+
+  <div class="section-num" style="margin-top:20px;">M11 — WhatsApp Analytics</div>
+  <div class="tables-grid">
+    <div class="table-card tc-blue">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_whatsapp_users</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Usuarios autorizados para WhatsApp: teléfono, rol, departamento, estado OTP, última sesión.</p>
+        <span class="table-tag">Partición: día</span>
+        <span class="table-tag">PK: user_id</span>
+      </div>
+    </div>
+    <div class="table-card tc-blue">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_whatsapp_audit_log</span>
+        <span class="table-card-ret">7 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Log de auditoría: usuario, consulta, tipo de respuesta, datos accedidos, rol al momento de la consulta.</p>
+        <span class="table-tag">Partición: día</span>
+        <span class="table-tag">Cluster: user_id</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-num" style="margin-top:20px;">M12 — Aprendizaje Continuo</div>
+  <div class="tables-grid">
+    <div class="table-card tc-green">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_learning_log</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Registro de aprendizajes: tipo, agente fuente, descripción del patrón, acción propuesta, estado de aprobación.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+    <div class="table-card tc-green">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_resolution_feedback</span>
+        <span class="table-card-ret">3 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Feedback de operadores: clasificación TP/FP/FN, si la resolución fue efectiva, notas de contexto.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+    <div class="table-card tc-green">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_systemic_errors</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Errores sistémicos detectados: tipo, equipos afectados, recurrencia, hipótesis de causa raíz, estado de mitigación.</p>
+        <span class="table-tag">Partición: día</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-num" style="margin-top:20px;">M13 — KPI Builder</div>
+  <div class="tables-grid">
+    <div class="table-card tc-purple">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_custom_kpis</span>
+        <span class="table-card-ret">5 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Definiciones de KPIs personalizados: fórmula JSON, tablas fuente, filtros, tipo de visualización, meta y umbrales.</p>
+        <span class="table-tag">Partición: día</span>
+        <span class="table-tag">PK: kpi_id</span>
+      </div>
+    </div>
+    <div class="table-card tc-purple">
+      <div class="table-card-head">
+        <span class="table-card-name">eq_kpi_values</span>
+        <span class="table-card-ret">3 años</span>
+      </div>
+      <div class="table-card-body">
+        <p class="table-card-desc">Valores calculados de KPIs: período, valor actual, valor anterior, delta porcentual, estado vs meta.</p>
+        <span class="table-tag">Partición: día</span>
+        <span class="table-tag">Cluster: kpi_id</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 07. ÉPICAS -->
+<div class="section-block">
+  <div class="section-num">07</div>
+  <div class="section-title">Nuevas épicas y backlog de historias de usuario</div>
+
+  <p>Se agregan <strong>16 historias de usuario</strong> organizadas en <strong>3 nuevas épicas</strong> (11, 12 y 13), sumando 152 puntos de esfuerzo al backlog existente.</p>
+
+  <div class="epics-grid">
+    <div class="epic-card eb">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 11</span>
+        <span class="epic-name">Canal WhatsApp Analytics</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-025: Registro y verificación OTP de usuarios WhatsApp</li>
+        <li>HU-026: Menú conversacional con gobierno de roles RBAC</li>
+        <li>HU-027: Generación de gráficos (KPIs, alertas, estado flota) como imágenes PNG</li>
+        <li>HU-028: Consultas en lenguaje natural vía WhatsApp con Vertex AI</li>
+        <li>HU-029: Audit log completo de toda interacción WhatsApp</li>
+        <li>HU-030: Envío proactivo de alertas críticas por WhatsApp al Admin</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>52 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card eg">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 12</span>
+        <span class="epic-name">Aprendizaje Continuo</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-031: Clasificación de alertas como TP/FP/FN por el operador</li>
+        <li>HU-032: Detección automática de errores sistémicos (≥3 equipos, misma causa, 1h)</li>
+        <li>HU-033: Propuesta automática de ajuste de umbrales con justificación</li>
+        <li>HU-034: Reentrenamiento quincenal del modelo de predicción con datos de resolución</li>
+        <li>HU-035: Dashboard de aprendizaje: reglas propuestas, aprobadas, efectividad</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>50 pts</span> · Prioridad: Alta</div>
+    </div>
+    <div class="epic-card ep">
+      <div class="epic-header">
+        <span class="epic-num">ÉPICA 13</span>
+        <span class="epic-name">KPI Builder Dinámico</span>
+      </div>
+      <ul class="epic-stories">
+        <li>HU-036: Interfaz de creación de KPI con selector de métricas y fórmulas</li>
+        <li>HU-037: Sugerencia de indicadores por IA según contexto de negocio</li>
+        <li>HU-038: Vista previa en tiempo real del KPI antes de publicar</li>
+        <li>HU-039: Publicación de KPI personalizado en dashboard y/o WhatsApp</li>
+        <li>HU-040: Cálculo programado de KPIs (Dataflow batch)</li>
+      </ul>
+      <div class="epic-pts">Esfuerzo total: <span>50 pts</span> · Prioridad: Alta</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 08. IMPACTO ARQUITECTURA -->
+<div class="section-block">
+  <div class="section-num">08</div>
+  <div class="section-title">Impacto en la arquitectura por capas</div>
+
+  <div class="arch-flow">
+    <div class="arch-box a-blue">
+      <div class="arch-box-head">
+        <span class="arch-tag">CAPA 1</span>
+        <span class="arch-title">Endpoint — Windows 11</span>
+        <span class="arch-services" style="color:var(--green);">SIN CAMBIOS</span>
+      </div>
+      <div class="arch-box-body">
+        <ul class="arch-bullets">
+          <li>No se requieren modificaciones en el agente Go ni en el buffer SQLite. Las 3 nuevas capacidades operan enteramente en GCP.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-box a-green">
+      <div class="arch-box-head">
+        <span class="arch-tag">CAPA 2</span>
+        <span class="arch-title">Ingesta y Streaming — GCP</span>
+        <span class="arch-services">+2 Cloud Run · +1 Cloud Function · +2 Cloud Scheduler</span>
+      </div>
+      <div class="arch-box-body">
+        <ul class="arch-bullets">
+          <li><strong>proy-anla-poc-whatsapp-bot</strong> (Cloud Run): recibe webhooks de WhatsApp, valida roles RBAC, enruta consultas a BigQuery.</li>
+          <li><strong>proy-anla-poc-chart-renderer</strong> (Cloud Run): genera imágenes PNG de gráficos con Plotly/Matplotlib para WhatsApp.</li>
+          <li><strong>learning-pattern-detector</strong> (Cloud Function): evalúa patrones de error sistémico en tiempo real tras cada cierre de ticket.</li>
+          <li>Cloud Scheduler quincenal: dispara reentrenamiento del modelo Vertex AI del Predictor de Fallas.</li>
+          <li>Cloud Scheduler periódico: calcula batch de KPIs personalizados en BigQuery.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-box a-amber">
+      <div class="arch-box-head">
+        <span class="arch-tag">CAPA 3</span>
+        <span class="arch-title">Almacenamiento y Analítica</span>
+        <span class="arch-services">+7 tablas BigQuery · +2 modelos Vertex AI</span>
+      </div>
+      <div class="arch-box-body">
+        <ul class="arch-bullets">
+          <li>BigQuery: 7 nuevas tablas particionadas (eq_whatsapp_users, eq_whatsapp_audit_log, eq_learning_log, eq_resolution_feedback, eq_systemic_errors, eq_custom_kpis, eq_kpi_values).</li>
+          <li>Vertex AI: nuevo modelo para AGT-14 (KPI Advisor) con grounding en esquema BigQuery.</li>
+          <li>Vertex AI: pipeline de reentrenamiento para AGT-02 (Predictor de Fallas) con datos de feedback.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arch-box a-purple">
+      <div class="arch-box-head">
+        <span class="arch-tag">CAPA 4</span>
+        <span class="arch-title">Presentación y Agentes</span>
+        <span class="arch-services">+3 vistas portal · +4 agentes IA</span>
+      </div>
+      <div class="arch-box-body">
+        <ul class="arch-bullets">
+          <li>Portal React: nueva vista "WhatsApp Admin" para gestión de usuarios y log de consultas.</li>
+          <li>Portal React: nueva vista "Aprendizaje Continuo" con dashboard de errores sistémicos y feedback.</li>
+          <li>Portal React: nueva vista "KPI Builder" con interfaz visual de creación y sugerencias IA.</li>
+          <li>Botones de feedback TP/FP/FN agregados a todas las vistas de alertas existentes.</li>
+          <li>4 nuevos agentes: AGT-11 (WhatsApp Bot), AGT-12 (Detector Sistémico), AGT-13 (Optimizador), AGT-14 (KPI Advisor).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 09. KPIs -->
+<div class="section-block">
+  <div class="section-num">09</div>
+  <div class="section-title">Nuevos KPIs de la plataforma</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-name">Consultas WhatsApp/día</div>
+      <div class="kpi-value" style="color:var(--blue);">&gt; 50</div>
+      <div class="kpi-desc">Consultas exitosas por día. Mide adopción del canal.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">RBAC compliance</div>
+      <div class="kpi-value" style="color:var(--green);">100%</div>
+      <div class="kpi-desc">Consultas bloqueadas correctamente por rol. Audit diario.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Falsos positivos reducidos</div>
+      <div class="kpi-value" style="color:var(--amber);">&gt; 30%</div>
+      <div class="kpi-desc">Reducción mensual de FP tras aplicar aprendizajes.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Errores sistémicos MTTR</div>
+      <div class="kpi-value" style="color:var(--red);">&lt; 2h</div>
+      <div class="kpi-desc">Tiempo entre detección del error sistémico y mitigación.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">KPIs personalizados activos</div>
+      <div class="kpi-value" style="color:var(--purple);">&gt; 10</div>
+      <div class="kpi-desc">Indicadores creados y publicados por usuarios. Mensual.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-name">Tasa adopción sugerencias IA</div>
+      <div class="kpi-value" style="color:var(--cyan);">&gt; 60%</div>
+      <div class="kpi-desc">% de KPIs creados a partir de sugerencia del AGT-14.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 10. ROADMAP -->
+<div class="section-block">
+  <div class="section-num">10</div>
+  <div class="section-title">Roadmap de desarrollo — Fase 8 a 13</div>
+
+  <p>Las nuevas capacidades se desarrollan en <strong>7 sprints adicionales (14 semanas)</strong>, partiendo del sprint 15 tras la entrega de v1.0. Cada fase entrega capacidades funcionales verificables.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-row head">
+      <span>Fase</span><span>Semanas</span><span>Entregables principales</span>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>WhatsApp Core</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 15–16</span></div>
+      <div class="roadmap-cell roadmap-weeks rw-blue">29 – 32</div>
+      <div class="roadmap-cell">Cloud Run webhook. Autenticación OTP + JWT. Tabla eq_whatsapp_users. RBAC con 5 roles. Menú conversacional básico. Audit log completo.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>WhatsApp Visual</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 17</span></div>
+      <div class="roadmap-cell roadmap-weeks rw-blue">33 – 34</div>
+      <div class="roadmap-cell">Generación de gráficos con Plotly → PNG. Consultas en lenguaje natural vía Vertex AI. Alertas proactivas por WhatsApp. Vista admin en portal.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Aprendizaje Base</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 18</span></div>
+      <div class="roadmap-cell roadmap-weeks rw-green">35 – 36</div>
+      <div class="roadmap-cell">Botón feedback TP/FP/FN en portal. Tablas eq_learning_log + eq_resolution_feedback + eq_systemic_errors. AGT-12 activo.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Aprendizaje Avanzado</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 19</span></div>
+      <div class="roadmap-cell roadmap-weeks rw-green">37 – 38</div>
+      <div class="roadmap-cell">AGT-13 Optimizador de umbrales. Reentrenamiento quincenal Vertex AI. Dashboard de aprendizaje con métricas de mejora. Reglas propuestas/aprobadas.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>KPI Builder</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 20</span></div>
+      <div class="roadmap-cell roadmap-weeks rw-purple">39 – 40</div>
+      <div class="roadmap-cell">UI de creación de KPI. AGT-14 KPI Advisor con Gemini Pro. Tablas eq_custom_kpis + eq_kpi_values. Cálculo batch. Publicación dashboard + WhatsApp.</div>
+    </div>
+    <div class="roadmap-row">
+      <div class="roadmap-cell"><strong>Integración y QA</strong><br><span style="font-size:11px;color:var(--ink3);">Sprint 21</span></div>
+      <div class="roadmap-cell roadmap-weeks" style="color:var(--ink3);">41 – 42</div>
+      <div class="roadmap-cell">Testing E2E de los 3 módulos. Integración cruzada WhatsApp ↔ KPI Builder. Pruebas de seguridad RBAC. Documentación técnica y de usuario. Capacitación.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 11. PREGUNTAS -->
+<div class="section-block">
+  <div class="section-num">11</div>
+  <div class="section-title">Preguntas abiertas y decisiones pendientes</div>
+
+  <ul class="oq-list">
+    <li class="oq-item">
+      <span class="oq-num">1</span>
+      <div class="oq-text"><strong>¿Cuál proveedor de WhatsApp Business API se utilizará?</strong> Opciones: Meta Cloud API (directo), Twilio, Gupshup, MessageBird. Impacta costos, límites de mensajes y capacidad de envío de imágenes.</div>
+    </li>
+    <li class="oq-item">
+      <span class="oq-num">2</span>
+      <div class="oq-text"><strong>¿Los reportes de productividad individual deben consultarse vía WhatsApp?</strong> Recomendación: solo datos agregados por área/departamento para proteger la privacidad (habeas data).</div>
+    </li>
+    <li class="oq-item">
+      <span class="oq-num">3</span>
+      <div class="oq-text"><strong>¿El KPI Builder debe permitir publicar indicadores al dashboard general?</strong> ¿O solo a vistas personalizadas? Esto define el flujo de aprobación necesario.</div>
+    </li>
+    <li class="oq-item">
+      <span class="oq-num">4</span>
+      <div class="oq-text"><strong>¿Existe un umbral de "error sistémico" ya definido por la organización?</strong> Ej: ¿un error que afecta >5% de la flota en <1h se considera sistémico? Usamos ≥3 equipos en 1h como default.</div>
+    </li>
+    <li class="oq-item">
+      <span class="oq-num">5</span>
+      <div class="oq-text"><strong>¿El aprendizaje continuo debe retroalimentar solo los agentes IA, o también los umbrales de alertas manuales?</strong> Es decir, ¿los umbrales configurados manualmente también son candidatos a ajuste automático?</div>
+    </li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════ 12. VERIFICACIÓN -->
+<div class="section-block">
+  <div class="section-num">12</div>
+  <div class="section-title">Plan de verificación</div>
+
+  <div class="sec-cols" style="grid-template-columns: 1fr 1fr;">
+    <div class="sec-col sec-b">
+      <div class="sec-col-head">🧪 Tests Automatizados</div>
+      <ul>
+        <li>Tests unitarios de RBAC: cada rol accede solo a lo permitido</li>
+        <li>Tests de integración del pipeline de aprendizaje con datos sintéticos</li>
+        <li>Tests de cálculo de KPIs personalizados vs valores esperados</li>
+        <li>Test de seguridad: acceso desde número no registrado → bloqueado</li>
+        <li>Test de enmascaramiento PII en respuestas WhatsApp</li>
+        <li>Test de rate limiting: >30 consultas/hora → rechazado</li>
+      </ul>
+    </div>
+    <div class="sec-col sec-c">
+      <div class="sec-col-head">👁️ Verificación Manual</div>
+      <ul>
+        <li>Enviar consultas reales desde WhatsApp y verificar gráficos correctos</li>
+        <li>Marcar alertas como FP y verificar propuesta de ajuste de umbrales</li>
+        <li>Crear KPI personalizado y verificar aparición en dashboard</li>
+        <li>Verificar que un Gerente NO puede ver datos de otra área vía WhatsApp</li>
+        <li>Revisar audit logs completos de todas las interacciones</li>
+        <li>Verificar reentrenamiento de modelo con métricas de mejora</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</div><!-- /doc -->
+
+<div class="doc-footer">
+  ONYX — PLAN DE IMPLEMENTACIÓN v1.1 · JUNIO 2025 · CONFIDENCIAL &nbsp;·&nbsp; © 2025 ONYX
+</div>
+
+</body>
+</html>
