@@ -1782,7 +1782,6 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "onyx_agent.py",
                 "onyx_updater.py",
                 "onyx_config.json",
-                "onyx_credentials.json",
                 "onyx_launcher.vbs",
                 "instalar.ps1",
                 "onyx_uninstaller.ps1",
@@ -1801,7 +1800,19 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                     for fname in installer_files:
                         fpath = os.path.join(agent_dir, fname)
-                        if os.path.exists(fpath):
+                        if fname == "onyx_credentials.json":
+                            # Primero intentar desde disco, luego desde env var
+                            if os.path.exists(fpath):
+                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                            else:
+                                creds_b64 = os.environ.get("ONYX_CREDENTIALS_B64", "")
+                                if creds_b64:
+                                    import base64 as _b64
+                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", _b64.b64decode(creds_b64))
+                                    print(f"[ZIP] credentials injected from env var")
+                                else:
+                                    print(f"[ZIP] WARNING: no credentials available (no file, no env var)")
+                        elif os.path.exists(fpath):
                             if fname == "onyx_config.json":
                                 try:
                                     with open(fpath, "r", encoding="utf-8-sig") as jf:

@@ -45,7 +45,6 @@ echo.
 
 set "MISSING=0"
 if not exist "%~dp0onyx_agent.py" set "MISSING=1"
-if not exist "%~dp0onyx_credentials.json" set "MISSING=1"
 
 if "%MISSING%"=="1" (
     echo.
@@ -164,8 +163,6 @@ copy /y "%~dp0onyx_agent.py" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_agent.py copiado
 copy /y "%~dp0onyx_updater.py" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_updater.py - auto-actualizador
-copy /y "%~dp0onyx_credentials.json" "%INSTALL_DIR%\" >nul 2>&1
-echo         [OK] onyx_credentials.json - credenciales BigQuery
 copy /y "%~dp0onyx_launcher.vbs" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_launcher.vbs - lanzador invisible
 echo.

@@ -21,7 +21,7 @@ Write-Host ""
 # -----------------------------------------------
 Write-Host "  [1/8] Verificando archivos de instalacion..." -ForegroundColor Yellow
 $missing = $false
-foreach ($f in @("onyx_agent.py","onyx_credentials.json","onyx_launcher.vbs","onyx_updater.py")) {
+foreach ($f in @("onyx_agent.py","onyx_launcher.vbs","onyx_updater.py")) {
     if (-not (Test-Path "$SourceDir\$f")) {
         Write-Host "        [ERROR] $f - NO ENCONTRADO" -ForegroundColor Red
         $missing = $true
@@ -113,7 +113,7 @@ Write-Host ""
 Write-Host "  [4/8] Instalando archivos del agente..." -ForegroundColor Yellow
 if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null }
 
-foreach ($f in @("onyx_agent.py","onyx_updater.py","onyx_credentials.json","onyx_launcher.vbs")) {
+foreach ($f in @("onyx_agent.py","onyx_updater.py","onyx_launcher.vbs")) {
     Copy-Item "$SourceDir\$f" "$InstallDir\$f" -Force
     Write-Host "        [OK] $f copiado" -ForegroundColor Green
 }
