@@ -10,7 +10,7 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
-# Onyx Agent - version 3.1.0
+# Onyx Agent - version 3.2.0
 # Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
@@ -492,8 +492,8 @@ def bq_upsert_sync(sync_row):
 # ===========================================================================
 
 # Contador para escanear la red solo cada N ciclos (no en cada ciclo)
-_network_scan_counter = 0
 _NETWORK_SCAN_EVERY   = 5  # ciclos (ej: si interval=300s → cada 25 min)
+_network_scan_counter = _NETWORK_SCAN_EVERY - 1  # Escanear ya en el 1er ciclo
 
 def scan_network():
     """
