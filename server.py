@@ -211,6 +211,11 @@ login_attempts_lock = threading.Lock()
 MAX_LOGIN_ATTEMPTS  = 5
 LOCKOUT_MINUTES     = 15
 
+# ── Inventario de red: dispositivos detectados por los agentes via ARP scan ──
+# {mac: {ip, hostname, mac, detected_by, first_seen, last_seen, has_agent}}
+network_devices_cache      = {}
+network_devices_cache_lock = threading.Lock()
+
 ROLE_PERMISSIONS = {
     "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export"},
     "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export"},
@@ -932,13 +937,40 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 return
         
         # 1. Endpoints de la API REST
+        if path == "/api/network-summary":
+            session = self.get_current_session()
+            if not session:
+                self.send_json({"error": "No autorizado"}, 401)
+                return
+            with network_devices_cache_lock:
+                devices = list(network_devices_cache.values())
+            # Cruzar con agentes conocidos (sync_status)
+            with cache_lock:
+                known_ids = {s.get("device_id") for s in cache["sync_status"]}
+            total        = len(devices)
+            with_agent   = sum(1 for d in devices if d.get("has_agent"))
+            without_agent = total - with_agent
+            # Lista de visitantes (sin agente) para la tabla
+            visitors = sorted(
+                [d for d in devices if not d.get("has_agent")],
+                key=lambda x: x.get("last_seen", ""),
+                reverse=True
+            )[:20]  # top 20 más recientes
+            self.send_json({
+                "total":          total,
+                "with_agent":     with_agent,
+                "without_agent":  without_agent,
+                "visitors":       visitors
+            })
+            return
+
         if path == "/api/status":
             self.send_json({
                 "status": "Online",
                 "last_sync": cache["last_sync"],
                 "total_devices": len(cache["sync_status"])
             })
-            
+
         elif path == "/api/refresh":
             try:
                 refresh_cache_from_bigquery()
@@ -2311,6 +2343,35 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
 
                 except Exception as geo_err:
                     print(f"[SECURITY] Error en deteccion geo/VPN: {geo_err}")
+
+                # ── Inventario de red: procesar ARP scan del agente ──
+                network_scan = body.get("network_scan", [])
+                if network_scan and isinstance(network_scan, list):
+                    try:
+                        now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                        # IPs de equipos con agente (para marcar has_agent=True)
+                        with cache_lock:
+                            agent_ips = {s.get("last_ip") for s in cache["sync_status"]
+                                        if s.get("last_ip")}
+                        with network_devices_cache_lock:
+                            for dev in network_scan:
+                                mac = dev.get("mac", "").upper().strip()
+                                ip  = dev.get("ip", "").strip()
+                                if not mac or mac in ("FF:FF:FF:FF:FF:FF", ""):
+                                    continue
+                                existing = network_devices_cache.get(mac, {})
+                                network_devices_cache[mac] = {
+                                    "mac":          mac,
+                                    "ip":           ip,
+                                    "hostname":     dev.get("hostname", existing.get("hostname", "")),
+                                    "detected_by":  device_id,
+                                    "first_seen":   existing.get("first_seen", now_ts),
+                                    "last_seen":    now_ts,
+                                    "has_agent":    ip in agent_ips
+                                }
+                        print(f"[NET-SCAN] {device_id} reportó {len(network_scan)} dispositivos en red")
+                    except Exception as net_err:
+                        print(f"[NET-SCAN] Error procesando scan: {net_err}")
 
                 self.send_json({"ok": True})
             else:

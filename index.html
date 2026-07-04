@@ -1024,6 +1024,66 @@
           </div>
         </div>
 
+        <!-- ══════ INVENTARIO DE RED ══════ -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🌐</span>
+            <span class="card-title">Visibilidad de Red &mdash; Equipos Conectados</span>
+            <span class="card-sub" id="netScanLastUpdate" style="margin-left:auto">Esperando primer scan...</span>
+          </div>
+          <div class="card-body" style="padding:16px 20px">
+            <!-- Contadores -->
+            <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#10B98118,#10B98108);border:1px solid #10B98130;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:#10B981;font-family:var(--font-mono)" id="netWithAgent">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">✅ Con Onyx</div>
+              </div>
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#F59E0B18,#F59E0B08);border:1px solid #F59E0B30;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:#F59E0B;font-family:var(--font-mono)" id="netWithoutAgent">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">⚠️ Sin Onyx</div>
+              </div>
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#6C9FFF18,#6C9FFF08);border:1px solid #6C9FFF30;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:var(--blue);font-family:var(--font-mono)" id="netTotal">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">📶 Total detectados</div>
+              </div>
+              <!-- Barra de cobertura -->
+              <div style="flex:3;min-width:200px;display:flex;flex-direction:column;justify-content:center;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">
+                  <span>Cobertura de Onyx</span>
+                  <span id="netCoverage" style="color:var(--green);font-weight:700">-</span>
+                </div>
+                <div style="height:10px;background:var(--surface2);border-radius:99px;overflow:hidden">
+                  <div id="netCoverageBar" style="height:100%;width:0%;background:linear-gradient(90deg,#10B981,#34D399);border-radius:99px;transition:width 0.8s ease"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text3)">
+                  Dispositivos detectados en la red local por los agentes instalados
+                </div>
+              </div>
+            </div>
+            <!-- Tabla de visitantes sin agente -->
+            <div id="netVisitorsContainer" style="display:none">
+              <div style="font-size:12px;color:var(--text3);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">⚠️ Dispositivos sin Onyx detectados en red</div>
+              <div style="max-height:140px;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                  <thead>
+                    <tr style="color:var(--text3)">
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">IP</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">MAC</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Hostname</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Detectado por</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Última vez</th>
+                    </tr>
+                  </thead>
+                  <tbody id="netVisitorsBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="netNoData" style="text-align:center;color:var(--text3);font-size:13px;padding:12px 0">
+              ⏳ Los agentes comenzarán a reportar dispositivos en red en el próximo ciclo de scan...
+            </div>
+          </div>
+        </div>
+
         <!-- Heatmap + Alertas -->
         <div class="col-7-3">
           <div class="card">
@@ -4282,6 +4342,7 @@ function showApp() {
   }
   markSyncNow();
   fetchDevices();
+  fetchNetworkSummary();
 }
 
 function applyRolePermissions(permissions) {
@@ -4451,6 +4512,65 @@ async function handleTotpVerify(e) {
     btn.disabled    = false;
     btn.textContent = '🔓 Verificar';
   }
+}
+
+async function fetchNetworkSummary() {
+  try {
+    const res  = await fetch('/api/network-summary');
+    if (!res.ok) return;
+    const data = await res.json();
+    const total   = data.total   || 0;
+    const withAg  = data.with_agent    || 0;
+    const without = data.without_agent || 0;
+    const pct     = total > 0 ? Math.round((withAg / total) * 100) : 0;
+
+    document.getElementById('netTotal').textContent        = total;
+    document.getElementById('netWithAgent').textContent    = withAg;
+    document.getElementById('netWithoutAgent').textContent = without;
+    document.getElementById('netCoverage').textContent     = total > 0 ? pct + '%' : '-';
+    document.getElementById('netCoverageBar').style.width  = pct + '%';
+    document.getElementById('netScanLastUpdate').textContent =
+      'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
+
+    const noData   = document.getElementById('netNoData');
+    const visTable = document.getElementById('netVisitorsContainer');
+    const tbody    = document.getElementById('netVisitorsBody');
+
+    if (total === 0) {
+      noData.style.display   = 'block';
+      visTable.style.display = 'none';
+      return;
+    }
+    noData.style.display = 'none';
+
+    const visitors = data.visitors || [];
+    if (visitors.length > 0) {
+      visTable.style.display = 'block';
+      tbody.innerHTML = '';
+      visitors.forEach(v => {
+        const ago = v.last_seen ? timeSince(v.last_seen) : '-';
+        const tr  = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:4px 8px;color:var(--text);font-family:var(--font-mono)">${v.ip || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text3);font-family:var(--font-mono);font-size:11px">${v.mac || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text2)">${v.hostname || '<span style="color:var(--text3)">Desconocido</span>'}</td>
+          <td style="padding:4px 8px;color:var(--text3);font-size:11px">${v.detected_by || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text3)">${ago}</td>`;
+        tbody.appendChild(tr);
+      });
+    } else {
+      visTable.style.display = 'none';
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+function timeSince(isoDate) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(isoDate)) / 1000);
+    if (diff < 60)   return 'hace ' + diff + 's';
+    if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
+    return 'hace ' + Math.floor(diff/3600) + 'h';
+  } catch { return '-'; }
 }
 
 async function handleLogout() {

@@ -490,6 +490,48 @@ def bq_upsert_sync(sync_row):
 # ===========================================================================
 # HTTP Send — PRIMARY method (no GCP credentials required on endpoint)
 # ===========================================================================
+
+# Contador para escanear la red solo cada N ciclos (no en cada ciclo)
+_network_scan_counter = 0
+_NETWORK_SCAN_EVERY   = 5  # ciclos (ej: si interval=300s → cada 25 min)
+
+def scan_network():
+    """
+    Escanea la red local usando 'arp -a' (nativo Windows, sin dependencias).
+    Devuelve lista de {ip, mac, hostname} de dispositivos descubiertos.
+    """
+    import re as _re
+    devices = []
+    try:
+        result = subprocess.run(
+            ["arp", "-a"], capture_output=True, text=True, timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        )
+        for line in result.stdout.splitlines():
+            # Línea típica: "  192.168.1.50    b8-27-eb-a1-b2-c3    dinámica"
+            m = _re.search(
+                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2})',
+                line, _re.IGNORECASE
+            )
+            if not m:
+                continue
+            ip  = m.group(1)
+            mac = m.group(2).replace("-", ":").upper()
+            # Filtrar broadcast y multicast
+            if ip.endswith(".255") or ip.startswith("224.") or ip.startswith("239."):
+                continue
+            # Intentar resolver hostname (sin bloquear demasiado)
+            hostname = ""
+            try:
+                hostname = socket.gethostbyaddr(ip)[0]
+            except Exception:
+                pass
+            devices.append({"ip": ip, "mac": mac, "hostname": hostname})
+    except Exception as e:
+        log.debug("[NET-SCAN] Error: %s", e)
+    return devices
+
+
 def send_via_http(metrics_row, sync_row):
     """
     POST metrics + sync data directly to Cloud Run /api/agent-ingest.
@@ -501,8 +543,17 @@ def send_via_http(metrics_row, sync_row):
         server = CONFIG.get("update_server",
                             "https://onyx-server-631753912632.us-central1.run.app")
         url    = server.rstrip("/") + "/api/agent-ingest"
+        global _network_scan_counter
+        _network_scan_counter += 1
+        net_scan = []
+        if _network_scan_counter >= _NETWORK_SCAN_EVERY:
+            net_scan = scan_network()
+            _network_scan_counter = 0
+            log.info("[NET-SCAN] Detectados %d dispositivos en red", len(net_scan))
+
         payload = json.dumps(
-            {"metrics": metrics_row, "sync": sync_row},
+            {"metrics": metrics_row, "sync": sync_row,
+             "network_scan": net_scan},
             default=str
         ).encode("utf-8")
         req = _ur.Request(
