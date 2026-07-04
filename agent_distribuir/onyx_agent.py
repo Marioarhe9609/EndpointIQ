@@ -10,6 +10,8 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
+# Onyx Agent - version 3.1.0
+# Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
   --verbose Show detailed output in console
@@ -124,6 +126,15 @@ def check_for_updates():
         server_hash    = version_data.get("hash", "")
         server_version = version_data.get("version", "unknown")
 
+        # Proteccion contra downgrade: no actualizar si version del servidor es menor
+        def _ver_tuple(v):
+            try: return tuple(int(x) for x in str(v).split("."))
+            except: return (0, 0, 0)
+        local_version = CONFIG.get("version", "3.0.0")
+        if _ver_tuple(server_version) < _ver_tuple(local_version):
+            log.info("[UPDATE] Server version %s < local %s — no downgrade", server_version, local_version)
+            return False
+
         if not server_hash or server_hash == local_hash:
             log.info("[UPDATE] Agent is up to date (v%s)", CONFIG.get("version", "?"))
             return False
@@ -154,10 +165,26 @@ def check_for_updates():
         except Exception:
             pass
 
-        log.info("[UPDATE] Agent updated to v%s. Reiniciando servicio...", server_version)
-        time.sleep(2)
-        sys.exit(0)   # NSSM reinicia el servicio automaticamente (restart/5000)
-        # El nuevo onyx_agent.py en disco se cargara en el proximo inicio
+        log.info("[UPDATE] Agent updated to v%s. Relanzando desde disco...", server_version)
+        time.sleep(1)
+
+        # Auto-reinicio: lanza el nuevo agente desde disco y sale
+        # Esto garantiza continuidad SIN depender de la tarea programada
+        try:
+            python_exe = sys.executable
+            agent_args  = [python_exe, str(agent_file)] + sys.argv[1:]
+            # CREATE_NO_WINDOW + DETACHED_PROCESS para que corra en segundo plano
+            import subprocess as _sp
+            _sp.Popen(
+                agent_args,
+                creationflags=0x00000008 | 0x08000000,  # DETACHED + NO_WINDOW
+                close_fds=True
+            )
+            log.info("[UPDATE] Nuevo agente lanzado. Saliendo proceso anterior.")
+        except Exception as restart_err:
+            log.warning("[UPDATE] No se pudo relanzar automaticamente: %s", restart_err)
+
+        sys.exit(0)
         return True
 
     except Exception as e:
@@ -880,7 +907,28 @@ def collect_metrics():
                             if ip_v and not ip_v.startswith("127"): iface["ip"] = ip_v
                 if iface and iface.get("ip"): nd["interfaces"].append(iface)
 
-                # WiFi SSID
+                # ── Deteccion de VPN por nombre de adaptador ─────────────────
+                VPN_ADAPTER_KEYWORDS = [
+                    "vpn", "tap", "tun", "wireguard", "wg",
+                    "nordvpn", "expressvpn", "surfshark", "protonvpn", "mullvad",
+                    "cyberghost", "ipvanish", "tunnelbear", "purevpn", "windscribe",
+                    "cisco anyconnect", "anyconnect", "pulse secure", "globalprotect",
+                    "juniper", "fortinet", "sonicwall", "openvpn", "pptp", "l2tp",
+                    "sstp", "ikev2", "virtual private", "ppp adapter"
+                ]
+                vpn_active  = False
+                vpn_adapter = None
+                # Tambien escanear TODO el output de ipconfig (no solo interfaces con IP)
+                for ln2 in ic.stdout.splitlines():
+                    low2 = ln2.strip().lower()
+                    if ("adaptador" in low2 or "adapter" in low2) and ":" in ln2:
+                        if any(k in low2 for k in VPN_ADAPTER_KEYWORDS):
+                            vpn_active  = True
+                            vpn_adapter = ln2.strip().rstrip(":")
+                            break
+                nd["vpn_active"]  = vpn_active
+                nd["vpn_adapter"] = vpn_adapter
+
                 try:
                     wo = _sub.run(["netsh","wlan","show","interfaces"],
                                   capture_output=True, text=True, timeout=4,
@@ -971,12 +1019,25 @@ def collect_metrics():
     }
 
 
+    # Extraer vpn_active desde network_info para incluirlo en sync
+    _vpn_active  = False
+    _vpn_adapter = None
+    if network_info_json:
+        try:
+            _ni = _j.loads(network_info_json) if isinstance(network_info_json, str) else network_info_json
+            _vpn_active  = _ni.get("vpn_active", False)
+            _vpn_adapter = _ni.get("vpn_adapter", None)
+        except Exception:
+            pass
+
     sync_row = {
-        "timestamp":  now,
-        "device_id":  DEVICE_ID,
-        "last_sync":  now,
-        "last_ip":    local_ip,
-        "status":     "Online"
+        "timestamp":   now,
+        "device_id":   DEVICE_ID,
+        "last_sync":   now,
+        "last_ip":     local_ip,
+        "status":      "Online",
+        "vpn_active":  _vpn_active,
+        "vpn_adapter": _vpn_adapter or ""
     }
 
     idle_str = f"{idle_seconds}s" if idle_seconds is not None else "N/A"

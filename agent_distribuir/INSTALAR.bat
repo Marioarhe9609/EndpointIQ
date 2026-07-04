@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-title Onyx Agent - Instalador v3.1
+title Onyx Agent - Instalador v3.2
 
 :: ============================================
 :: AUTO-ELEVACION como Administrador via VBS
@@ -26,7 +26,7 @@ color 0B
 echo.
 echo   +==========================================================+
 echo   ^|                                                          ^|
-echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.1      ^|
+echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.2      ^|
 echo   ^|                    By Agentica                           ^|
 echo   ^|                                                          ^|
 echo   +==========================================================+
@@ -82,9 +82,12 @@ echo   [3/8] Buscando Python 3...
 echo.
 set "PYTHON_EXE="
 
-:: Buscar en PATH
+:: Buscar en PATH (excluyendo stub del Windows Store)
 for /f "delims=" %%i in ('where python.exe 2^>nul') do (
-    if not defined PYTHON_EXE set "PYTHON_EXE=%%i"
+    if not defined PYTHON_EXE (
+        echo %%i | findstr /i "WindowsApps" >nul 2>&1
+        if errorlevel 1 set "PYTHON_EXE=%%i"
+    )
 )
 
 :: Buscar en rutas comunes
@@ -189,43 +192,63 @@ echo.
 :: NOTA: google-cloud-bigquery YA NO se instala en el agente.
 :: Los datos se envian via HTTP al servidor Cloud Run, que maneja BigQuery.
 
-:: ----------------------------------------------
-:: PASO 7: CONFIGURAR DEFENDER + TAREA PROGRAMADA
-:: ----------------------------------------------
-echo   [7/8] Configurando seguridad y tarea programada...
-echo.
+:: Guardar la ruta de Python para la tarea
+"%PYTHON_EXE%" -c "open(r'%INSTALL_DIR%\python_path.txt','w').write(r'%PYTHON_EXE%')" >nul 2>&1
 
-:: Exclusion Defender
-powershell -NoProfile -Command "try { Add-MpPreference -ExclusionPath '%INSTALL_DIR%' -ErrorAction Stop } catch {}" >nul 2>&1
-echo         [OK] Exclusion de Windows Defender configurada
+:: Crear tarea programada como SYSTEM via PowerShell XML (metodo mas robusto)
+:: Ventajas: corre aunque pantalla bloqueada, sin sesion activa, en laptops con bateria
+set "TASK_XML=%TEMP%\onyx_task.xml"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$py = (Get-Content '%INSTALL_DIR%\python_path.txt' -Raw).Trim();" ^
+  "$xml = @'" ^
+  "<?xml version='1.0' encoding='UTF-16'?>" ^
+  "<Task version='1.2' xmlns='http://schemas.microsoft.com/windows/2004/02/mit/task'>" ^
+  "  <RegistrationInfo><Description>Onyx Agent - Monitoreo de endpoint</Description></RegistrationInfo>" ^
+  "  <Triggers>" ^
+  "    <TimeTrigger><Repetition><Interval>PT5M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition><StartBoundary>2024-01-01T00:00:00</StartBoundary><Enabled>true</Enabled></TimeTrigger>" ^
+  "    <BootTrigger><Delay>PT30S</Delay><Enabled>true</Enabled></BootTrigger>" ^
+  "  </Triggers>" ^
+  "  <Principals><Principal id='Author'><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>" ^
+  "  <Settings>" ^
+  "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>" ^
+  "    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>" ^
+  "    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>" ^
+  "    <ExecutionTimeLimit>PT10M</ExecutionTimeLimit>" ^
+  "    <Priority>7</Priority>" ^
+  "    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>" ^
+  "    <Enabled>true</Enabled>" ^
+  "  </Settings>" ^
+  "  <Actions Context='Author'><Exec><Command>$py</Command><Arguments>'%INSTALL_DIR%\onyx_agent.py' --once</Arguments></Exec></Actions>" ^
+  "</Task>" ^
+  "'@;" ^
+  "try { Unregister-ScheduledTask -TaskName 'Onyx-Agent' -Confirm:$false -ErrorAction SilentlyContinue } catch {};" ^
+  "Register-ScheduledTask -TaskName 'Onyx-Agent' -Xml $xml -Force | Out-Null;" ^
+  "Write-Host 'OK'" >nul 2>&1
 
-:: Crear tarea programada (SYSTEM primero, luego fallback a usuario actual)
-set "LAUNCHER=%INSTALL_DIR%\onyx_launcher.vbs"
-schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc MINUTE /mo 5 /ru SYSTEM /rl HIGHEST /f >nul 2>&1
+:: Verificar que se creo correctamente
+schtasks /query /tn "Onyx-Agent" >nul 2>&1
 if %errorlevel%==0 (
-    echo         [OK] Tarea Onyx-Agent creada como SYSTEM cada 5 minutos
+    echo         [OK] Tarea Onyx-Agent creada como SYSTEM - corre sin importar sesion de usuario
+    echo         [OK] Dispara cada 5 min + al inicio del sistema
 ) else (
-    schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc MINUTE /mo 5 /ru "NT AUTHORITY\SYSTEM" /f >nul 2>&1
-    if %errorlevel%==0 (
-        echo         [OK] Tarea Onyx-Agent creada como NT AUTHORITY\SYSTEM
+    echo         [WARN] XML fallo - intentando schtasks directo...
+    schtasks /create /tn "Onyx-Agent" /tr "\"%PYTHON_EXE%\" \"%INSTALL_DIR%\onyx_agent.py\" --once" /sc MINUTE /mo 5 /ru SYSTEM /rl HIGHEST /f >nul 2>&1
+    if !errorlevel!==0 (
+        echo         [OK] Tarea creada como SYSTEM via schtasks
     ) else (
-        schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc MINUTE /mo 5 /f >nul 2>&1
-        echo         [OK] Tarea Onyx-Agent creada para usuario actual
+        schtasks /create /tn "Onyx-Agent" /tr "\"%PYTHON_EXE%\" \"%INSTALL_DIR%\onyx_agent.py\" --once" /sc MINUTE /mo 5 /f >nul 2>&1
+        echo         [OK] Tarea creada para usuario actual ^(requeria admin^)
     )
 )
 echo.
+
 
 :: ----------------------------------------------
 :: PASO 8: PRIMERA EJECUCION
 :: ----------------------------------------------
 echo   [8/8] Ejecutando primera recoleccion de datos...
 echo.
-echo         [..] Iniciando agente Onyx...
-
-:: Guardar la ruta de Python en un archivo para el launcher
-"%PYTHON_EXE%" -c "open(r'%INSTALL_DIR%\python_path.txt','w').write(r'%PYTHON_EXE%')" >nul 2>&1
-
-:: Ejecutar el agente una vez para verificar
+echo         [..] Enviando metricas al servidor...
 "%PYTHON_EXE%" "%INSTALL_DIR%\onyx_agent.py" --once 2>"%INSTALL_DIR%\install_test.log"
 if %errorlevel%==0 (
     echo         [OK] Primera recoleccion completada - datos enviados al servidor
@@ -252,7 +275,7 @@ echo   +==========================================================+
 echo   ^|  Equipo     : %COMPUTERNAME%
 echo   ^|  Directorio : %INSTALL_DIR%
 echo   ^|  Python     : Configurado
-echo   ^|  Tarea      : Onyx-Agent cada 5 min
+echo   ^|  Tarea      : SYSTEM - cada 5 min + inicio del sistema
 echo   ^|  Auto-Update: Habilitado
 echo   +==========================================================+
 echo   ^|  Datos recolectados:

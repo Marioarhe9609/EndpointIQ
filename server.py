@@ -40,6 +40,68 @@ PORT = int(os.environ.get("PORT", 8080))
 # IP Geolocation cache  {ip: {lat, lon, country, city, isp, cached_at}}
 _geo_cache = {}
 
+# VPN check cache separado — TTL corto (5 min) para detectar cambios rapido
+_vpn_cache = {}  # {ip: {is_vpn, isp, checked_at}}
+
+VPN_ISP_KEYWORDS = [
+    "nordvpn", "expressvpn", "surfshark", "protonvpn", "mullvad",
+    "cyberghost", "ipvanish", "private internet access", "tunnelbear",
+    "hotspot shield", "windscribe", "hide.me", "purevpn", "hidemyass",
+    "vyprvpn", "strongvpn", "ivacy", "torguard", "astrill",
+    "digitalocean", "amazon.com", "amazon web services", "google cloud",
+    "microsoft azure", "linode", "vultr", "ovh", "hetzner", "choopa",
+    "m247", "datacamp", "quadranet", "serverius", "hostwinds"
+]
+
+def _check_vpn(ip):
+    """Detecta si una IP es VPN/proxy usando ip-api.com.
+    Funcion DEDICADA, separada de geolocation, con cache de 5 minutos.
+    Retorna dict: {is_vpn: bool, isp: str, reason: str}
+    """
+    if not ip or ip in ("N/A", "127.0.0.1", "0.0.0.0", ""):
+        return {"is_vpn": False, "isp": "", "reason": ""}
+    if ip.startswith(("10.", "192.168.", "172.")):
+        return {"is_vpn": False, "isp": "Red Local", "reason": ""}
+
+    # Cache de 5 minutos (detecta si alguien activa/desactiva VPN rapidamente)
+    cached = _vpn_cache.get(ip)
+    if cached and (datetime.datetime.now() - cached["_ts"]).total_seconds() < 300:
+        return cached
+
+    import urllib.request as urlreq
+    result = {"is_vpn": False, "isp": "", "reason": "", "_ts": datetime.datetime.now()}
+    try:
+        req = urlreq.Request(
+            f"http://ip-api.com/json/{ip}?fields=status,isp,org,proxy,hosting,mobile",
+            headers={"User-Agent": "EIQ-VPNCheck/1.0"})
+        resp = urlreq.urlopen(req, timeout=4)
+        data = json.loads(resp.read())
+        if data.get("status") == "success":
+            isp = data.get("isp", "") or data.get("org", "")
+            is_proxy   = data.get("proxy", False)
+            is_hosting = data.get("hosting", False)
+            # Verificar tambien nombre del ISP
+            isp_lower = isp.lower()
+            isp_match = next((k for k in VPN_ISP_KEYWORDS if k in isp_lower), None)
+
+            if is_proxy:
+                result.update({"is_vpn": True, "isp": isp, "reason": "proxy"})
+            elif is_hosting:
+                result.update({"is_vpn": True, "isp": isp, "reason": "hosting/datacenter"})
+            elif isp_match:
+                result.update({"is_vpn": True, "isp": isp, "reason": f"ISP: {isp_match}"})
+            else:
+                result.update({"is_vpn": False, "isp": isp, "reason": ""})
+
+            vpn_tag = f" [VPN: {result['reason']}]" if result["is_vpn"] else ""
+            print(f"[VPN] {ip} -> isp:{isp} proxy:{is_proxy} hosting:{is_hosting}{vpn_tag}")
+    except Exception as e:
+        print(f"[VPN] check failed for {ip}: {e}")
+
+    _vpn_cache[ip] = result
+    return result
+
+
 def _geolocate_ip(ip):
     """Geolocate an IP using ipwho.is (precise) with ipinfo.io and ip-api.com fallbacks."""
     if not ip or ip in ("N/A", "127.0.0.1", "0.0.0.0", ""):
@@ -81,13 +143,15 @@ def _geolocate_ip(ip):
     except Exception as e:
         print(f"[GEO] ipwho.is failed for {ip}: {e}")
     
-    # Fallback: ip-api.com (has zip code for zone precision)
+    # Fallback: ip-api.com (with VPN/proxy detection)
     try:
-        req = urlreq.Request(f"http://ip-api.com/json/{ip}?fields=status,country,city,lat,lon,isp,regionName,zip",
-                            headers={"User-Agent": "EIQ-Server/1.0"})
+        req = urlreq.Request(
+            f"http://ip-api.com/json/{ip}?fields=status,country,city,lat,lon,isp,regionName,zip,proxy,hosting,mobile",
+            headers={"User-Agent": "EIQ-Server/1.0"})
         resp = urlreq.urlopen(req, timeout=3)
         data = json.loads(resp.read())
         if data.get("status") == "success":
+            is_vpn = data.get("proxy", False) or data.get("hosting", False)
             result = {
                 "lat": data.get("lat", 4.6),
                 "lon": data.get("lon", -74.1),
@@ -96,10 +160,12 @@ def _geolocate_ip(ip):
                 "region": data.get("regionName", ""),
                 "isp": data.get("isp", ""),
                 "postal": data.get("zip", ""),
+                "is_vpn": is_vpn,
                 "_ts": datetime.datetime.now()
             }
             _geo_cache[ip] = result
-            print(f"[GEO] ip-api.com: {ip} -> {result['city']} ({result['lat']}, {result['lon']}) ZIP:{result['postal']}")
+            vpn_tag = " [VPN/PROXY]" if is_vpn else ""
+            print(f"[GEO] ip-api.com: {ip} -> {result['city']} ZIP:{result['postal']}{vpn_tag}")
             return result
     except Exception as e:
         print(f"[GEO] ip-api.com failed for {ip}: {e}")
@@ -553,6 +619,69 @@ def refresh_cache_from_bigquery():
             sec_evts.sort(key=lambda x: {"Alta": 0, "Media": 1, "Baja": 2}.get(x.get("severity", "Baja"), 3))
             cache["security_events"] = sec_evts
         
+    # 7. Detectar dispositivos offline leyendo desde BigQuery (sobrevive reinicios de Cloud Run)
+    try:
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        # Leer el ULTIMO sync de cada dispositivo directamente desde BQ
+        last_sync_rows = run_bq_query("""
+            SELECT device_id, MAX(timestamp) as ultimo_sync
+            FROM onyx.eq_sync_status
+            WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+            GROUP BY device_id
+        """)
+
+        offline_events = []
+        if last_sync_rows:
+            for row in last_sync_rows:
+                dev_id   = row.get("device_id", "")
+                last_ts  = row.get("ultimo_sync", "")
+                if not dev_id or not last_ts:
+                    continue
+                try:
+                    ts_str = str(last_ts)
+                    hb_ts = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    if hb_ts.tzinfo is None:
+                        hb_ts = hb_ts.replace(tzinfo=datetime.timezone.utc)
+                    mins_ago = (now_dt - hb_ts).total_seconds() / 60
+
+                    if mins_ago > 15:
+                        offline_events.append({
+                            "timestamp":   now_dt.isoformat(),
+                            "device_id":   dev_id,
+                            "device_name": dev_id,
+                            "event_type":  "Dispositivo Offline",
+                            "details":     f"Sin transmision hace {int(mins_ago)} min — ultimo contacto: {ts_str[:19]}",
+                            "severity":    "Alta",
+                            "icon":        "\U0001f534",
+                            "category":    "conectividad",
+                            "city":        ""
+                        })
+                        print(f"[OFFLINE] {dev_id}: offline hace {int(mins_ago)} min")
+                    elif mins_ago > 10:
+                        offline_events.append({
+                            "timestamp":   now_dt.isoformat(),
+                            "device_id":   dev_id,
+                            "device_name": dev_id,
+                            "event_type":  "Sin Transmision",
+                            "details":     f"Sin datos hace {int(mins_ago)} minutos — posible problema",
+                            "severity":    "Media",
+                            "icon":        "\U0001f7e1",
+                            "category":    "conectividad",
+                            "city":        ""
+                        })
+                except Exception:
+                    pass
+
+        # Siempre actualizar los eventos offline (aunque la lista este vacia = todos online)
+        with cache_lock:
+            existing = [e for e in cache.get("security_events", [])
+                        if e.get("event_type") not in ("Dispositivo Offline", "Sin Transmision")]
+            cache["security_events"] = offline_events + existing
+
+    except Exception as offline_err:
+        print(f"[OFFLINE-CHECK] Error: {offline_err}")
+
+
     print(f"Cache sincronizado con exito. Ultimo ping: {cache['last_sync']}")
 
 # Auto-refresh background loop
@@ -1428,7 +1557,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     dname = dev_name(d_id)
                     if d_id in _device_last_city:
                         prev = _device_last_city[d_id]
-                        if prev["city"] != current_city and current_city != "Bogotá":
+                        if prev.get("city") and prev["city"] != current_city:
                             events.append({
                                 "timestamp": ts, "device_id": d_id, "device_name": dname,
                                 "event_type": "Cambio de Zona",
@@ -1685,24 +1814,32 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/agent-version":
             # Return current agent version and file hash for update check
             import hashlib
-            agent_version = "2.1.0"
-            base_dir = os.path.join(os.path.dirname(__file__), "agent")
+            # Usar agent_distribuir como fuente unica de verdad
+            base_dir = os.path.join(os.path.dirname(__file__), "agent_distribuir")
             agent_path = os.path.join(base_dir, "onyx_agent.py")
             updater_path = os.path.join(base_dir, "onyx_updater.py")
             agent_hash = ""
             updater_hash = ""
+            agent_version = "3.1.0"  # version minima soportada
             if os.path.exists(agent_path):
                 with open(agent_path, "rb") as f:
-                    agent_hash = hashlib.md5(f.read()).hexdigest()
+                    content = f.read()
+                    agent_hash = hashlib.md5(content).hexdigest()
+                # Leer version del primer comentario del archivo si existe
+                try:
+                    first_lines = content.decode("utf-8", errors="ignore")[:500]
+                    for line in first_lines.splitlines():
+                        if "version" in line.lower() and any(c.isdigit() for c in line):
+                            import re
+                            m = re.search(r'(\d+\.\d+\.\d+)', line)
+                            if m:
+                                agent_version = m.group(1)
+                                break
+                except Exception:
+                    pass
             if os.path.exists(updater_path):
                 with open(updater_path, "rb") as f:
                     updater_hash = hashlib.md5(f.read()).hexdigest()
-            # Calculate credentials hash for auto-update
-            creds_path = os.path.join(base_dir, "onyx_credentials.json")
-            creds_hash = ""
-            if os.path.exists(creds_path):
-                with open(creds_path, "rb") as f:
-                    creds_hash = hashlib.md5(f.read()).hexdigest()
             self.send_json({
                 "version": agent_version,
                 "hash": agent_hash,
@@ -1710,12 +1847,12 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "updater_hash": updater_hash,
                 "updater_url": "/api/updater-download",
                 "launcher_url": "/api/launcher-download",
-                "creds_hash": creds_hash
+                "creds_hash": ""
             })
 
         elif path == "/api/agent-download":
-            # Serve the latest agent script for auto-update
-            agent_path = os.path.join(os.path.dirname(__file__), "agent", "onyx_agent.py")
+            # Serve the latest agent script for auto-update (desde agent_distribuir)
+            agent_path = os.path.join(os.path.dirname(__file__), "agent_distribuir", "onyx_agent.py")
             if os.path.exists(agent_path):
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
@@ -1726,8 +1863,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Agent file not found"}, 404)
 
         elif path == "/api/updater-download":
-            # Serve the standalone updater script
-            updater_path = os.path.join(os.path.dirname(__file__), "agent", "onyx_updater.py")
+            # Serve the standalone updater script (desde agent_distribuir)
+            updater_path = os.path.join(os.path.dirname(__file__), "agent_distribuir", "onyx_updater.py")
             if os.path.exists(updater_path):
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
@@ -1947,32 +2084,127 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             if sync:
                 sync["last_ip"] = client_ip
                 sync["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            
+
+            def _normalize_metrics(m):
+                """Adapta metricas al nuevo schema BQ con columnas proc1/2/3."""
+                if not m.get("timestamp"):
+                    m["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                procs = []
+                try:
+                    raw = m.get("top_processes", "")
+                    if isinstance(raw, str) and raw:
+                        procs = json.loads(raw)[:3]
+                    elif isinstance(raw, list):
+                        procs = raw[:3]
+                        m["top_processes"] = json.dumps(raw)
+                except Exception:
+                    pass
+                def _gp(i, f):
+                    try: return procs[i].get(f) if i < len(procs) else None
+                    except: return None
+                m.setdefault("proc1_name", _gp(0, "name")); m.setdefault("proc1_cpu", _gp(0, "cpu")); m.setdefault("proc1_mem", _gp(0, "mem"))
+                m.setdefault("proc2_name", _gp(1, "name")); m.setdefault("proc2_cpu", _gp(1, "cpu")); m.setdefault("proc2_mem", _gp(1, "mem"))
+                m.setdefault("proc3_name", _gp(2, "name")); m.setdefault("proc3_cpu", _gp(2, "cpu")); m.setdefault("proc3_mem", _gp(2, "mem"))
+                for f in ["network_info", "browser_history", "usb_ports", "event_logs", "downloads_metadata"]:
+                    if isinstance(m.get(f), (dict, list)):
+                        m[f] = json.dumps(m[f])
+                return m
+
             success = True
             if metrics:
                 try:
-                    run_bq_insert("onyx.eq_hardware_metrics", metrics)
+                    run_bq_insert("onyx.eq_hardware_metrics", _normalize_metrics(metrics))
                 except Exception as e:
                     print(f"[INGEST-ERROR] Error al insertar metrics para {device_id}: {e}")
                     success = False
-            
+
             if sync:
                 try:
+                    if not sync.get("timestamp"):
+                        sync["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
                     run_bq_insert("onyx.eq_sync_status", sync)
                 except Exception as e:
                     print(f"[INGEST-ERROR] Error al insertar sync para {device_id}: {e}")
                     success = False
-                    
+
             if success:
-                # Actualizar también la información de heartbeat en el caché local
+                now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                # Actualizar heartbeat en cache
                 with cache_lock:
                     cache["heartbeats"][device_id] = {
-                        "timestamp": sync.get("timestamp") if sync else datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "timestamp": sync.get("timestamp") if sync else now_ts,
                         "status": "Online",
                         "service_mode": "agent-ingest",
-                        "received_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "received_at": now_ts,
                         "public_ip": client_ip
                     }
+
+                # ── Deteccion de VPN y cambio de ciudad en tiempo real ──
+                try:
+                    geo          = _geolocate_ip(client_ip) if client_ip and client_ip not in ("N/A","127.0.0.1") else {}
+                    current_city    = geo.get("city", "Desconocida")
+                    current_country = geo.get("country", "")
+
+                    # PRIMARIO: VPN detectada por el agente en los adaptadores de red
+                    agent_vpn_active  = sync.get("vpn_active", False) if sync else False
+                    agent_vpn_adapter = sync.get("vpn_adapter", "") if sync else ""
+
+                    # SECUNDARIO: fallback por IP publica (solo si el agente no reporto VPN)
+                    vpn_result = {"is_vpn": False, "isp": "", "reason": ""}
+                    if not agent_vpn_active and client_ip and client_ip not in ("N/A", "127.0.0.1"):
+                        vpn_result = _check_vpn(client_ip)
+
+                    is_vpn = agent_vpn_active or vpn_result["is_vpn"]
+                    if agent_vpn_active:
+                        vpn_detail = f"Adaptador VPN activo: {agent_vpn_adapter or 'detectado'}"
+                    else:
+                        vpn_detail = f"Conexion VPN/proxy activa ({vpn_result['reason']}) — ISP: {vpn_result['isp']}"
+
+                    new_events = []
+
+                    # Alerta VPN
+                    if is_vpn:
+                        new_events.append({
+                            "timestamp":   now_ts,
+                            "device_id":   device_id,
+                            "device_name": device_id,
+                            "event_type":  "VPN Detectada",
+                            "details":     f"{vpn_detail} — IP: {client_ip}",
+                            "severity":    "Alta",
+                            "icon":        "\U0001f512",
+                            "category":    "seguridad",
+                            "city":        current_city
+                        })
+                        print(f"[SECURITY] VPN detectada en {device_id}: {vpn_detail}")
+
+                    # Alerta cambio de ciudad
+                    if device_id in _device_last_city:
+                        prev = _device_last_city[device_id]
+                        if prev.get("city") and prev["city"] != current_city:
+                            new_events.append({
+                                "timestamp":   now_ts,
+                                "device_id":   device_id,
+                                "device_name": device_id,
+                                "event_type":  "Cambio de Ciudad",
+                                "details":     f"Se conecto desde {current_city} ({current_country}) — anterior: {prev['city']} — IP: {client_ip}",
+                                "severity":    "Media",
+                                "icon":        "\U0001f4cd",
+                                "category":    "ubicacion",
+                                "city":        current_city
+                            })
+                            print(f"[SECURITY] Cambio de ciudad en {device_id}: {prev['city']} -> {current_city}")
+
+                    _device_last_city[device_id] = {
+                        "city": current_city, "country": current_country, "ip": client_ip
+                    }
+
+                    if new_events:
+                        with cache_lock:
+                            cache["security_events"] = new_events + cache.get("security_events", [])
+
+                except Exception as geo_err:
+                    print(f"[SECURITY] Error en deteccion geo/VPN: {geo_err}")
+
                 self.send_json({"ok": True})
             else:
                 self.send_json({"error": "Failed to ingest telemetry"}, 500)
