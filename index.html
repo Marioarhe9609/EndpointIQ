@@ -803,18 +803,70 @@
       <p>Plataforma de Monitoreo Inteligente</p>
     </div>
     <div class="login-error" id="loginError"></div>
-    <form onsubmit="handleLogin(event)">
-      <div class="login-field">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+
+    <!-- PASO 1: Credenciales -->
+    <div id="loginStepCredentials">
+      <form onsubmit="handleLogin(event)">
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+        </div>
+        <div class="login-field">
+          <label>Contraseña</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
+      </form>
+    </div>
+
+    <!-- PASO 2: Configurar 2FA (primer login) -->
+    <div id="loginStepSetup" style="display:none">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:28px;margin-bottom:8px;">🔒</div>
+        <h3 style="color:#e2e8f0;margin:0 0 6px;">Configura tu autenticador</h3>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">Escanea el código QR con Google Authenticator, Authy u otra app TOTP</p>
       </div>
-      <div class="login-field">
-        <label>Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+      <div id="totpQrContainer" style="text-align:center;margin:16px 0;">
+        <div style="color:#64748b;font-size:13px;">⏳ Generando código QR...</div>
       </div>
-      <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
-    </form>
-    <div class="login-footer">Onyx v1.0 · By Agentica</div>
+      <div id="totpSecretContainer" style="display:none;background:#1e293b;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;">
+        <p style="color:#64748b;font-size:11px;margin:0 0 4px;">¿No puedes escanear? Ingresa este código manualmente:</p>
+        <code id="totpSecretText" style="color:#60a5fa;font-size:14px;letter-spacing:2px;"></code>
+        <button onclick="document.getElementById('totpSecretContainer').style.display='none'" style="display:block;margin:8px auto 0;background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;">ocultar</button>
+      </div>
+      <button onclick="document.getElementById('totpSecretContainer').style.display='block'" id="showSecretBtn" style="background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;margin-bottom:12px;display:block;text-align:left;">📋 Ingresar código manualmente</button>
+      <form onsubmit="handleTotpEnable(event)">
+        <div class="login-field">
+          <label>Código de verificación (6 dígitos)</label>
+          <input type="text" id="totpSetupCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 style="letter-spacing:8px;font-size:22px;text-align:center;" required />
+        </div>
+        <button type="submit" class="login-btn" id="totpEnableBtn">✅ Activar y Entrar</button>
+      </form>
+      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Volver</button>
+    </div>
+
+    <!-- PASO 3: Verificar código 2FA (logins siguientes) -->
+    <div id="loginStepVerify" style="display:none">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:36px;margin-bottom:8px;">📱</div>
+        <h3 style="color:#e2e8f0;margin:0 0 6px;">Verificación en dos pasos</h3>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">Ingresa el código de 6 dígitos de tu app autenticadora</p>
+      </div>
+      <form onsubmit="handleTotpVerify(event)">
+        <div class="login-field">
+          <label>Código TOTP</label>
+          <input type="text" id="totpVerifyCode" placeholder="000000" maxlength="6" pattern="[0-9]{6}"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 style="letter-spacing:8px;font-size:28px;text-align:center;font-weight:bold;" required autofocus />
+        </div>
+        <button type="submit" class="login-btn" id="totpVerifyBtn">🔓 Verificar</button>
+      </form>
+      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Usar otra cuenta</button>
+    </div>
+
+    <div class="login-footer">Onyx v1.0 · By Agentica · 2FA TOTP</div>
   </div>
 </div>
 
@@ -4252,20 +4304,33 @@ function applyRolePermissions(permissions) {
   });
 }
 
+// ── 2FA state ─────────────────────────────────
+let _2fa_temp_token    = null;
+let _2fa_confirm_token = null;
+
+function showLoginStep(step) {
+  ['credentials','setup','verify'].forEach(s =>
+    document.getElementById('loginStep' + s.charAt(0).toUpperCase() + s.slice(1)).style.display = 'none'
+  );
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginError').textContent   = '';
+  const el = document.getElementById('loginStep' + step.charAt(0).toUpperCase() + step.slice(1));
+  if (el) el.style.display = 'block';
+}
+
 async function handleLogin(e) {
   e.preventDefault();
-  const btn = document.getElementById('loginBtn');
+  const btn   = document.getElementById('loginBtn');
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = '⏳ Verificando...';
-  
   try {
-    const res = await fetch('/api/auth/login', {
+    const res  = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        email: document.getElementById('loginEmail').value.trim(),
+        email:    document.getElementById('loginEmail').value.trim(),
         password: document.getElementById('loginPassword').value
       })
     });
@@ -4273,18 +4338,118 @@ async function handleLogin(e) {
     if (data.success) {
       currentUser = data.user;
       currentUser.authenticated = true;
-      currentUser.permissions = data.user.permissions;
       showApp();
+    } else if (data.requires_2fa) {
+      _2fa_temp_token = data.temp_token;
+      errEl.style.display = 'none';
+      if (data.action === 'setup') {
+        showLoginStep('setup');
+        await loadTotpQr();
+      } else {
+        showLoginStep('verify');
+        setTimeout(() => { const f = document.getElementById('totpVerifyCode'); if(f) f.focus(); }, 100);
+      }
     } else {
-      errEl.textContent = data.error || 'Error de autenticación';
+      errEl.textContent   = data.error || 'Error de autenticación';
       errEl.style.display = 'block';
     }
   } catch(err) {
-    errEl.textContent = 'Error de conexión con el servidor';
+    errEl.textContent   = 'Error de conexión con el servidor';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = '🔐 Iniciar Sesión';
+  }
+}
+
+async function loadTotpQr() {
+  const container = document.getElementById('totpQrContainer');
+  container.innerHTML = '<div style="color:#64748b;font-size:13px;">⏳ Generando código QR...</div>';
+  try {
+    const res  = await fetch('/api/auth/2fa/setup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({temp_token: _2fa_temp_token})
+    });
+    const data = await res.json();
+    if (data.qr_code) {
+      _2fa_confirm_token = data.confirm_token;
+      document.getElementById('totpSecretText').textContent = data.secret;
+      container.innerHTML = `<img src="${data.qr_code}" alt="QR 2FA"
+        style="width:200px;height:200px;border-radius:12px;border:3px solid #334155;">`;
+    } else {
+      container.innerHTML = '<div style="color:#f87171;">Error generando QR. Recarga e intenta de nuevo.</div>';
+    }
+  } catch(err) {
+    container.innerHTML = '<div style="color:#f87171;">Error de conexión.</div>';
+  }
+}
+
+async function handleTotpEnable(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('totpEnableBtn');
+  const errEl = document.getElementById('loginError');
+  const code  = document.getElementById('totpSetupCode').value.trim();
+  btn.disabled    = true;
+  btn.textContent = '⏳ Verificando...';
+  errEl.style.display = 'none';
+  try {
+    const res  = await fetch('/api/auth/2fa/enable', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({confirm_token: _2fa_confirm_token, code})
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      currentUser.authenticated = true;
+      showApp();
+    } else {
+      errEl.textContent   = data.error || 'Código incorrecto';
+      errEl.style.display = 'block';
+      document.getElementById('totpSetupCode').value = '';
+      document.getElementById('totpSetupCode').focus();
+    }
+  } catch(err) {
+    errEl.textContent   = 'Error de conexión';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '✅ Activar y Entrar';
+  }
+}
+
+async function handleTotpVerify(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('totpVerifyBtn');
+  const errEl = document.getElementById('loginError');
+  const code  = document.getElementById('totpVerifyCode').value.trim();
+  btn.disabled    = true;
+  btn.textContent = '⏳ Verificando...';
+  errEl.style.display = 'none';
+  try {
+    const res  = await fetch('/api/auth/2fa/verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({temp_token: _2fa_temp_token, code})
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      currentUser.authenticated = true;
+      showApp();
+    } else {
+      errEl.textContent   = data.error || 'Código incorrecto';
+      errEl.style.display = 'block';
+      document.getElementById('totpVerifyCode').value = '';
+      document.getElementById('totpVerifyCode').focus();
+    }
+  } catch(err) {
+    errEl.textContent   = 'Error de conexión';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '🔓 Verificar';
   }
 }
 

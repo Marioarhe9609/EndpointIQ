@@ -190,12 +190,26 @@ cache = {
 cache_lock = threading.Lock()
 
 # ══════════════════════════════════════════════════════════════
-# AUTH SYSTEM: Roles, Sessions, Password Hashing
+# AUTH SYSTEM: Roles, Sessions, Password Hashing, 2FA (TOTP)
 # ══════════════════════════════════════════════════════════════
+import pyotp, qrcode, qrcode.image.svg
+import base64, io as _io
+
 sessions = {}  # token -> {user_id, email, role, full_name, avatar, expires}
 sessions_lock = threading.Lock()
 users_cache = []  # In-memory cache of users from BigQuery
 users_cache_lock = threading.Lock()
+
+# Tokens temporales para el flujo de 2FA
+# {temp_token: {user_id, email, action: 'verify'|'setup', expires}}
+pending_2fa      = {}
+pending_2fa_lock = threading.Lock()
+
+# Protección brute-force: {email: {attempts, locked_until}}
+login_attempts      = {}
+login_attempts_lock = threading.Lock()
+MAX_LOGIN_ATTEMPTS  = 5
+LOCKOUT_MINUTES     = 15
 
 ROLE_PERMISSIONS = {
     "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export"},
@@ -205,6 +219,8 @@ ROLE_PERMISSIONS = {
 
 ROLE_LABELS = {"admin": "Administrador", "analyst": "Analista", "viewer": "Visor"}
 
+APP_NAME = "EndpointIQ Onyx"
+
 def hash_password(password, salt=None):
     """Hash password with PBKDF2-SHA256, 150k iterations."""
     if salt is None:
@@ -213,9 +229,86 @@ def hash_password(password, salt=None):
     return h.hex(), salt
 
 def verify_password(password, stored_hash, salt):
-    """Verify a password against stored hash."""
+    """Verify a password against stored hash (timing-safe)."""
+    import hmac as _hmac
     h = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 150000)
-    return h.hex() == stored_hash
+    return _hmac.compare_digest(h.hex(), stored_hash)
+
+# ── Brute-force helpers ──────────────────────────────────────────
+def _check_login_attempts(email):
+    """Returns (is_locked, attempts_left)."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with login_attempts_lock:
+        rec = login_attempts.get(email, {})
+        locked_until = rec.get("locked_until")
+        if locked_until and now < locked_until:
+            return True, 0
+        if locked_until and now >= locked_until:
+            login_attempts.pop(email, None)
+        attempts = rec.get("attempts", 0)
+        return False, MAX_LOGIN_ATTEMPTS - attempts
+
+def _record_failed_login(email):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with login_attempts_lock:
+        rec = login_attempts.get(email, {"attempts": 0})
+        rec["attempts"] = rec.get("attempts", 0) + 1
+        if rec["attempts"] >= MAX_LOGIN_ATTEMPTS:
+            rec["locked_until"] = now + datetime.timedelta(minutes=LOCKOUT_MINUTES)
+        login_attempts[email] = rec
+
+def _clear_login_attempts(email):
+    with login_attempts_lock:
+        login_attempts.pop(email, None)
+
+# ── TOTP helpers ─────────────────────────────────────────────────
+def _generate_totp_secret():
+    return pyotp.random_base32()
+
+def _get_totp_uri(secret, email):
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=APP_NAME)
+
+def _verify_totp(secret, code):
+    """Verify a TOTP code with a 1-window tolerance (30s before/after)."""
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=1)
+
+def _totp_qr_base64(uri):
+    """Generate a QR code PNG as base64 string."""
+    img = qrcode.make(uri)
+    buf = _io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+def _create_pending_2fa(user_id, email, action):
+    """Create a short-lived temp token for the 2FA flow."""
+    token = str(uuid.uuid4())
+    expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+    with pending_2fa_lock:
+        pending_2fa[token] = {"user_id": user_id, "email": email,
+                              "action": action, "expires": expires}
+    return token
+
+def _resolve_pending_2fa(temp_token):
+    """Validate and consume a pending_2fa token. Returns payload or None."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with pending_2fa_lock:
+        rec = pending_2fa.get(temp_token)
+        if not rec:
+            return None
+        if now > rec["expires"]:
+            pending_2fa.pop(temp_token, None)
+            return None
+        pending_2fa.pop(temp_token, None)  # single-use
+        return rec
+
+def _cleanup_pending_2fa():
+    """Remove expired pending_2fa entries (called by background thread)."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with pending_2fa_lock:
+        expired = [t for t, v in pending_2fa.items() if now > v["expires"]]
+        for t in expired:
+            pending_2fa.pop(t, None)
 
 def create_session(user):
     """Create a new session token for a user."""
@@ -251,12 +344,13 @@ def invalidate_session(token):
         sessions.pop(token, None)
 
 def load_users_from_bq():
-    """Load users from BigQuery into memory cache."""
+    """Load users from BigQuery into memory cache (including 2FA fields)."""
     global users_cache
     try:
         rows = run_bq_query("""
-            SELECT user_id, email, password_hash, salt, full_name, role, avatar, 
-                   created_at, last_login, is_active
+            SELECT user_id, email, password_hash, salt, full_name, role, avatar,
+                   created_at, last_login, is_active,
+                   totp_secret, totp_enabled
             FROM onyx.eq_users
             WHERE is_active = true
             ORDER BY created_at
@@ -269,9 +363,21 @@ def load_users_from_bq():
             print("[AUTH] No users found, will create default admin")
             _create_default_admin()
     except Exception as e:
-        print(f"[AUTH] Error loading users: {e}")
-        # Try creating the table and default admin
-        _create_default_admin()
+        print(f"[AUTH] Error loading users: {e} — retrying without 2FA columns")
+        try:
+            rows = run_bq_query("""
+                SELECT user_id, email, password_hash, salt, full_name, role, avatar,
+                       created_at, last_login, is_active
+                FROM onyx.eq_users WHERE is_active = true ORDER BY created_at
+            """)
+            if rows:
+                with users_cache_lock:
+                    users_cache = rows
+            else:
+                _create_default_admin()
+        except Exception as e2:
+            print(f"[AUTH] Error loading users (fallback): {e2}")
+            _create_default_admin()
 
 def _create_default_admin():
     """Create the default admin user if no users exist."""
@@ -2210,43 +2316,173 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 self.send_json({"error": "Failed to ingest telemetry"}, 500)
             return
 
-        # ── Auth: Login ──
+        # ── Auth: Login (con 2FA obligatorio) ──
         if path == "/api/auth/login":
-            email = body.get("email", "").strip().lower()
+            email    = body.get("email", "").strip().lower()
             password = body.get("password", "")
             if not email or not password:
                 self.send_json({"error": "Email y contraseña son requeridos"}, 400)
                 return
-            user = find_user_by_email(email)
-            if not user:
-                self.send_json({"error": "Credenciales incorrectas"}, 401)
+
+            # Brute-force check
+            is_locked, attempts_left = _check_login_attempts(email)
+            if is_locked:
+                self.send_json({"error": f"Cuenta bloqueada por {LOCKOUT_MINUTES} min tras demasiados intentos fallidos"}, 429)
                 return
-            if not user.get("is_active", True):
-                self.send_json({"error": "Usuario desactivado"}, 401)
+
+            user = find_user_by_email(email)
+            if not user or not user.get("is_active", True):
+                _record_failed_login(email)
+                self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
             if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
+                _record_failed_login(email)
                 self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
-            # Create session
-            token = create_session(user)
-            # Update last_login
+
+            _clear_login_attempts(email)
+
+            totp_enabled = user.get("totp_enabled") or False
+            totp_secret  = user.get("totp_secret")  or ""
+
+            if totp_enabled and totp_secret:
+                # 2FA activo → pedir código TOTP
+                temp = _create_pending_2fa(user["user_id"], email, "verify")
+                self.send_json({"requires_2fa": True, "action": "verify",
+                                "temp_token": temp, "email": email})
+            else:
+                # 2FA NO configurado → forzar setup antes de entrar
+                temp = _create_pending_2fa(user["user_id"], email, "setup")
+                self.send_json({"requires_2fa": True, "action": "setup",
+                                "temp_token": temp, "email": email,
+                                "message": "Debes configurar el doble factor de autenticación para continuar"})
+            return
+
+        # ── 2FA: Obtener QR para setup (usa temp_token) ──
+        if path == "/api/auth/2fa/setup":
+            temp_token = body.get("temp_token", "")
+            pending    = _resolve_pending_2fa(temp_token)
+            if not pending or pending.get("action") != "setup":
+                self.send_json({"error": "Token inválido o expirado"}, 401)
+                return
+            user = find_user_by_id(pending["user_id"])
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            # Generar nuevo secret TOTP
+            secret = _generate_totp_secret()
+            uri    = _get_totp_uri(secret, user["email"])
+            qr_b64 = _totp_qr_base64(uri)
+            # Guardar secret temporalmente en pending (nuevo token para confirm)
+            confirm_token = _create_pending_2fa(user["user_id"], user["email"], "confirm_setup")
+            with pending_2fa_lock:
+                pending_2fa[confirm_token]["totp_secret"] = secret
+            self.send_json({"qr_code": f"data:image/png;base64,{qr_b64}",
+                            "secret": secret,
+                            "confirm_token": confirm_token})
+            return
+
+        # ── 2FA: Confirmar setup con primer código ──
+        if path == "/api/auth/2fa/enable":
+            confirm_token = body.get("confirm_token", "")
+            code          = str(body.get("code", "")).strip()
+            with pending_2fa_lock:
+                pending = pending_2fa.get(confirm_token)
+            if not pending or pending.get("action") != "confirm_setup":
+                self.send_json({"error": "Token inválido o expirado"}, 401)
+                return
+            secret = pending.get("totp_secret", "")
+            if not secret or not _verify_totp(secret, code):
+                self.send_json({"error": "Código incorrecto. Verifica tu app autenticadora"}, 400)
+                return
+            # Código correcto → guardar en BQ y cache
+            _resolve_pending_2fa(confirm_token)  # consume
+            uid = pending["user_id"]
             try:
-                now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = '{secret}', totp_enabled = TRUE WHERE user_id = '{uid}'")
+            except Exception as e:
+                print(f"[2FA] Error guardando secret en BQ: {e}")
+            with users_cache_lock:
+                for u in users_cache:
+                    if u.get("user_id") == uid:
+                        u["totp_secret"]  = secret
+                        u["totp_enabled"] = True
+                        break
+            user = find_user_by_id(uid)
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            # Crear sesión completa ahora que 2FA está activo
+            token = create_session(user)
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            try:
+                run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{uid}'")
+            except Exception:
+                pass
+            self.send_json_with_cookie({
+                "success": True, "totp_setup": True,
+                "user": {"user_id": user["user_id"], "email": user["email"],
+                         "full_name": user["full_name"], "role": user["role"],
+                         "role_label": ROLE_LABELS.get(user["role"], user["role"]),
+                         "avatar": user.get("avatar", "??"),
+                         "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))}
+            }, "onyx_session", token)
+            return
+
+        # ── 2FA: Verificar código en login ──
+        if path == "/api/auth/2fa/verify":
+            temp_token = body.get("temp_token", "")
+            code       = str(body.get("code", "")).strip()
+            pending    = _resolve_pending_2fa(temp_token)
+            if not pending or pending.get("action") != "verify":
+                self.send_json({"error": "Token inválido o expirado. Inicia sesión nuevamente"}, 401)
+                return
+            user = find_user_by_id(pending["user_id"])
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            secret = user.get("totp_secret", "")
+            if not secret or not _verify_totp(secret, code):
+                self.send_json({"error": "Código incorrecto"}, 400)
+                return
+            token = create_session(user)
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            try:
                 run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{user['user_id']}'")
             except Exception:
                 pass
             self.send_json_with_cookie({
                 "success": True,
-                "user": {
-                    "user_id": user["user_id"],
-                    "email": user["email"],
-                    "full_name": user["full_name"],
-                    "role": user["role"],
-                    "role_label": ROLE_LABELS.get(user["role"], user["role"]),
-                    "avatar": user.get("avatar", "??"),
-                    "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))
-                }
+                "user": {"user_id": user["user_id"], "email": user["email"],
+                         "full_name": user["full_name"], "role": user["role"],
+                         "role_label": ROLE_LABELS.get(user["role"], user["role"]),
+                         "avatar": user.get("avatar", "??"),
+                         "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))}
             }, "onyx_session", token)
+            return
+
+        # ── 2FA: Admin resetea 2FA de otro usuario ──
+        if path == "/api/auth/2fa/reset":
+            session = self.require_role("admin")
+            if not session:
+                return
+            target_uid = body.get("user_id", "")
+            if not target_uid:
+                self.send_json({"error": "user_id requerido"}, 400)
+                return
+            try:
+                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = NULL, totp_enabled = FALSE WHERE user_id = '{target_uid}'")
+            except Exception as e:
+                self.send_json({"error": f"Error reseteando 2FA: {e}"}, 500)
+                return
+            with users_cache_lock:
+                for u in users_cache:
+                    if u.get("user_id") == target_uid:
+                        u["totp_secret"]  = None
+                        u["totp_enabled"] = False
+                        break
+            print(f"[2FA] Admin {session['email']} reseteó 2FA de user_id={target_uid}")
+            self.send_json({"success": True, "message": "2FA reseteado. El usuario deberá configurarlo en su próximo login"})
             return
         
         # ── Auth: Logout ──
@@ -2258,7 +2494,10 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             return
         
         # ── Auth middleware for other POST routes ──
-        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error", "/api/agent-ingest"}
+        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error",
+                          "/api/agent-ingest", "/api/auth/2fa/setup",
+                          "/api/auth/2fa/enable", "/api/auth/2fa/verify",
+                          "/api/auth/2fa/reset"}
         if path.startswith("/api/") and path not in AUTH_FREE_POSTS:
             session = self.get_current_session()
             if not session:
