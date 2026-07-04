@@ -2183,7 +2183,7 @@
         <div class="card" style="padding:0;overflow:hidden">
           <table class="prod-table" style="width:100%">
             <thead>
-              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>2FA</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="usersTableBody">
               <tr><td colspan="6" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
@@ -2193,7 +2193,7 @@
       </div>
 
       <!-- Modal: Crear/Editar Usuario -->
-      <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center">
+      <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
         <div class="login-card" style="animation:loginSlideUp 0.3s">
           <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)" id="userModalTitle">Nuevo Usuario</h3>
           <div class="login-field"><label>Nombre Completo</label><input id="umName" placeholder="Nombre Apellido" /></div>
@@ -4471,26 +4471,56 @@ async function fetchUsers() {
     if (!tbody) return;
     tbody.innerHTML = '';
     const roleColors = {admin: '#6C9FFF', analyst: '#34D399', viewer: '#FBBF24'};
-    const roleIcons = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    const roleIcons  = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    const isAdmin    = currentUser && currentUser.role === 'admin';
     users.forEach(u => {
-      const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
-      const roleColor = roleColors[u.role] || '#888';
-      tbody.innerHTML += `<tr>
+      const lastLogin  = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
+      const roleColor  = roleColors[u.role] || '#888';
+      const totp2fa    = u.totp_enabled ? '<span style="color:#34D399;font-size:12px">✅ Activo</span>'
+                                        : '<span style="color:#F87171;font-size:12px">⚠️ Pendiente</span>';
+      // Escapar para uso seguro en atributos data-*
+      const row = document.createElement('tr');
+      row.innerHTML = `
         <td><div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,${roleColor}22,${roleColor}44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${roleColor}">${u.avatar||'??'}</div>
           <strong>${u.full_name}</strong>
         </div></td>
         <td class="mono" style="font-size:12px">${u.email}</td>
         <td><span style="padding:4px 10px;border-radius:6px;background:${roleColor}18;color:${roleColor};font-size:11px;font-weight:600">${roleIcons[u.role]||''} ${u.role_label}</span></td>
+        <td>${totp2fa}</td>
         <td style="font-size:12px;color:var(--text2)">${lastLogin}</td>
         <td><span class="badge ok" style="font-size:11px">Activo</span></td>
-        <td>
-          <button onclick="openEditUserModal('${u.user_id}','${u.full_name}','${u.email}','${u.role}')" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
-          <button onclick="deleteUser('${u.user_id}','${u.full_name}')" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
-        </td>
-      </tr>`;
+        <td style="white-space:nowrap">
+          <button class="edit-user-btn" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
+          ${isAdmin && u.totp_enabled ? '<button class="reset-2fa-btn" style="padding:5px 10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;color:#FBBF24;cursor:pointer;font-size:11px;margin-right:4px" title="Resetear 2FA">🔄 2FA</button>' : ''}
+          <button class="del-user-btn" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
+        </td>`;
+      // Usar dataset para evitar problemas con comillas en nombres
+      row.querySelector('.edit-user-btn').addEventListener('click', () =>
+        openEditUserModal(u.user_id, u.full_name, u.email, u.role));
+      if (row.querySelector('.reset-2fa-btn'))
+        row.querySelector('.reset-2fa-btn').addEventListener('click', () => reset2FA(u.user_id, u.full_name));
+      row.querySelector('.del-user-btn').addEventListener('click', () =>
+        deleteUser(u.user_id, u.full_name));
+      tbody.appendChild(row);
     });
   } catch(e) { console.error('Error fetching users:', e); }
+}
+
+async function reset2FA(userId, userName) {
+  if (!confirm(`¿Resetear el 2FA de "${userName}"? El usuario deberá configurarlo en su próximo login.`)) return;
+  const res  = await fetch('/api/auth/2fa/reset', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  const data = await res.json();
+  if (data.success) {
+    fetchUsers();
+    alert(`✅ 2FA reseteado para ${userName}`);
+  } else {
+    alert(data.error || 'Error al resetear 2FA');
+  }
 }
 
 let editingUserId = null;

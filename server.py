@@ -907,15 +907,16 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 safe_users = []
                 for u in users_cache:
                     safe_users.append({
-                        "user_id": u.get("user_id"),
-                        "email": u.get("email"),
-                        "full_name": u.get("full_name"),
-                        "role": u.get("role"),
+                        "user_id":    u.get("user_id"),
+                        "email":      u.get("email"),
+                        "full_name":  u.get("full_name"),
+                        "role":       u.get("role"),
                         "role_label": ROLE_LABELS.get(u.get("role", ""), u.get("role", "")),
-                        "avatar": u.get("avatar"),
+                        "avatar":     u.get("avatar"),
                         "created_at": u.get("created_at"),
                         "last_login": u.get("last_login"),
-                        "is_active": u.get("is_active", True)
+                        "is_active":  u.get("is_active", True),
+                        "totp_enabled": bool(u.get("totp_enabled"))  # para indicador 2FA en panel admin
                     })
             self.send_json(safe_users)
             return
@@ -2496,8 +2497,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
         # ── Auth middleware for other POST routes ──
         AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error",
                           "/api/agent-ingest", "/api/auth/2fa/setup",
-                          "/api/auth/2fa/enable", "/api/auth/2fa/verify",
-                          "/api/auth/2fa/reset"}
+                          "/api/auth/2fa/enable", "/api/auth/2fa/verify"}
         if path.startswith("/api/") and path not in AUTH_FREE_POSTS:
             session = self.get_current_session()
             if not session:
