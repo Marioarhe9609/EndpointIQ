@@ -2534,7 +2534,9 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 "avatar": initials,
                 "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "last_login": None,
-                "is_active": True
+                "is_active": True,
+                "totp_secret":  None,   # el usuario configurará 2FA en su primer login
+                "totp_enabled": False
             }
             try:
                 run_bq_insert("onyx.eq_users", new_user)
