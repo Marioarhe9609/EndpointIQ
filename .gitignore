@@ -22,8 +22,17 @@ agent_distribuir/onyx_credentials.json
 data_eq_*.json
 temp_*.json
 
-# Credentials / Secrets
+# Credentials / Secrets — NEVER commit these
+env.yaml
+env.yml
+*.env
+.env.*
 /onyx_credentials.json
+**/onyx_credentials*.json
+*.pem
+*.key
+*.p12
+service_account*.json
 
 # OS files
 .DS_Store

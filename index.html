@@ -6,6 +6,8 @@
 <title>Onyx — Plataforma de Monitoreo Inteligente</title>
 <meta name="description" content="Plataforma empresarial de monitoreo inteligente de endpoints con IA predictiva, dashboards en tiempo real y automatización de soporte TI."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   /* ══ THEME: DARK ══════════════════════════════════════════════ */
   [data-theme="dark"] {
@@ -803,18 +805,70 @@
       <p>Plataforma de Monitoreo Inteligente</p>
     </div>
     <div class="login-error" id="loginError"></div>
-    <form onsubmit="handleLogin(event)">
-      <div class="login-field">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+
+    <!-- PASO 1: Credenciales -->
+    <div id="loginStepCredentials">
+      <form onsubmit="handleLogin(event)">
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+        </div>
+        <div class="login-field">
+          <label>Contraseña</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
+      </form>
+    </div>
+
+    <!-- PASO 2: Configurar 2FA (primer login) -->
+    <div id="loginStepSetup" style="display:none">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:28px;margin-bottom:8px;">🔒</div>
+        <h3 style="color:#e2e8f0;margin:0 0 6px;">Configura tu autenticador</h3>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">Escanea el código QR con Google Authenticator, Authy u otra app TOTP</p>
       </div>
-      <div class="login-field">
-        <label>Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+      <div id="totpQrContainer" style="text-align:center;margin:16px 0;">
+        <div style="color:#64748b;font-size:13px;">⏳ Generando código QR...</div>
       </div>
-      <button type="submit" class="login-btn" id="loginBtn">🔐 Iniciar Sesión</button>
-    </form>
-    <div class="login-footer">Onyx v1.0 · By Agentica</div>
+      <div id="totpSecretContainer" style="display:none;background:#1e293b;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;">
+        <p style="color:#64748b;font-size:11px;margin:0 0 4px;">¿No puedes escanear? Ingresa este código manualmente:</p>
+        <code id="totpSecretText" style="color:#60a5fa;font-size:14px;letter-spacing:2px;"></code>
+        <button onclick="document.getElementById('totpSecretContainer').style.display='none'" style="display:block;margin:8px auto 0;background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;">ocultar</button>
+      </div>
+      <button onclick="document.getElementById('totpSecretContainer').style.display='block'" id="showSecretBtn" style="background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;margin-bottom:12px;display:block;text-align:left;">📋 Ingresar código manualmente</button>
+      <form onsubmit="handleTotpEnable(event)">
+        <div class="login-field">
+          <label>Código de verificación (6 dígitos)</label>
+          <input type="text" id="totpSetupCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 style="letter-spacing:8px;font-size:22px;text-align:center;" required />
+        </div>
+        <button type="submit" class="login-btn" id="totpEnableBtn">✅ Activar y Entrar</button>
+      </form>
+      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Volver</button>
+    </div>
+
+    <!-- PASO 3: Verificar código 2FA (logins siguientes) -->
+    <div id="loginStepVerify" style="display:none">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:36px;margin-bottom:8px;">📱</div>
+        <h3 style="color:#e2e8f0;margin:0 0 6px;">Verificación en dos pasos</h3>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">Ingresa el código de 6 dígitos de tu app autenticadora</p>
+      </div>
+      <form onsubmit="handleTotpVerify(event)">
+        <div class="login-field">
+          <label>Código TOTP</label>
+          <input type="text" id="totpVerifyCode" placeholder="000000" maxlength="6" pattern="[0-9]{6}"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 style="letter-spacing:8px;font-size:28px;text-align:center;font-weight:bold;" required autofocus />
+        </div>
+        <button type="submit" class="login-btn" id="totpVerifyBtn">🔓 Verificar</button>
+      </form>
+      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Usar otra cuenta</button>
+    </div>
+
+    <div class="login-footer">Onyx v1.0 · By Agentica · 2FA TOTP</div>
   </div>
 </div>
 
@@ -968,6 +1022,86 @@
             </div>
             <div class="card-body" style="padding:10px 16px">
               <div id="syncTimelineContainer" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════ INVENTARIO DE RED ══════ -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🌐</span>
+            <span class="card-title">Visibilidad de Red &mdash; Equipos Conectados</span>
+            <span class="card-sub" id="netScanLastUpdate" style="margin-left:auto">Esperando primer scan...</span>
+          </div>
+          <div class="card-body" style="padding:16px 20px">
+            <!-- Contadores -->
+            <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#8B5CF618,#8B5CF608);border:1px solid #8B5CF630;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:#A78BFA;font-family:var(--font-mono)" id="netWithAgent">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">✅ Con Onyx</div>
+              </div>
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#EC489918,#EC489908);border:1px solid #EC489930;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:#F472B6;font-family:var(--font-mono)" id="netWithoutAgent">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">⚠️ Sin Onyx</div>
+              </div>
+              <div style="flex:1;min-width:130px;background:linear-gradient(135deg,#14B8A618,#14B8A608);border:1px solid #14B8A630;border-radius:12px;padding:14px 18px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:#2DD4BF;font-family:var(--font-mono)" id="netTotal">-</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:4px">📶 Total detectados</div>
+              </div>
+              <!-- Barra de cobertura -->
+              <div style="flex:3;min-width:200px;display:flex;flex-direction:column;justify-content:center;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">
+                  <span>Cobertura de Onyx</span>
+                  <span id="netCoverage" style="color:#A78BFA;font-weight:700">-</span>
+                </div>
+                <div style="height:10px;background:var(--surface2);border-radius:99px;overflow:hidden">
+                  <div id="netCoverageBar" style="height:100%;width:0%;background:linear-gradient(90deg,#8B5CF6,#A78BFA);border-radius:99px;transition:width 0.8s ease"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text3)">
+                  Dispositivos detectados en la red local por los agentes instalados
+                </div>
+              </div>
+            </div>
+            <!-- Tabla de flota (equipos con Onyx) -->
+            <div id="netFleetContainer" style="display:none;margin-bottom:16px">
+              <div style="font-size:12px;color:#A78BFA;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">✅ Equipos con Onyx instalado</div>
+              <div style="max-height:200px;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                  <thead>
+                    <tr style="color:var(--text3)">
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Estado</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Equipo</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">IP</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Red WiFi</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">VPN</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Interfaz</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Última sync</th>
+                    </tr>
+                  </thead>
+                  <tbody id="netFleetBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <!-- Tabla de visitantes sin agente -->
+            <div id="netVisitorsContainer" style="display:none">
+              <div style="font-size:12px;color:var(--text3);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">⚠️ Dispositivos sin Onyx detectados en red</div>
+              <div style="max-height:140px;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                  <thead>
+                    <tr style="color:var(--text3)">
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">IP</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">MAC</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Hostname</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Detectado por</th>
+                      <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border)">Última vez</th>
+                    </tr>
+                  </thead>
+                  <tbody id="netVisitorsBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="netNoData" style="display:none;text-align:center;color:var(--text3);font-size:13px;padding:12px 0">
+              ⏳ Cargando datos de red...
             </div>
           </div>
         </div>
@@ -1882,20 +2016,18 @@
               <div class="card-header"><span>🗺️</span><span class="card-title">Mapa Global de Conexiones — Monitoreo en Tiempo Real</span></div>
               <div class="card-body" style="padding:0;overflow:hidden;border-radius:0 0 12px 12px">
                 <div style="position:relative;width:100%;aspect-ratio:2/1;min-height:320px;overflow:hidden;background:#040d21" id="secWorldMapContainer">
-          <!-- Google Map Container -->
-          <div id="googleMap" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1"></div>
-                  <!-- Tooltip -->
-                  <div id="secMapTooltip" style="display:none;position:absolute;z-index:10;background:rgba(4,13,33,0.95);border:1px solid rgba(108,159,255,0.35);border-radius:10px;padding:12px 16px;pointer-events:none;backdrop-filter:blur(12px);min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.6)">
-                    <div id="secMapTooltipContent"></div>
-                  </div>
+          <!-- Leaflet Map Container -->
+          <div id="leafletMap" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;background:#040d21"></div>
                   <!-- Legend -->
-                  <div style="position:absolute;top:12px;right:12px;background:rgba(4,13,33,0.9);border:1px solid rgba(108,159,255,0.2);border-radius:10px;padding:10px 14px;z-index:4">
+                  <div style="position:absolute;top:12px;right:12px;background:rgba(4,13,33,0.9);border:1px solid rgba(108,159,255,0.2);border-radius:10px;padding:10px 14px;z-index:1000">
                     <div style="color:#64748B;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">ESTADO DE RED</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 10px #10B98199"></div><span style="color:#CBD5E1;font-size:10px">Conectado</span></div>
                     <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:50%;background:#EF4444;box-shadow:0 0 10px #EF444499"></div><span style="color:#CBD5E1;font-size:10px">Desconectado</span></div>
+                    <!-- Device count summary -->
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(108,159,255,0.15)">
+                      <div style="color:#CBD5E1;font-size:10px;font-weight:600" id="mapDeviceCount">0 dispositivos</div>
+                    </div>
                   </div>
-                  <!-- Device cards -->
-                  <div id="secMapDeviceCards" style="position:absolute;bottom:12px;left:12px;display:flex;gap:10px;flex-wrap:wrap;z-index:4"></div>
                 </div>
               </div>
             </div>
@@ -2131,7 +2263,7 @@
         <div class="card" style="padding:0;overflow:hidden">
           <table class="prod-table" style="width:100%">
             <thead>
-              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>2FA</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="usersTableBody">
               <tr><td colspan="6" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
@@ -2141,7 +2273,7 @@
       </div>
 
       <!-- Modal: Crear/Editar Usuario -->
-      <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center">
+      <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
         <div class="login-card" style="animation:loginSlideUp 0.3s">
           <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)" id="userModalTitle">Nuevo Usuario</h3>
           <div class="login-field"><label>Nombre Completo</label><input id="umName" placeholder="Nombre Apellido" /></div>
@@ -2611,41 +2743,86 @@ function updateFleetTable() {
 function updateDashboardNetwork() {
   let totalConns = 0, wifiConns = 0, totalDevices = 0;
   const ssids = new Set();
+  const ifaceNames = new Set();
   
   fleetDevices.forEach(dev => {
+    // Count each device as a connection
+    totalConns++;
+    
     if (dev.network_info) {
       try {
         const net = typeof dev.network_info === 'string' ? JSON.parse(dev.network_info) : dev.network_info;
         if (net.interfaces) {
-          totalConns += net.interfaces.length;
-          net.interfaces.forEach(i => { if (i.type === 'WiFi') wifiConns++; });
+          net.interfaces.forEach(i => {
+            if (i.type === 'WiFi') wifiConns++;
+            if (i.name && i.name !== 'Loopback (lo)') ifaceNames.add(i.name);
+          });
         }
+        // Collect real WiFi SSID
         if (net.wifi_ssid) {
           const clean = net.wifi_ssid.replace(/[\s\r\n]+/g, ' ').trim();
-          if (clean) ssids.add(clean);
+          // Skip fabricated SSIDs like "Red 192.168.x.x"
+          if (clean && !clean.match(/^Red \d+\.\d+\.\d+\.x$/)) {
+            ssids.add(clean);
+          }
         }
         if (net.connected_devices) totalDevices += net.connected_devices.length;
       } catch(e) {}
     }
+    
+    // Also check for real wifi_ssid directly on device object (from agent v3.2+)
+    if (dev.wifi_ssid) {
+      const clean = (dev.wifi_ssid + '').replace(/[\s\r\n]+/g, ' ').trim();
+      if (clean && !clean.match(/^Red \d+\.\d+\.\d+\.x$/)) {
+        ssids.add(clean);
+      }
+    }
   });
+  
+  // If no connected_devices reported, use fleet size as total
+  if (totalDevices === 0) totalDevices = fleetDevices.length;
   
   const totalEl = document.getElementById('netStatTotal');
   const wifiEl = document.getElementById('netStatWifi');
   const devicesEl = document.getElementById('netStatDevices');
   const ssidList = document.getElementById('netSSIDList');
   
-  if (totalEl) totalEl.textContent = totalConns || fleetDevices.length;
+  if (totalEl) totalEl.textContent = totalConns;
   if (wifiEl) wifiEl.textContent = wifiConns;
   if (devicesEl) devicesEl.textContent = totalDevices;
   
   if (ssidList) {
     ssidList.innerHTML = '';
+    // Show real SSIDs if available
     if (ssids.size > 0) {
       ssids.forEach(ssid => {
-        ssidList.innerHTML += `<span class="badge info" style="font-size:11px;padding:3px 10px">\ud83d\udce1 ${ssid}</span>`;
+        ssidList.innerHTML += `<span class="badge info" style="font-size:11px;padding:3px 10px">📡 ${ssid}</span>`;
       });
-    } else {
-      ssidList.innerHTML = '<span style="font-size:11px;color:var(--text3)">Datos de red se mostraran cuando el agente envie network_info</span>';
+    }
+    // Show interface types detected
+    if (ifaceNames.size > 0) {
+      ifaceNames.forEach(name => {
+        ssidList.innerHTML += `<span class="badge" style="font-size:11px;padding:3px 10px;background:rgba(139,92,246,0.12);color:#A78BFA;border-radius:999px">🔌 ${name}</span>`;
+      });
+    }
+    // Fallback if nothing real found
+    if (ssids.size === 0 && ifaceNames.size === 0) {
+      // Show device IPs as network identifiers
+      const ips = new Set();
+      fleetDevices.forEach(dev => {
+        const ip = dev.last_ip || dev.ip;
+        if (ip) {
+          const subnet = ip.split('.').slice(0,3).join('.') + '.0/24';
+          ips.add(subnet);
+        }
+      });
+      if (ips.size > 0) {
+        ips.forEach(subnet => {
+          ssidList.innerHTML += `<span class="badge" style="font-size:11px;padding:3px 10px;background:rgba(20,184,166,0.12);color:#2DD4BF;border-radius:999px">🌐 Subred ${subnet}</span>`;
+        });
+      } else {
+        ssidList.innerHTML = '<span style="font-size:11px;color:var(--text3)">Red detectada — esperando datos de interfaz del agente</span>';
+      }
     }
   }
 }
@@ -3708,14 +3885,16 @@ function fetchSecurity() {
           const devName = row.device_name || row.device_id || '—';
           const icon = row.icon || '🔐';
           const cat = row.category || 'general';
-          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
+          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General',seguridad:'Seguridad',ubicacion:'Ubicación',usb:'Puerto USB',vpn:'VPN'};
+          const catColors2 = {seguridad:'#EF4444',ubicacion:'#F59E0B',usb:'#A78BFA',vpn:'#EF4444',disponibilidad:'#F87171',rendimiento:'#FBBF24',red:'#6C9FFF',software:'#F59E0B',estado:'#10B981',general:'#8B9DAF',almacenamiento:'#A78BFA',navegacion:'#34D399',productividad:'#06B6D4'};
+          const catC = catColors2[cat] || '#8B9DAF';
           
           tbody.innerHTML += `<tr>
             <td style="font-size:18px;text-align:center">${icon}</td>
             <td><span class="badge ${badgeClass}">${row.event_type}</span></td>
             <td style="font-weight:600">${devName}</td>
             <td style="font-size:12px">${row.details}</td>
-            <td><span style="padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
+            <td><span style="padding:2px 8px;border-radius:4px;background:${catC}18;color:${catC};border:1px solid ${catC}30;font-size:10px;font-weight:600">${catLabels[cat] || cat}</span></td>
             <td class="mono">${time}</td>
             <td><span class="badge ${badgeClass}">${row.severity}</span></td>
           </tr>`;
@@ -3728,25 +3907,9 @@ function fetchSecurity() {
         // Al llamar a updateGoogleMapMarkers, las coordenadas se ajustan por dispersión si están solapadas
         window.updateGoogleMapMarkers(window.latestConnectionMapData);
         // Device cards
-        const mapCards = document.getElementById('secMapDeviceCards');
-        const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
-        if (mapCards) {
-          mapCards.innerHTML = window.latestConnectionMapData.map((dev, i) => {
-            const isOnline = dev.status === 'online';
-            const color = isOnline ? pinColors[i % pinColors.length] : '#EF4444';
-            const lat = Number(dev.lat) || 4.6097;
-            const lng = Number(dev.lon) || -74.0817;
-            return `<div style="background:rgba(4,13,33,0.92);border:1px solid ${color}44;border-radius:10px;padding:10px 14px;min-width:130px;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,0.4)">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-                <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color}88"></div>
-                <span style="color:#F1F5F9;font-weight:700;font-size:12px">${dev.name}</span>
-              </div>
-              <div style="color:#64748B;font-family:var(--font-mono);font-size:9px">${dev.ip || 'N/A'}</div>
-              <div style="color:#94A3B8;font-size:9px;margin-top:2px">${dev.city || 'Bogotá'} · ${dev.country || 'Colombia'}</div>
-              <div style="color:#3B82F6;font-family:monospace;font-size:8px;margin-top:4px">📍 ${lat.toFixed(4)} · ${lng.toFixed(4)}</div>
-            </div>`;
-          }).join('');
-        }
+        // Update device count in legend
+        const countEl = document.getElementById('mapDeviceCount');
+        if (countEl) countEl.textContent = window.latestConnectionMapData.length + ' dispositivos';
       }
       
       // Categories Panel
@@ -4230,6 +4393,7 @@ function showApp() {
   }
   markSyncNow();
   fetchDevices();
+  fetchNetworkSummary();
 }
 
 function applyRolePermissions(permissions) {
@@ -4252,20 +4416,33 @@ function applyRolePermissions(permissions) {
   });
 }
 
+// ── 2FA state ─────────────────────────────────
+let _2fa_temp_token    = null;
+let _2fa_confirm_token = null;
+
+function showLoginStep(step) {
+  ['credentials','setup','verify'].forEach(s =>
+    document.getElementById('loginStep' + s.charAt(0).toUpperCase() + s.slice(1)).style.display = 'none'
+  );
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginError').textContent   = '';
+  const el = document.getElementById('loginStep' + step.charAt(0).toUpperCase() + step.slice(1));
+  if (el) el.style.display = 'block';
+}
+
 async function handleLogin(e) {
   e.preventDefault();
-  const btn = document.getElementById('loginBtn');
+  const btn   = document.getElementById('loginBtn');
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = '⏳ Verificando...';
-  
   try {
-    const res = await fetch('/api/auth/login', {
+    const res  = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        email: document.getElementById('loginEmail').value.trim(),
+        email:    document.getElementById('loginEmail').value.trim(),
         password: document.getElementById('loginPassword').value
       })
     });
@@ -4273,19 +4450,211 @@ async function handleLogin(e) {
     if (data.success) {
       currentUser = data.user;
       currentUser.authenticated = true;
-      currentUser.permissions = data.user.permissions;
       showApp();
+    } else if (data.requires_2fa) {
+      _2fa_temp_token = data.temp_token;
+      errEl.style.display = 'none';
+      if (data.action === 'setup') {
+        showLoginStep('setup');
+        await loadTotpQr();
+      } else {
+        showLoginStep('verify');
+        setTimeout(() => { const f = document.getElementById('totpVerifyCode'); if(f) f.focus(); }, 100);
+      }
     } else {
-      errEl.textContent = data.error || 'Error de autenticación';
+      errEl.textContent   = data.error || 'Error de autenticación';
       errEl.style.display = 'block';
     }
   } catch(err) {
-    errEl.textContent = 'Error de conexión con el servidor';
+    errEl.textContent   = 'Error de conexión con el servidor';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = '🔐 Iniciar Sesión';
   }
+}
+
+async function loadTotpQr() {
+  const container = document.getElementById('totpQrContainer');
+  container.innerHTML = '<div style="color:#64748b;font-size:13px;">⏳ Generando código QR...</div>';
+  try {
+    const res  = await fetch('/api/auth/2fa/setup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({temp_token: _2fa_temp_token})
+    });
+    const data = await res.json();
+    if (data.qr_code) {
+      _2fa_confirm_token = data.confirm_token;
+      document.getElementById('totpSecretText').textContent = data.secret;
+      container.innerHTML = `<img src="${data.qr_code}" alt="QR 2FA"
+        style="width:200px;height:200px;border-radius:12px;border:3px solid #334155;">`;
+    } else {
+      container.innerHTML = '<div style="color:#f87171;">Error generando QR. Recarga e intenta de nuevo.</div>';
+    }
+  } catch(err) {
+    container.innerHTML = '<div style="color:#f87171;">Error de conexión.</div>';
+  }
+}
+
+async function handleTotpEnable(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('totpEnableBtn');
+  const errEl = document.getElementById('loginError');
+  const code  = document.getElementById('totpSetupCode').value.trim();
+  btn.disabled    = true;
+  btn.textContent = '⏳ Verificando...';
+  errEl.style.display = 'none';
+  try {
+    const res  = await fetch('/api/auth/2fa/enable', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({confirm_token: _2fa_confirm_token, code})
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      currentUser.authenticated = true;
+      showApp();
+    } else {
+      errEl.textContent   = data.error || 'Código incorrecto';
+      errEl.style.display = 'block';
+      document.getElementById('totpSetupCode').value = '';
+      document.getElementById('totpSetupCode').focus();
+    }
+  } catch(err) {
+    errEl.textContent   = 'Error de conexión';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '✅ Activar y Entrar';
+  }
+}
+
+async function handleTotpVerify(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('totpVerifyBtn');
+  const errEl = document.getElementById('loginError');
+  const code  = document.getElementById('totpVerifyCode').value.trim();
+  btn.disabled    = true;
+  btn.textContent = '⏳ Verificando...';
+  errEl.style.display = 'none';
+  try {
+    const res  = await fetch('/api/auth/2fa/verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({temp_token: _2fa_temp_token, code})
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      currentUser.authenticated = true;
+      showApp();
+    } else {
+      errEl.textContent   = data.error || 'Código incorrecto';
+      errEl.style.display = 'block';
+      document.getElementById('totpVerifyCode').value = '';
+      document.getElementById('totpVerifyCode').focus();
+    }
+  } catch(err) {
+    errEl.textContent   = 'Error de conexión';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '🔓 Verificar';
+  }
+}
+
+async function fetchNetworkSummary() {
+  try {
+    const res  = await fetch('/api/network-summary');
+    if (!res.ok) return;
+    const data = await res.json();
+    const total   = data.total   || 0;
+    const withAg  = data.with_agent    || 0;
+    const without = data.without_agent || 0;
+    const pct     = total > 0 ? Math.round((withAg / total) * 100) : (withAg > 0 ? 100 : 0);
+
+    document.getElementById('netTotal').textContent        = total;
+    document.getElementById('netWithAgent').textContent    = withAg;
+    document.getElementById('netWithoutAgent').textContent = without;
+    document.getElementById('netCoverage').textContent     = total > 0 ? pct + '%' : (withAg > 0 ? '100%' : '-');
+    document.getElementById('netCoverageBar').style.width  = pct + '%';
+    document.getElementById('netScanLastUpdate').textContent =
+      'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
+
+    const noData     = document.getElementById('netNoData');
+    const fleetCont  = document.getElementById('netFleetContainer');
+    const fleetBody  = document.getElementById('netFleetBody');
+    const visTable   = document.getElementById('netVisitorsContainer');
+    const tbody      = document.getElementById('netVisitorsBody');
+
+    // Fleet devices (equipos con Onyx)
+    const fleet = data.fleet || [];
+    if (fleet.length > 0 && fleetCont && fleetBody) {
+      fleetCont.style.display = 'block';
+      noData.style.display = 'none';
+      fleetBody.innerHTML = '';
+      fleet.forEach(f => {
+        const isOnline = (f.status || '').toLowerCase().includes('online');
+        const statusDot = isOnline 
+          ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 6px #10B98188"></span> <span style="color:#10B981;font-weight:600;font-size:11px">Online</span>'
+          : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF4444;box-shadow:0 0 6px #EF444488"></span> <span style="color:#EF4444;font-weight:600;font-size:11px">Offline</span>';
+        const vpnBadge = f.vpn_active
+          ? '<span style="padding:1px 6px;border-radius:4px;background:#EF444418;color:#EF4444;border:1px solid #EF444430;font-size:10px;font-weight:700">🔒 VPN</span>'
+          : '<span style="color:var(--text3);font-size:11px">—</span>';
+        const ago = f.last_seen ? timeSince(f.last_seen) : '-';
+        const tr = document.createElement('tr');
+        tr.style.cssText = 'border-bottom:1px solid var(--border)';
+        tr.innerHTML = `
+          <td style="padding:6px 8px">${statusDot}</td>
+          <td style="padding:6px 8px;color:var(--text);font-weight:600">${f.device_id || '-'}</td>
+          <td style="padding:6px 8px;color:var(--text2);font-family:var(--font-mono);font-size:11px">${f.ip || '-'}</td>
+          <td style="padding:6px 8px;color:var(--text2);font-size:11px">${f.wifi_ssid || '<span style="color:var(--text3)">Ethernet</span>'}</td>
+          <td style="padding:6px 8px">${vpnBadge}</td>
+          <td style="padding:6px 8px;color:var(--text3);font-size:10px">${f.interface || '-'}</td>
+          <td style="padding:6px 8px;color:var(--text3);font-size:11px">${ago}</td>`;
+        fleetBody.appendChild(tr);
+      });
+    } else if (fleetCont) {
+      fleetCont.style.display = 'none';
+    }
+
+    if (total === 0 && fleet.length === 0) {
+      noData.style.display   = 'block';
+      if (visTable) visTable.style.display = 'none';
+      return;
+    }
+    noData.style.display = 'none';
+
+    const visitors = data.visitors || [];
+    if (visitors.length > 0) {
+      visTable.style.display = 'block';
+      tbody.innerHTML = '';
+      visitors.forEach(v => {
+        const ago = v.last_seen ? timeSince(v.last_seen) : '-';
+        const tr  = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:4px 8px;color:var(--text);font-family:var(--font-mono)">${v.ip || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text3);font-family:var(--font-mono);font-size:11px">${v.mac || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text2)">${v.hostname || '<span style="color:var(--text3)">Desconocido</span>'}</td>
+          <td style="padding:4px 8px;color:var(--text3);font-size:11px">${v.detected_by || '-'}</td>
+          <td style="padding:4px 8px;color:var(--text3)">${ago}</td>`;
+        tbody.appendChild(tr);
+      });
+    } else {
+      visTable.style.display = 'none';
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+function timeSince(isoDate) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(isoDate)) / 1000);
+    if (diff < 60)   return 'hace ' + diff + 's';
+    if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
+    return 'hace ' + Math.floor(diff/3600) + 'h';
+  } catch { return '-'; }
 }
 
 async function handleLogout() {
@@ -4306,26 +4675,56 @@ async function fetchUsers() {
     if (!tbody) return;
     tbody.innerHTML = '';
     const roleColors = {admin: '#6C9FFF', analyst: '#34D399', viewer: '#FBBF24'};
-    const roleIcons = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    const roleIcons  = {admin: '🔑', analyst: '📊', viewer: '👁'};
+    const isAdmin    = currentUser && currentUser.role === 'admin';
     users.forEach(u => {
-      const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
-      const roleColor = roleColors[u.role] || '#888';
-      tbody.innerHTML += `<tr>
+      const lastLogin  = u.last_login ? new Date(u.last_login).toLocaleString('es-CO') : 'Nunca';
+      const roleColor  = roleColors[u.role] || '#888';
+      const totp2fa    = u.totp_enabled ? '<span style="color:#34D399;font-size:12px">✅ Activo</span>'
+                                        : '<span style="color:#F87171;font-size:12px">⚠️ Pendiente</span>';
+      // Escapar para uso seguro en atributos data-*
+      const row = document.createElement('tr');
+      row.innerHTML = `
         <td><div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,${roleColor}22,${roleColor}44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${roleColor}">${u.avatar||'??'}</div>
           <strong>${u.full_name}</strong>
         </div></td>
         <td class="mono" style="font-size:12px">${u.email}</td>
         <td><span style="padding:4px 10px;border-radius:6px;background:${roleColor}18;color:${roleColor};font-size:11px;font-weight:600">${roleIcons[u.role]||''} ${u.role_label}</span></td>
+        <td>${totp2fa}</td>
         <td style="font-size:12px;color:var(--text2)">${lastLogin}</td>
         <td><span class="badge ok" style="font-size:11px">Activo</span></td>
-        <td>
-          <button onclick="openEditUserModal('${u.user_id}','${u.full_name}','${u.email}','${u.role}')" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
-          <button onclick="deleteUser('${u.user_id}','${u.full_name}')" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
-        </td>
-      </tr>`;
+        <td style="white-space:nowrap">
+          <button class="edit-user-btn" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--blue);cursor:pointer;font-size:11px;margin-right:4px">✏️</button>
+          ${isAdmin && u.totp_enabled ? '<button class="reset-2fa-btn" style="padding:5px 10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;color:#FBBF24;cursor:pointer;font-size:11px;margin-right:4px" title="Resetear 2FA">🔄 2FA</button>' : ''}
+          <button class="del-user-btn" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
+        </td>`;
+      // Usar dataset para evitar problemas con comillas en nombres
+      row.querySelector('.edit-user-btn').addEventListener('click', () =>
+        openEditUserModal(u.user_id, u.full_name, u.email, u.role));
+      if (row.querySelector('.reset-2fa-btn'))
+        row.querySelector('.reset-2fa-btn').addEventListener('click', () => reset2FA(u.user_id, u.full_name));
+      row.querySelector('.del-user-btn').addEventListener('click', () =>
+        deleteUser(u.user_id, u.full_name));
+      tbody.appendChild(row);
     });
   } catch(e) { console.error('Error fetching users:', e); }
+}
+
+async function reset2FA(userId, userName) {
+  if (!confirm(`¿Resetear el 2FA de "${userName}"? El usuario deberá configurarlo en su próximo login.`)) return;
+  const res  = await fetch('/api/auth/2fa/reset', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  const data = await res.json();
+  if (data.success) {
+    fetchUsers();
+    alert(`✅ 2FA reseteado para ${userName}`);
+  } else {
+    alert(data.error || 'Error al resetear 2FA');
+  }
 }
 
 let editingUserId = null;
@@ -5305,80 +5704,71 @@ window.onload = () => {
   }
 
 // ----------------------------------------------------
-// ?? GOOGLE MAPS INTEGRATION ??
+// 🗺️ LEAFLET MAP INTEGRATION (OpenStreetMap - Free)
 // ----------------------------------------------------
-var googleMapInstance = null;
-var googleMapMarkers = [];
+var leafletMapInstance = null;
+var leafletMapMarkers = [];
 
 window.initGoogleMap = function() {
-  const mapContainer = document.getElementById('googleMap');
+  const mapContainer = document.getElementById('leafletMap');
   if (!mapContainer) return;
+  if (leafletMapInstance) return; // already initialized
   
-  // Custom styled premium Dark Theme for Onyx (complete night/charcoal style)
-  googleMapInstance = new google.maps.Map(mapContainer, {
-    center: { lat: 4.6097, lng: -74.0817 }, // Colombia center (Bogotá)
+  // Initialize Leaflet with CartoDB Dark Matter tiles (premium dark theme)
+  leafletMapInstance = L.map(mapContainer, {
+    center: [4.6097, -74.0817], // Bogotá, Colombia
     zoom: 6,
-    styles: [
-      { "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
-      { "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
-      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
-      { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "administrative.country", "elementType": "geometry.stroke", "stylers": [{ "color": "#334155" }, { "weight": 1.5 }] },
-      { "featureType": "administrative.province", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
-      { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
-      { "featureType": "landscape.man_made", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
-      { "featureType": "landscape.natural", "elementType": "geometry", "stylers": [{ "color": "#0b0f19" }] },
-      { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "poi", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
-      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
-      { "featureType": "road", "elementType": "labels.text.stroke", "stylers": [{ "color": "#0b0f19" }] },
-      { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
-      { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
-      { "featureType": "transit", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
-      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] },
-      { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#334155" }] }
-    ],
-    disableDefaultUI: false,
     zoomControl: true,
-    mapTypeControl: false,
-    scaleControl: true,
-    streetViewControl: false,
-    rotateControl: false,
-    fullscreenControl: true
+    attributionControl: false
   });
   
-  console.log("[MAP] Google Map initialized with Premium Dark Theme.");
+  // CartoDB Dark Matter - perfect for Onyx dark theme
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    subdomains: 'abcd'
+  }).addTo(leafletMapInstance);
+  
+  // Add small attribution in corner
+  L.control.attribution({position: 'bottomright', prefix: false})
+    .addAttribution('© <a href="https://carto.com/" style="color:#475569">CARTO</a> · <a href="https://osm.org/" style="color:#475569">OSM</a>')
+    .addTo(leafletMapInstance);
+  
+  console.log("[MAP] Leaflet Map initialized with CartoDB Dark theme.");
   if (window.latestConnectionMapData) {
     window.updateGoogleMapMarkers(window.latestConnectionMapData);
   }
 };
 
+// Auto-init when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => { window.initGoogleMap(); }, 500);
+});
+
 window.updateGoogleMapMarkers = function(devices) {
-  if (!googleMapInstance) return;
+  if (!leafletMapInstance) {
+    // Try init if not ready yet
+    window.initGoogleMap();
+    if (!leafletMapInstance) return;
+  }
   
   // Clear old markers
-  googleMapMarkers.forEach(m => m.setMap(null));
-  googleMapMarkers = [];
-  
-  const bounds = new google.maps.LatLngBounds();
-  let hasPoints = false;
+  leafletMapMarkers.forEach(m => leafletMapInstance.removeLayer(m));
+  leafletMapMarkers = [];
   
   const pinColors = ['#10B981', '#6C9FFF', '#FBBF24', '#A78BFA', '#06B6D4', '#F97316'];
   const seenCoords = {};
+  const bounds = [];
   
   devices.forEach((dev, index) => {
     let lat = Number(dev.lat) || 4.6097;
     let lng = Number(dev.lon) || -74.0817;
     
-    // Dispersión / Jitter de coordenadas cuando coinciden exactamente (evita solapamiento)
+    // Jitter overlapping coordinates
     const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
     if (seenCoords[coordKey]) {
       const count = seenCoords[coordKey];
-      const angle = (count * 2 * Math.PI) / 6; // distribución en espiral
-      const radius = 0.015 * Math.ceil(count / 6); // dispersión aproximada de 1.5km por nivel
+      const angle = (count * 2 * Math.PI) / 6;
+      const radius = 0.015 * Math.ceil(count / 6);
       lat += radius * Math.cos(angle);
       lng += radius * Math.sin(angle);
       seenCoords[coordKey]++;
@@ -5386,77 +5776,72 @@ window.updateGoogleMapMarkers = function(devices) {
       seenCoords[coordKey] = 1;
     }
     
-    // Guardar las coordenadas ajustadas de vuelta en el objeto para que las tarjetas de abajo coincidan exactamente
     dev.lat = lat;
     dev.lon = lng;
     
     const isOnline = dev.status === 'online';
     const color = isOnline ? pinColors[index % pinColors.length] : '#EF4444';
     
-    // Premium sleek circular dot (punto) marker instead of a heavy pin icon
-    const markerIcon = {
-      path: google.maps.SymbolPath.CIRCLE,
+    // Create circle marker (dot) - scales well for 1000+ devices
+    const marker = L.circleMarker([lat, lng], {
+      radius: 7,
       fillColor: color,
-      fillOpacity: 1.0,
-      strokeColor: '#FFFFFF',
-      strokeWeight: 1.8,
-      scale: 8, // Sleek, modern point dot radius
-    };
+      fillOpacity: 0.9,
+      color: '#FFFFFF',
+      weight: 1.5,
+      opacity: 0.8
+    }).addTo(leafletMapInstance);
     
-    const marker = new google.maps.Marker({
-      position: { lat: lat, lng: lng },
-      map: googleMapInstance,
-      title: dev.name,
-      icon: markerIcon,
-      animation: google.maps.Animation.DROP
-    });
-    
-    const infoContent = `
-      <div style="background:#040d21; color:#F1F5F9; font-family:'DM Sans', sans-serif; padding:12px 16px; border-radius:10px; border:1px solid ${color}44; min-width:180px; box-shadow:0 12px 40px rgba(0,0,0,0.6)">
-        <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:${color}">
-          ● ${dev.name}
-        </div>
-        <div style="display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:11px">
-          <span style="color:#64748B">IP:</span><span style="font-family:monospace; color:#CBD5E1">${dev.ip || 'N/A'}</span>
+    // Popup on click (not label)
+    const popupContent = `
+      <div style="background:#040d21;color:#F1F5F9;font-family:'DM Sans',sans-serif;padding:12px 16px;border-radius:10px;border:1px solid ${color}44;min-width:180px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">● ${dev.name}</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px">
+          <span style="color:#64748B">IP:</span><span style="font-family:monospace;color:#CBD5E1">${dev.ip || 'N/A'}</span>
           <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
           <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
-          <span style="color:#64748B">Coord:</span><span style="font-family:monospace; color:#3B82F6">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+          <span style="color:#64748B">Coord:</span><span style="font-family:monospace;color:#3B82F6">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
           <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || 'N/A'}</span>
-          <span style="color:#64748B">Estado:</span><span style="color:${color}; font-weight:700">${isOnline ? 'Conectado' : 'Desconectado'}</span>
+          <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? 'Conectado' : 'Desconectado'}</span>
         </div>
-      </div>
-    `;
+      </div>`;
     
-    const infowindow = new google.maps.InfoWindow({
-      content: infoContent
+    marker.bindPopup(popupContent, {
+      className: 'onyx-popup',
+      maxWidth: 280,
+      closeButton: true
     });
     
-    marker.addListener('click', () => {
-      infowindow.open(googleMapInstance, marker);
-    });
+    // Hover effect - enlarge on hover
+    marker.on('mouseover', function() { this.setRadius(10); this.setStyle({weight: 2.5}); });
+    marker.on('mouseout', function() { this.setRadius(7); this.setStyle({weight: 1.5}); });
     
-    googleMapMarkers.push(marker);
-    bounds.extend(marker.getPosition());
-    hasPoints = true;
+    leafletMapMarkers.push(marker);
+    bounds.push([lat, lng]);
   });
   
-  if (hasPoints) {
-    if (devices.length === 1) {
-      googleMapInstance.setCenter(bounds.getCenter());
-      googleMapInstance.setZoom(11);
+  // Fit map to show all markers
+  if (bounds.length > 0) {
+    if (bounds.length === 1) {
+      leafletMapInstance.setView(bounds[0], 11);
     } else {
-      googleMapInstance.fitBounds(bounds);
-      const listener = google.maps.event.addListener(googleMapInstance, "idle", () => {
-        if (googleMapInstance.getZoom() > 14) googleMapInstance.setZoom(14);
-        google.maps.event.removeListener(listener);
-      });
+      leafletMapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     }
   }
+  
+  // Invalidate size in case container was hidden
+  setTimeout(() => { leafletMapInstance.invalidateSize(); }, 100);
 };
 </script>
-  <script src="https://maps.googleapis.com/maps/api/js?callback=initGoogleMap" async defer></script>
-</body>
-</html>
-
+<style>
+  /* Leaflet popup dark theme for Onyx */
+  .onyx-popup .leaflet-popup-content-wrapper { background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 10px !important; }
+  .onyx-popup .leaflet-popup-content { margin: 0 !important; }
+  .onyx-popup .leaflet-popup-tip { background: #040d21 !important; }
+  .onyx-popup .leaflet-popup-close-button { color: #64748B !important; font-size: 18px !important; top: 6px !important; right: 8px !important; }
+  .onyx-popup .leaflet-popup-close-button:hover { color: #F1F5F9 !important; }
+  .leaflet-control-zoom a { background: rgba(4,13,33,0.9) !important; color: #CBD5E1 !important; border-color: rgba(108,159,255,0.2) !important; }
+  .leaflet-control-zoom a:hover { background: rgba(108,159,255,0.2) !important; }
+</style>
 </body>
 </html>

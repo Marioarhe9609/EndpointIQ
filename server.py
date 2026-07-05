@@ -40,6 +40,68 @@ PORT = int(os.environ.get("PORT", 8080))
 # IP Geolocation cache  {ip: {lat, lon, country, city, isp, cached_at}}
 _geo_cache = {}
 
+# VPN check cache separado — TTL corto (5 min) para detectar cambios rapido
+_vpn_cache = {}  # {ip: {is_vpn, isp, checked_at}}
+
+VPN_ISP_KEYWORDS = [
+    "nordvpn", "expressvpn", "surfshark", "protonvpn", "mullvad",
+    "cyberghost", "ipvanish", "private internet access", "tunnelbear",
+    "hotspot shield", "windscribe", "hide.me", "purevpn", "hidemyass",
+    "vyprvpn", "strongvpn", "ivacy", "torguard", "astrill",
+    "digitalocean", "amazon.com", "amazon web services", "google cloud",
+    "microsoft azure", "linode", "vultr", "ovh", "hetzner", "choopa",
+    "m247", "datacamp", "quadranet", "serverius", "hostwinds"
+]
+
+def _check_vpn(ip):
+    """Detecta si una IP es VPN/proxy usando ip-api.com.
+    Funcion DEDICADA, separada de geolocation, con cache de 5 minutos.
+    Retorna dict: {is_vpn: bool, isp: str, reason: str}
+    """
+    if not ip or ip in ("N/A", "127.0.0.1", "0.0.0.0", ""):
+        return {"is_vpn": False, "isp": "", "reason": ""}
+    if ip.startswith(("10.", "192.168.", "172.")):
+        return {"is_vpn": False, "isp": "Red Local", "reason": ""}
+
+    # Cache de 5 minutos (detecta si alguien activa/desactiva VPN rapidamente)
+    cached = _vpn_cache.get(ip)
+    if cached and (datetime.datetime.now() - cached["_ts"]).total_seconds() < 300:
+        return cached
+
+    import urllib.request as urlreq
+    result = {"is_vpn": False, "isp": "", "reason": "", "_ts": datetime.datetime.now()}
+    try:
+        req = urlreq.Request(
+            f"http://ip-api.com/json/{ip}?fields=status,isp,org,proxy,hosting,mobile",
+            headers={"User-Agent": "EIQ-VPNCheck/1.0"})
+        resp = urlreq.urlopen(req, timeout=4)
+        data = json.loads(resp.read())
+        if data.get("status") == "success":
+            isp = data.get("isp", "") or data.get("org", "")
+            is_proxy   = data.get("proxy", False)
+            is_hosting = data.get("hosting", False)
+            # Verificar tambien nombre del ISP
+            isp_lower = isp.lower()
+            isp_match = next((k for k in VPN_ISP_KEYWORDS if k in isp_lower), None)
+
+            if is_proxy:
+                result.update({"is_vpn": True, "isp": isp, "reason": "proxy"})
+            elif is_hosting:
+                result.update({"is_vpn": True, "isp": isp, "reason": "hosting/datacenter"})
+            elif isp_match:
+                result.update({"is_vpn": True, "isp": isp, "reason": f"ISP: {isp_match}"})
+            else:
+                result.update({"is_vpn": False, "isp": isp, "reason": ""})
+
+            vpn_tag = f" [VPN: {result['reason']}]" if result["is_vpn"] else ""
+            print(f"[VPN] {ip} -> isp:{isp} proxy:{is_proxy} hosting:{is_hosting}{vpn_tag}")
+    except Exception as e:
+        print(f"[VPN] check failed for {ip}: {e}")
+
+    _vpn_cache[ip] = result
+    return result
+
+
 def _geolocate_ip(ip):
     """Geolocate an IP using ipwho.is (precise) with ipinfo.io and ip-api.com fallbacks."""
     if not ip or ip in ("N/A", "127.0.0.1", "0.0.0.0", ""):
@@ -81,13 +143,15 @@ def _geolocate_ip(ip):
     except Exception as e:
         print(f"[GEO] ipwho.is failed for {ip}: {e}")
     
-    # Fallback: ip-api.com (has zip code for zone precision)
+    # Fallback: ip-api.com (with VPN/proxy detection)
     try:
-        req = urlreq.Request(f"http://ip-api.com/json/{ip}?fields=status,country,city,lat,lon,isp,regionName,zip",
-                            headers={"User-Agent": "EIQ-Server/1.0"})
+        req = urlreq.Request(
+            f"http://ip-api.com/json/{ip}?fields=status,country,city,lat,lon,isp,regionName,zip,proxy,hosting,mobile",
+            headers={"User-Agent": "EIQ-Server/1.0"})
         resp = urlreq.urlopen(req, timeout=3)
         data = json.loads(resp.read())
         if data.get("status") == "success":
+            is_vpn = data.get("proxy", False) or data.get("hosting", False)
             result = {
                 "lat": data.get("lat", 4.6),
                 "lon": data.get("lon", -74.1),
@@ -96,10 +160,12 @@ def _geolocate_ip(ip):
                 "region": data.get("regionName", ""),
                 "isp": data.get("isp", ""),
                 "postal": data.get("zip", ""),
+                "is_vpn": is_vpn,
                 "_ts": datetime.datetime.now()
             }
             _geo_cache[ip] = result
-            print(f"[GEO] ip-api.com: {ip} -> {result['city']} ({result['lat']}, {result['lon']}) ZIP:{result['postal']}")
+            vpn_tag = " [VPN/PROXY]" if is_vpn else ""
+            print(f"[GEO] ip-api.com: {ip} -> {result['city']} ZIP:{result['postal']}{vpn_tag}")
             return result
     except Exception as e:
         print(f"[GEO] ip-api.com failed for {ip}: {e}")
@@ -124,12 +190,36 @@ cache = {
 cache_lock = threading.Lock()
 
 # ══════════════════════════════════════════════════════════════
-# AUTH SYSTEM: Roles, Sessions, Password Hashing
+# AUTH SYSTEM: Roles, Sessions, Password Hashing, 2FA (TOTP)
 # ══════════════════════════════════════════════════════════════
+import pyotp, qrcode, qrcode.image.svg
+import base64, io as _io
+
 sessions = {}  # token -> {user_id, email, role, full_name, avatar, expires}
 sessions_lock = threading.Lock()
 users_cache = []  # In-memory cache of users from BigQuery
 users_cache_lock = threading.Lock()
+
+# Tokens temporales para el flujo de 2FA
+# {temp_token: {user_id, email, action: 'verify'|'setup', expires}}
+pending_2fa      = {}
+pending_2fa_lock = threading.Lock()
+
+# Protección brute-force: {email: {attempts, locked_until}}
+login_attempts      = {}
+login_attempts_lock = threading.Lock()
+MAX_LOGIN_ATTEMPTS  = 5
+LOCKOUT_MINUTES     = 15
+
+# ── Inventario de red: dispositivos detectados por los agentes via ARP scan ──
+# {mac: {ip, hostname, mac, detected_by, first_seen, last_seen, has_agent}}
+network_devices_cache      = {}
+network_devices_cache_lock = threading.Lock()
+
+# ── Cache de dispositivos USB por equipo (para detectar cambios) ──
+# {device_id: [{"name": ..., "category": ...}, ...]}
+_usb_device_cache = {}
+_usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
     "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export"},
@@ -139,6 +229,8 @@ ROLE_PERMISSIONS = {
 
 ROLE_LABELS = {"admin": "Administrador", "analyst": "Analista", "viewer": "Visor"}
 
+APP_NAME = "EndpointIQ Onyx"
+
 def hash_password(password, salt=None):
     """Hash password with PBKDF2-SHA256, 150k iterations."""
     if salt is None:
@@ -147,9 +239,86 @@ def hash_password(password, salt=None):
     return h.hex(), salt
 
 def verify_password(password, stored_hash, salt):
-    """Verify a password against stored hash."""
+    """Verify a password against stored hash (timing-safe)."""
+    import hmac as _hmac
     h = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 150000)
-    return h.hex() == stored_hash
+    return _hmac.compare_digest(h.hex(), stored_hash)
+
+# ── Brute-force helpers ──────────────────────────────────────────
+def _check_login_attempts(email):
+    """Returns (is_locked, attempts_left)."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with login_attempts_lock:
+        rec = login_attempts.get(email, {})
+        locked_until = rec.get("locked_until")
+        if locked_until and now < locked_until:
+            return True, 0
+        if locked_until and now >= locked_until:
+            login_attempts.pop(email, None)
+        attempts = rec.get("attempts", 0)
+        return False, MAX_LOGIN_ATTEMPTS - attempts
+
+def _record_failed_login(email):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with login_attempts_lock:
+        rec = login_attempts.get(email, {"attempts": 0})
+        rec["attempts"] = rec.get("attempts", 0) + 1
+        if rec["attempts"] >= MAX_LOGIN_ATTEMPTS:
+            rec["locked_until"] = now + datetime.timedelta(minutes=LOCKOUT_MINUTES)
+        login_attempts[email] = rec
+
+def _clear_login_attempts(email):
+    with login_attempts_lock:
+        login_attempts.pop(email, None)
+
+# ── TOTP helpers ─────────────────────────────────────────────────
+def _generate_totp_secret():
+    return pyotp.random_base32()
+
+def _get_totp_uri(secret, email):
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=APP_NAME)
+
+def _verify_totp(secret, code):
+    """Verify a TOTP code with a 1-window tolerance (30s before/after)."""
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=1)
+
+def _totp_qr_base64(uri):
+    """Generate a QR code PNG as base64 string."""
+    img = qrcode.make(uri)
+    buf = _io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+def _create_pending_2fa(user_id, email, action):
+    """Create a short-lived temp token for the 2FA flow."""
+    token = str(uuid.uuid4())
+    expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+    with pending_2fa_lock:
+        pending_2fa[token] = {"user_id": user_id, "email": email,
+                              "action": action, "expires": expires}
+    return token
+
+def _resolve_pending_2fa(temp_token):
+    """Validate and consume a pending_2fa token. Returns payload or None."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with pending_2fa_lock:
+        rec = pending_2fa.get(temp_token)
+        if not rec:
+            return None
+        if now > rec["expires"]:
+            pending_2fa.pop(temp_token, None)
+            return None
+        pending_2fa.pop(temp_token, None)  # single-use
+        return rec
+
+def _cleanup_pending_2fa():
+    """Remove expired pending_2fa entries (called by background thread)."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with pending_2fa_lock:
+        expired = [t for t, v in pending_2fa.items() if now > v["expires"]]
+        for t in expired:
+            pending_2fa.pop(t, None)
 
 def create_session(user):
     """Create a new session token for a user."""
@@ -185,12 +354,13 @@ def invalidate_session(token):
         sessions.pop(token, None)
 
 def load_users_from_bq():
-    """Load users from BigQuery into memory cache."""
+    """Load users from BigQuery into memory cache (including 2FA fields)."""
     global users_cache
     try:
         rows = run_bq_query("""
-            SELECT user_id, email, password_hash, salt, full_name, role, avatar, 
-                   created_at, last_login, is_active
+            SELECT user_id, email, password_hash, salt, full_name, role, avatar,
+                   created_at, last_login, is_active,
+                   totp_secret, totp_enabled
             FROM onyx.eq_users
             WHERE is_active = true
             ORDER BY created_at
@@ -203,9 +373,21 @@ def load_users_from_bq():
             print("[AUTH] No users found, will create default admin")
             _create_default_admin()
     except Exception as e:
-        print(f"[AUTH] Error loading users: {e}")
-        # Try creating the table and default admin
-        _create_default_admin()
+        print(f"[AUTH] Error loading users: {e} — retrying without 2FA columns")
+        try:
+            rows = run_bq_query("""
+                SELECT user_id, email, password_hash, salt, full_name, role, avatar,
+                       created_at, last_login, is_active
+                FROM onyx.eq_users WHERE is_active = true ORDER BY created_at
+            """)
+            if rows:
+                with users_cache_lock:
+                    users_cache = rows
+            else:
+                _create_default_admin()
+        except Exception as e2:
+            print(f"[AUTH] Error loading users (fallback): {e2}")
+            _create_default_admin()
 
 def _create_default_admin():
     """Create the default admin user if no users exist."""
@@ -233,6 +415,64 @@ def _create_default_admin():
         # Still keep in memory for local testing
         with users_cache_lock:
             users_cache = [admin]
+
+def _seed_platform_admins():
+    """Auto-create essential platform admin accounts if they don't exist.
+       If they exist but password doesn't match, force-reset the password."""
+    seed_users = [
+        {
+            "email": "jramirez@agenticatech.ai",
+            "full_name": "Jhoan Ramirez",
+            "password": "Jhoan2026!",
+            "role": "admin",
+            "avatar": "JR"
+        }
+    ]
+    for su in seed_users:
+        existing = find_user_by_email(su["email"])
+        if existing:
+            # Verify password matches; if not, force-reset it
+            if verify_password(su["password"], existing.get("password_hash", ""), existing.get("salt", "")):
+                print(f"[AUTH] Seed user OK: {su['email']}")
+                continue
+            else:
+                print(f"[AUTH] Seed user password mismatch, resetting: {su['email']}")
+                pw_hash, salt = hash_password(su["password"])
+                existing["password_hash"] = pw_hash
+                existing["salt"] = salt
+                existing["role"] = su["role"]
+                existing["totp_secret"] = None
+                existing["totp_enabled"] = False
+                try:
+                    run_bq_query(f"UPDATE onyx.eq_users SET password_hash = '{pw_hash}', salt = '{salt}', role = '{su['role']}', totp_secret = NULL, totp_enabled = FALSE WHERE email = '{su['email']}'")
+                    print(f"[AUTH] Seed user fully reset in BQ: {su['email']}")
+                except Exception as e:
+                    print(f"[AUTH] Error resetting seed user in BQ: {e}")
+                continue
+        pw_hash, salt = hash_password(su["password"])
+        new_user = {
+            "user_id": str(uuid.uuid4()),
+            "email": su["email"],
+            "password_hash": pw_hash,
+            "salt": salt,
+            "full_name": su["full_name"],
+            "role": su["role"],
+            "avatar": su["avatar"],
+            "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "last_login": None,
+            "is_active": True,
+            "totp_secret": None,
+            "totp_enabled": False
+        }
+        try:
+            run_bq_insert("onyx.eq_users", new_user)
+            with users_cache_lock:
+                users_cache.append(new_user)
+            print(f"[AUTH] Seed admin created: {su['email']}")
+        except Exception as e:
+            print(f"[AUTH] Error creating seed user {su['email']}: {e}")
+            with users_cache_lock:
+                users_cache.append(new_user)
 
 def find_user_by_email(email):
     """Find a user by email in the cache."""
@@ -553,6 +793,69 @@ def refresh_cache_from_bigquery():
             sec_evts.sort(key=lambda x: {"Alta": 0, "Media": 1, "Baja": 2}.get(x.get("severity", "Baja"), 3))
             cache["security_events"] = sec_evts
         
+    # 7. Detectar dispositivos offline leyendo desde BigQuery (sobrevive reinicios de Cloud Run)
+    try:
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        # Leer el ULTIMO sync de cada dispositivo directamente desde BQ
+        last_sync_rows = run_bq_query("""
+            SELECT device_id, MAX(timestamp) as ultimo_sync
+            FROM onyx.eq_sync_status
+            WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+            GROUP BY device_id
+        """)
+
+        offline_events = []
+        if last_sync_rows:
+            for row in last_sync_rows:
+                dev_id   = row.get("device_id", "")
+                last_ts  = row.get("ultimo_sync", "")
+                if not dev_id or not last_ts:
+                    continue
+                try:
+                    ts_str = str(last_ts)
+                    hb_ts = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    if hb_ts.tzinfo is None:
+                        hb_ts = hb_ts.replace(tzinfo=datetime.timezone.utc)
+                    mins_ago = (now_dt - hb_ts).total_seconds() / 60
+
+                    if mins_ago > 15:
+                        offline_events.append({
+                            "timestamp":   now_dt.isoformat(),
+                            "device_id":   dev_id,
+                            "device_name": dev_id,
+                            "event_type":  "Dispositivo Offline",
+                            "details":     f"Sin transmision hace {int(mins_ago)} min — ultimo contacto: {ts_str[:19]}",
+                            "severity":    "Alta",
+                            "icon":        "\U0001f534",
+                            "category":    "conectividad",
+                            "city":        ""
+                        })
+                        print(f"[OFFLINE] {dev_id}: offline hace {int(mins_ago)} min")
+                    elif mins_ago > 10:
+                        offline_events.append({
+                            "timestamp":   now_dt.isoformat(),
+                            "device_id":   dev_id,
+                            "device_name": dev_id,
+                            "event_type":  "Sin Transmision",
+                            "details":     f"Sin datos hace {int(mins_ago)} minutos — posible problema",
+                            "severity":    "Media",
+                            "icon":        "\U0001f7e1",
+                            "category":    "conectividad",
+                            "city":        ""
+                        })
+                except Exception:
+                    pass
+
+        # Siempre actualizar los eventos offline (aunque la lista este vacia = todos online)
+        with cache_lock:
+            existing = [e for e in cache.get("security_events", [])
+                        if e.get("event_type") not in ("Dispositivo Offline", "Sin Transmision")]
+            cache["security_events"] = offline_events + existing
+
+    except Exception as offline_err:
+        print(f"[OFFLINE-CHECK] Error: {offline_err}")
+
+
     print(f"Cache sincronizado con exito. Ultimo ping: {cache['last_sync']}")
 
 # Auto-refresh background loop
@@ -576,6 +879,7 @@ try:
     print(f"[STARTUP] Datos listos. Dispositivos: {len(cache['sync_status'])}, Metricas: {len(cache['latest_metrics'])}")
     # Load users for auth system
     load_users_from_bq()
+    _seed_platform_admins()
     # Iniciar auto-refresh cada 60 segundos
     threading.Thread(target=auto_refresh_loop, daemon=True).start()
 except Exception as e:
@@ -672,15 +976,16 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 safe_users = []
                 for u in users_cache:
                     safe_users.append({
-                        "user_id": u.get("user_id"),
-                        "email": u.get("email"),
-                        "full_name": u.get("full_name"),
-                        "role": u.get("role"),
+                        "user_id":    u.get("user_id"),
+                        "email":      u.get("email"),
+                        "full_name":  u.get("full_name"),
+                        "role":       u.get("role"),
                         "role_label": ROLE_LABELS.get(u.get("role", ""), u.get("role", "")),
-                        "avatar": u.get("avatar"),
+                        "avatar":     u.get("avatar"),
                         "created_at": u.get("created_at"),
                         "last_login": u.get("last_login"),
-                        "is_active": u.get("is_active", True)
+                        "is_active":  u.get("is_active", True),
+                        "totp_enabled": bool(u.get("totp_enabled"))  # para indicador 2FA en panel admin
                     })
             self.send_json(safe_users)
             return
@@ -696,13 +1001,82 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 return
         
         # 1. Endpoints de la API REST
+        if path == "/api/network-summary":
+            session = self.get_current_session()
+            if not session:
+                self.send_json({"error": "No autorizado"}, 401)
+                return
+
+            # -- Flota real: equipos con agente instalado (sync_status) --
+            with cache_lock:
+                fleet = list(cache["sync_status"])
+                latest = list(cache.get("latest_metrics", []))
+            fleet_count = len(fleet)
+
+            # Construir lista de dispositivos de la flota con info enriquecida
+            fleet_devices = []
+            for s in fleet:
+                dev_id = s.get("device_id", "")
+                last_ip = s.get("last_ip", "")
+                status = s.get("status", "Offline")
+                last_sync = s.get("last_sync", s.get("timestamp", ""))
+                # Buscar info de red del último metrics
+                net_info = {}
+                for m in latest:
+                    if m.get("device_id") == dev_id:
+                        ni_raw = m.get("network_info")
+                        if ni_raw:
+                            try:
+                                net_info = json.loads(ni_raw) if isinstance(ni_raw, str) else ni_raw
+                            except: pass
+                        break
+                wifi_ssid = net_info.get("wifi_ssid", "")
+                vpn_active = s.get("vpn_active", False) or net_info.get("vpn_active", False)
+                vpn_adapter = s.get("vpn_adapter", "") or net_info.get("vpn_adapter", "")
+                interfaces = net_info.get("interfaces", [])
+                iface_str = ", ".join(i.get("name", "") for i in interfaces[:2]) if interfaces else ""
+
+                fleet_devices.append({
+                    "device_id": dev_id,
+                    "ip": last_ip,
+                    "hostname": dev_id,
+                    "has_agent": True,
+                    "status": status,
+                    "last_seen": last_sync,
+                    "wifi_ssid": wifi_ssid,
+                    "vpn_active": vpn_active,
+                    "vpn_adapter": vpn_adapter,
+                    "interface": iface_str
+                })
+
+            # -- Red: dispositivos detectados via ARP sin agente --
+            with network_devices_cache_lock:
+                arp_devices = list(network_devices_cache.values())
+            visitors = sorted(
+                [d for d in arp_devices if not d.get("has_agent")],
+                key=lambda x: x.get("last_seen", ""),
+                reverse=True
+            )[:20]
+
+            without_agent = len(visitors)
+            total = fleet_count + without_agent
+
+            self.send_json({
+                "total":          total,
+                "with_agent":     fleet_count,
+                "without_agent":  without_agent,
+                "fleet":          fleet_devices,
+                "visitors":       visitors
+            })
+            return
+
         if path == "/api/status":
             self.send_json({
                 "status": "Online",
                 "last_sync": cache["last_sync"],
                 "total_devices": len(cache["sync_status"])
             })
-            
+
         elif path == "/api/refresh":
             try:
                 refresh_cache_from_bigquery()
@@ -1428,7 +1802,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     dname = dev_name(d_id)
                     if d_id in _device_last_city:
                         prev = _device_last_city[d_id]
-                        if prev["city"] != current_city and current_city != "Bogotá":
+                        if prev.get("city") and prev["city"] != current_city:
                             events.append({
                                 "timestamp": ts, "device_id": d_id, "device_name": dname,
                                 "event_type": "Cambio de Zona",
@@ -1685,24 +2059,32 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/agent-version":
             # Return current agent version and file hash for update check
             import hashlib
-            agent_version = "2.1.0"
-            base_dir = os.path.join(os.path.dirname(__file__), "agent")
+            # Usar agent_distribuir como fuente unica de verdad
+            base_dir = os.path.join(os.path.dirname(__file__), "agent_distribuir")
             agent_path = os.path.join(base_dir, "onyx_agent.py")
             updater_path = os.path.join(base_dir, "onyx_updater.py")
             agent_hash = ""
             updater_hash = ""
+            agent_version = "3.1.0"  # version minima soportada
             if os.path.exists(agent_path):
                 with open(agent_path, "rb") as f:
-                    agent_hash = hashlib.md5(f.read()).hexdigest()
+                    content = f.read()
+                    agent_hash = hashlib.md5(content).hexdigest()
+                # Leer version del primer comentario del archivo si existe
+                try:
+                    first_lines = content.decode("utf-8", errors="ignore")[:500]
+                    for line in first_lines.splitlines():
+                        if "version" in line.lower() and any(c.isdigit() for c in line):
+                            import re
+                            m = re.search(r'(\d+\.\d+\.\d+)', line)
+                            if m:
+                                agent_version = m.group(1)
+                                break
+                except Exception:
+                    pass
             if os.path.exists(updater_path):
                 with open(updater_path, "rb") as f:
                     updater_hash = hashlib.md5(f.read()).hexdigest()
-            # Calculate credentials hash for auto-update
-            creds_path = os.path.join(base_dir, "onyx_credentials.json")
-            creds_hash = ""
-            if os.path.exists(creds_path):
-                with open(creds_path, "rb") as f:
-                    creds_hash = hashlib.md5(f.read()).hexdigest()
             self.send_json({
                 "version": agent_version,
                 "hash": agent_hash,
@@ -1710,12 +2092,12 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "updater_hash": updater_hash,
                 "updater_url": "/api/updater-download",
                 "launcher_url": "/api/launcher-download",
-                "creds_hash": creds_hash
+                "creds_hash": ""
             })
 
         elif path == "/api/agent-download":
-            # Serve the latest agent script for auto-update
-            agent_path = os.path.join(os.path.dirname(__file__), "agent", "onyx_agent.py")
+            # Serve the latest agent script for auto-update (desde agent_distribuir)
+            agent_path = os.path.join(os.path.dirname(__file__), "agent_distribuir", "onyx_agent.py")
             if os.path.exists(agent_path):
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
@@ -1726,8 +2108,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Agent file not found"}, 404)
 
         elif path == "/api/updater-download":
-            # Serve the standalone updater script
-            updater_path = os.path.join(os.path.dirname(__file__), "agent", "onyx_updater.py")
+            # Serve the standalone updater script (desde agent_distribuir)
+            updater_path = os.path.join(os.path.dirname(__file__), "agent_distribuir", "onyx_updater.py")
             if os.path.exists(updater_path):
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
@@ -1782,7 +2164,6 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "onyx_agent.py",
                 "onyx_updater.py",
                 "onyx_config.json",
-                "onyx_credentials.json",
                 "onyx_launcher.vbs",
                 "instalar.ps1",
                 "onyx_uninstaller.ps1",
@@ -1801,7 +2182,19 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                     for fname in installer_files:
                         fpath = os.path.join(agent_dir, fname)
-                        if os.path.exists(fpath):
+                        if fname == "onyx_credentials.json":
+                            # Primero intentar desde disco, luego desde env var
+                            if os.path.exists(fpath):
+                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                            else:
+                                creds_b64 = os.environ.get("ONYX_CREDENTIALS_B64", "")
+                                if creds_b64:
+                                    import base64 as _b64
+                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", _b64.b64decode(creds_b64))
+                                    print(f"[ZIP] credentials injected from env var")
+                                else:
+                                    print(f"[ZIP] WARNING: no credentials available (no file, no env var)")
+                        elif os.path.exists(fpath):
                             if fname == "onyx_config.json":
                                 try:
                                     with open(fpath, "r", encoding="utf-8-sig") as jf:
@@ -1936,74 +2329,403 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             if sync:
                 sync["last_ip"] = client_ip
                 sync["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            
+
+            def _normalize_metrics(m):
+                """Adapta metricas al nuevo schema BQ con columnas proc1/2/3."""
+                if not m.get("timestamp"):
+                    m["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                procs = []
+                try:
+                    raw = m.get("top_processes", "")
+                    if isinstance(raw, str) and raw:
+                        procs = json.loads(raw)[:3]
+                    elif isinstance(raw, list):
+                        procs = raw[:3]
+                        m["top_processes"] = json.dumps(raw)
+                except Exception:
+                    pass
+                def _gp(i, f):
+                    try: return procs[i].get(f) if i < len(procs) else None
+                    except: return None
+                m.setdefault("proc1_name", _gp(0, "name")); m.setdefault("proc1_cpu", _gp(0, "cpu")); m.setdefault("proc1_mem", _gp(0, "mem"))
+                m.setdefault("proc2_name", _gp(1, "name")); m.setdefault("proc2_cpu", _gp(1, "cpu")); m.setdefault("proc2_mem", _gp(1, "mem"))
+                m.setdefault("proc3_name", _gp(2, "name")); m.setdefault("proc3_cpu", _gp(2, "cpu")); m.setdefault("proc3_mem", _gp(2, "mem"))
+                for f in ["network_info", "browser_history", "usb_ports", "event_logs", "downloads_metadata"]:
+                    if isinstance(m.get(f), (dict, list)):
+                        m[f] = json.dumps(m[f])
+                return m
+
             success = True
             if metrics:
                 try:
-                    run_bq_insert("onyx.eq_hardware_metrics", metrics)
+                    run_bq_insert("onyx.eq_hardware_metrics", _normalize_metrics(metrics))
                 except Exception as e:
                     print(f"[INGEST-ERROR] Error al insertar metrics para {device_id}: {e}")
                     success = False
-            
+
             if sync:
                 try:
+                    if not sync.get("timestamp"):
+                        sync["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
                     run_bq_insert("onyx.eq_sync_status", sync)
                 except Exception as e:
                     print(f"[INGEST-ERROR] Error al insertar sync para {device_id}: {e}")
                     success = False
-                    
+
             if success:
-                # Actualizar también la información de heartbeat en el caché local
+                now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                # Actualizar heartbeat en cache
                 with cache_lock:
                     cache["heartbeats"][device_id] = {
-                        "timestamp": sync.get("timestamp") if sync else datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "timestamp": sync.get("timestamp") if sync else now_ts,
                         "status": "Online",
                         "service_mode": "agent-ingest",
-                        "received_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "received_at": now_ts,
                         "public_ip": client_ip
                     }
+
+                # ── Deteccion de VPN y cambio de ciudad en tiempo real ──
+                try:
+                    geo          = _geolocate_ip(client_ip) if client_ip and client_ip not in ("N/A","127.0.0.1") else {}
+                    current_city    = geo.get("city", "Desconocida")
+                    current_country = geo.get("country", "")
+
+                    # PRIMARIO: VPN detectada por el agente en los adaptadores de red
+                    agent_vpn_active  = sync.get("vpn_active", False) if sync else False
+                    agent_vpn_adapter = sync.get("vpn_adapter", "") if sync else ""
+
+                    # SECUNDARIO: fallback por IP publica (solo si el agente no reporto VPN)
+                    vpn_result = {"is_vpn": False, "isp": "", "reason": ""}
+                    if not agent_vpn_active and client_ip and client_ip not in ("N/A", "127.0.0.1"):
+                        vpn_result = _check_vpn(client_ip)
+
+                    is_vpn = agent_vpn_active or vpn_result["is_vpn"]
+                    if agent_vpn_active:
+                        vpn_detail = f"Adaptador VPN activo: {agent_vpn_adapter or 'detectado'}"
+                    else:
+                        vpn_detail = f"Conexion VPN/proxy activa ({vpn_result['reason']}) — ISP: {vpn_result['isp']}"
+
+                    new_events = []
+
+                    # Alerta VPN
+                    if is_vpn:
+                        new_events.append({
+                            "timestamp":   now_ts,
+                            "device_id":   device_id,
+                            "device_name": device_id,
+                            "event_type":  "VPN Detectada",
+                            "details":     f"{vpn_detail} — IP: {client_ip}",
+                            "severity":    "Alta",
+                            "icon":        "\U0001f512",
+                            "category":    "seguridad",
+                            "city":        current_city
+                        })
+                        print(f"[SECURITY] VPN detectada en {device_id}: {vpn_detail}")
+
+                    # Alerta cambio de ciudad
+                    if device_id in _device_last_city:
+                        prev = _device_last_city[device_id]
+                        if prev.get("city") and prev["city"] != current_city:
+                            new_events.append({
+                                "timestamp":   now_ts,
+                                "device_id":   device_id,
+                                "device_name": device_id,
+                                "event_type":  "Cambio de Ciudad",
+                                "details":     f"Se conecto desde {current_city} ({current_country}) — anterior: {prev['city']} — IP: {client_ip}",
+                                "severity":    "Media",
+                                "icon":        "\U0001f4cd",
+                                "category":    "ubicacion",
+                                "city":        current_city
+                            })
+                            print(f"[SECURITY] Cambio de ciudad en {device_id}: {prev['city']} -> {current_city}")
+
+                    _device_last_city[device_id] = {
+                        "city": current_city, "country": current_country, "ip": client_ip
+                    }
+
+                    if new_events:
+                        with cache_lock:
+                            cache["security_events"] = new_events + cache.get("security_events", [])
+
+                except Exception as geo_err:
+                    print(f"[SECURITY] Error en deteccion geo/VPN: {geo_err}")
+
+                # ── Detección de cambios USB en tiempo real ──
+                try:
+                    usb_json = metrics.get("usb_ports") if metrics else None
+                    if usb_json:
+                        import json as _json_usb
+                        current_usb = _json_usb.loads(usb_json) if isinstance(usb_json, str) else usb_json
+                        if isinstance(current_usb, list):
+                            current_names = {d.get("name", "") for d in current_usb if d.get("name")}
+                            with _usb_device_cache_lock:
+                                prev_usb = _usb_device_cache.get(device_id, set())
+                                prev_names = {d.get("name", "") for d in prev_usb} if isinstance(prev_usb, set) else prev_usb
+                                if isinstance(prev_usb, list):
+                                    prev_names = {d.get("name", "") for d in prev_usb}
+                                elif isinstance(prev_usb, set):
+                                    prev_names = prev_usb
+                                else:
+                                    prev_names = set()
+
+                                # Detectar nuevos dispositivos conectados
+                                new_devices = current_names - prev_names
+                                # Detectar dispositivos desconectados
+                                removed_devices = prev_names - current_names
+
+                                # Actualizar cache
+                                _usb_device_cache[device_id] = current_names
+
+                            # Generar eventos para cada nuevo dispositivo USB
+                            usb_events = []
+                            # Solo si ya teniamos un registro previo (evitar falsos positivos en primer reporte)
+                            if prev_names or (device_id in {}):
+                                for usb_name in new_devices:
+                                    # Filtrar controladores y hubs internos
+                                    nl = usb_name.lower()
+                                    if any(k in nl for k in ["host controller", "root hub", "raíz", "controlador de host", "xhci", "ehci"]):
+                                        continue
+                                    usb_cat = "Almacenamiento" if any(k in nl for k in ["storage", "flash", "disk", "pendrive"]) else \
+                                              "Telefono" if any(k in nl for k in ["phone", "android", "iphone"]) else \
+                                              "Camara" if any(k in nl for k in ["camera", "webcam", "imaging"]) else "Periferico"
+                                    severity = "Alta" if usb_cat == "Almacenamiento" else "Media"
+                                    usb_events.append({
+                                        "timestamp":   now_ts,
+                                        "device_id":   device_id,
+                                        "device_name": device_id,
+                                        "event_type":  "USB Conectado",
+                                        "details":     f"Dispositivo USB conectado: {usb_name} ({usb_cat})",
+                                        "severity":    severity,
+                                        "icon":        "\U0001f50c",
+                                        "category":    "usb",
+                                    })
+                                    print(f"[SECURITY] USB conectado en {device_id}: {usb_name}")
+
+                                for usb_name in removed_devices:
+                                    nl = usb_name.lower()
+                                    if any(k in nl for k in ["host controller", "root hub", "raíz", "controlador de host", "xhci", "ehci"]):
+                                        continue
+                                    usb_events.append({
+                                        "timestamp":   now_ts,
+                                        "device_id":   device_id,
+                                        "device_name": device_id,
+                                        "event_type":  "USB Desconectado",
+                                        "details":     f"Dispositivo USB removido: {usb_name}",
+                                        "severity":    "Media",
+                                        "icon":        "\u26a0\ufe0f",
+                                        "category":    "usb",
+                                    })
+                                    print(f"[SECURITY] USB desconectado en {device_id}: {usb_name}")
+
+                            if usb_events:
+                                with cache_lock:
+                                    cache["security_events"] = usb_events + cache.get("security_events", [])
+                                    # Limitar a ultimos 100 eventos
+                                    cache["security_events"] = cache["security_events"][:100]
+                except Exception as usb_err:
+                    print(f"[SECURITY] Error en deteccion USB: {usb_err}")
+
+                # ── Inventario de red: procesar ARP scan del agente ──
+                network_scan = body.get("network_scan", [])
+                if network_scan and isinstance(network_scan, list):
+                    try:
+                        now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                        # IPs de equipos con agente (para marcar has_agent=True)
+                        with cache_lock:
+                            agent_ips = {s.get("last_ip") for s in cache["sync_status"]
+                                        if s.get("last_ip")}
+                        with network_devices_cache_lock:
+                            for dev in network_scan:
+                                mac = dev.get("mac", "").upper().strip()
+                                ip  = dev.get("ip", "").strip()
+                                if not mac or mac in ("FF:FF:FF:FF:FF:FF", ""):
+                                    continue
+                                existing = network_devices_cache.get(mac, {})
+                                network_devices_cache[mac] = {
+                                    "mac":          mac,
+                                    "ip":           ip,
+                                    "hostname":     dev.get("hostname", existing.get("hostname", "")),
+                                    "detected_by":  device_id,
+                                    "first_seen":   existing.get("first_seen", now_ts),
+                                    "last_seen":    now_ts,
+                                    "has_agent":    ip in agent_ips
+                                }
+                        print(f"[NET-SCAN] {device_id} reportó {len(network_scan)} dispositivos en red")
+                    except Exception as net_err:
+                        print(f"[NET-SCAN] Error procesando scan: {net_err}")
+
                 self.send_json({"ok": True})
             else:
                 self.send_json({"error": "Failed to ingest telemetry"}, 500)
             return
 
-        # ── Auth: Login ──
+        # ── Auth: Login (con 2FA obligatorio) ──
         if path == "/api/auth/login":
-            email = body.get("email", "").strip().lower()
+            email    = body.get("email", "").strip().lower()
             password = body.get("password", "")
             if not email or not password:
                 self.send_json({"error": "Email y contraseña son requeridos"}, 400)
                 return
-            user = find_user_by_email(email)
-            if not user:
-                self.send_json({"error": "Credenciales incorrectas"}, 401)
+
+            # Brute-force check
+            is_locked, attempts_left = _check_login_attempts(email)
+            if is_locked:
+                self.send_json({"error": f"Cuenta bloqueada por {LOCKOUT_MINUTES} min tras demasiados intentos fallidos"}, 429)
                 return
-            if not user.get("is_active", True):
-                self.send_json({"error": "Usuario desactivado"}, 401)
+
+            user = find_user_by_email(email)
+            if not user or not user.get("is_active", True):
+                _record_failed_login(email)
+                self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
             if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
+                _record_failed_login(email)
                 self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
-            # Create session
-            token = create_session(user)
-            # Update last_login
+
+            _clear_login_attempts(email)
+
+            totp_enabled = user.get("totp_enabled") or False
+            totp_secret  = user.get("totp_secret")  or ""
+
+            if totp_enabled and totp_secret:
+                # 2FA activo → pedir código TOTP
+                temp = _create_pending_2fa(user["user_id"], email, "verify")
+                self.send_json({"requires_2fa": True, "action": "verify",
+                                "temp_token": temp, "email": email})
+            else:
+                # 2FA NO configurado → forzar setup antes de entrar
+                temp = _create_pending_2fa(user["user_id"], email, "setup")
+                self.send_json({"requires_2fa": True, "action": "setup",
+                                "temp_token": temp, "email": email,
+                                "message": "Debes configurar el doble factor de autenticación para continuar"})
+            return
+
+        # ── 2FA: Obtener QR para setup (usa temp_token) ──
+        if path == "/api/auth/2fa/setup":
+            temp_token = body.get("temp_token", "")
+            pending    = _resolve_pending_2fa(temp_token)
+            if not pending or pending.get("action") != "setup":
+                self.send_json({"error": "Token inválido o expirado"}, 401)
+                return
+            user = find_user_by_id(pending["user_id"])
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            # Generar nuevo secret TOTP
+            secret = _generate_totp_secret()
+            uri    = _get_totp_uri(secret, user["email"])
+            qr_b64 = _totp_qr_base64(uri)
+            # Guardar secret temporalmente en pending (nuevo token para confirm)
+            confirm_token = _create_pending_2fa(user["user_id"], user["email"], "confirm_setup")
+            with pending_2fa_lock:
+                pending_2fa[confirm_token]["totp_secret"] = secret
+            self.send_json({"qr_code": f"data:image/png;base64,{qr_b64}",
+                            "secret": secret,
+                            "confirm_token": confirm_token})
+            return
+
+        # ── 2FA: Confirmar setup con primer código ──
+        if path == "/api/auth/2fa/enable":
+            confirm_token = body.get("confirm_token", "")
+            code          = str(body.get("code", "")).strip()
+            with pending_2fa_lock:
+                pending = pending_2fa.get(confirm_token)
+            if not pending or pending.get("action") != "confirm_setup":
+                self.send_json({"error": "Token inválido o expirado"}, 401)
+                return
+            secret = pending.get("totp_secret", "")
+            if not secret or not _verify_totp(secret, code):
+                self.send_json({"error": "Código incorrecto. Verifica tu app autenticadora"}, 400)
+                return
+            # Código correcto → guardar en BQ y cache
+            _resolve_pending_2fa(confirm_token)  # consume
+            uid = pending["user_id"]
             try:
-                now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = '{secret}', totp_enabled = TRUE WHERE user_id = '{uid}'")
+            except Exception as e:
+                print(f"[2FA] Error guardando secret en BQ: {e}")
+            with users_cache_lock:
+                for u in users_cache:
+                    if u.get("user_id") == uid:
+                        u["totp_secret"]  = secret
+                        u["totp_enabled"] = True
+                        break
+            user = find_user_by_id(uid)
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            # Crear sesión completa ahora que 2FA está activo
+            token = create_session(user)
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            try:
+                run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{uid}'")
+            except Exception:
+                pass
+            self.send_json_with_cookie({
+                "success": True, "totp_setup": True,
+                "user": {"user_id": user["user_id"], "email": user["email"],
+                         "full_name": user["full_name"], "role": user["role"],
+                         "role_label": ROLE_LABELS.get(user["role"], user["role"]),
+                         "avatar": user.get("avatar", "??"),
+                         "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))}
+            }, "onyx_session", token)
+            return
+
+        # ── 2FA: Verificar código en login ──
+        if path == "/api/auth/2fa/verify":
+            temp_token = body.get("temp_token", "")
+            code       = str(body.get("code", "")).strip()
+            pending    = _resolve_pending_2fa(temp_token)
+            if not pending or pending.get("action") != "verify":
+                self.send_json({"error": "Token inválido o expirado. Inicia sesión nuevamente"}, 401)
+                return
+            user = find_user_by_id(pending["user_id"])
+            if not user:
+                self.send_json({"error": "Usuario no encontrado"}, 404)
+                return
+            secret = user.get("totp_secret", "")
+            if not secret or not _verify_totp(secret, code):
+                self.send_json({"error": "Código incorrecto"}, 400)
+                return
+            token = create_session(user)
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            try:
                 run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{user['user_id']}'")
             except Exception:
                 pass
             self.send_json_with_cookie({
                 "success": True,
-                "user": {
-                    "user_id": user["user_id"],
-                    "email": user["email"],
-                    "full_name": user["full_name"],
-                    "role": user["role"],
-                    "role_label": ROLE_LABELS.get(user["role"], user["role"]),
-                    "avatar": user.get("avatar", "??"),
-                    "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))
-                }
+                "user": {"user_id": user["user_id"], "email": user["email"],
+                         "full_name": user["full_name"], "role": user["role"],
+                         "role_label": ROLE_LABELS.get(user["role"], user["role"]),
+                         "avatar": user.get("avatar", "??"),
+                         "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))}
             }, "onyx_session", token)
+            return
+
+        # ── 2FA: Admin resetea 2FA de otro usuario ──
+        if path == "/api/auth/2fa/reset":
+            session = self.require_role("admin")
+            if not session:
+                return
+            target_uid = body.get("user_id", "")
+            if not target_uid:
+                self.send_json({"error": "user_id requerido"}, 400)
+                return
+            try:
+                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = NULL, totp_enabled = FALSE WHERE user_id = '{target_uid}'")
+            except Exception as e:
+                self.send_json({"error": f"Error reseteando 2FA: {e}"}, 500)
+                return
+            with users_cache_lock:
+                for u in users_cache:
+                    if u.get("user_id") == target_uid:
+                        u["totp_secret"]  = None
+                        u["totp_enabled"] = False
+                        break
+            print(f"[2FA] Admin {session['email']} reseteó 2FA de user_id={target_uid}")
+            self.send_json({"success": True, "message": "2FA reseteado. El usuario deberá configurarlo en su próximo login"})
             return
         
         # ── Auth: Logout ──
@@ -2015,7 +2737,9 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             return
         
         # ── Auth middleware for other POST routes ──
-        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error", "/api/agent-ingest"}
+        AUTH_FREE_POSTS = {"/api/auth/login", "/api/auth/logout", "/api/log-error",
+                          "/api/agent-ingest", "/api/auth/2fa/setup",
+                          "/api/auth/2fa/enable", "/api/auth/2fa/verify"}
         if path.startswith("/api/") and path not in AUTH_FREE_POSTS:
             session = self.get_current_session()
             if not session:
@@ -2052,7 +2776,9 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 "avatar": initials,
                 "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "last_login": None,
-                "is_active": True
+                "is_active": True,
+                "totp_secret":  None,   # el usuario configurará 2FA en su primer login
+                "totp_enabled": False
             }
             try:
                 run_bq_insert("onyx.eq_users", new_user)
