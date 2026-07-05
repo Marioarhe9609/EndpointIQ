@@ -341,7 +341,7 @@
   }
 
   /* ── TWO COL GRID ─────────────────────────────────────────────── */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: stretch; }
   .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .col-7-3 { display: grid; grid-template-columns: 7fr 3fr; gap: 16px; margin-bottom: 16px; }
   .col-4-8 { display: grid; grid-template-columns: 4fr 8fr; gap: 16px; margin-bottom: 16px; }
@@ -881,15 +881,15 @@
     </div>
 
     <div class="nav-section">Principal</div>
-    <a class="nav-item active" onclick="showView('dashboard')">
+    <a class="nav-item active" onclick="showView('dashboard')" data-requires="dashboard">
       <span class="nav-icon">⬡</span> Dashboard General
     </a>
-    <a class="nav-item" onclick="showView('equipo')">
+    <a class="nav-item" onclick="showView('equipo')" data-requires="equipo">
       <span class="nav-icon">💻</span> Por Equipo
     </a>
 
     <div class="nav-section">Analítica</div>
-    <a class="nav-item" onclick="showView('productividad')">
+    <a class="nav-item" onclick="showView('productividad')" data-requires="productividad">
       <span class="nav-icon">📊</span> Productividad
     </a>
     <a class="nav-item" onclick="showView('seguridad')" data-requires="seguridad">
@@ -1525,7 +1525,7 @@
       ════════════════════════════════════════════ -->
       <div class="view" id="view-productividad">
 
-        <!-- 1. Selector de Usuario -->
+        <!-- 1. Selector de Usuario + Toggle de Modo -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:16px 20px;flex-wrap:wrap">
             <span style="font-size:18px">👤</span>
@@ -1533,9 +1533,41 @@
               <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.8px">Análisis de Productividad</div>
               <div style="font-size:13px;color:var(--text2);margin-top:2px">Seleccione un usuario para ver su actividad</div>
             </div>
-            <select id="prodUserSelector" onchange="loadUserProductivity(this.value)" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-family:var(--font-ui);min-width:220px;cursor:pointer">
+
+            <!-- Toggle: Hoy / Histórico -->
+            <div id="prodModeToggle" style="margin-left:auto;display:flex;background:var(--surface2);border-radius:10px;padding:3px;border:1px solid var(--border);gap:2px">
+              <button onclick="setProdMode('today')" id="prodBtnToday" style="padding:7px 18px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.3s ease;font-family:var(--font-ui);background:linear-gradient(135deg,#6C9FFF,#22D3EE);color:#fff;box-shadow:0 2px 8px rgba(108,159,255,0.3)">
+                📅 Tiempo Real (Hoy)
+              </button>
+              <button onclick="setProdMode('historic')" id="prodBtnHistoric" style="padding:7px 18px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.3s ease;font-family:var(--font-ui);background:transparent;color:var(--text3)">
+                📊 Histórico
+              </button>
+            </div>
+
+            <select id="prodUserSelector" onchange="loadUserProductivity(this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-family:var(--font-ui);min-width:220px;cursor:pointer">
               <option value="__all__">📊 Todos los usuarios</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Panel de filtro de fechas (oculto por defecto, se muestra en modo Histórico) -->
+        <div id="prodDatePanel" style="display:none;margin-bottom:14px;animation:fadeIn 0.3s ease">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(90deg,rgba(139,92,246,0.08),rgba(236,72,153,0.04));border:1px solid rgba(139,92,246,0.2);border-radius:10px;flex-wrap:wrap">
+            <span style="font-size:15px">📆</span>
+            <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.7px">Rango de Fechas</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
+              <label style="font-size:11px;color:var(--text2);font-weight:600">Desde:</label>
+              <input type="date" id="prodDateFrom" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:12px;font-family:var(--font-ui);cursor:pointer">
+              <label style="font-size:11px;color:var(--text2);font-weight:600">Hasta:</label>
+              <input type="date" id="prodDateTo" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:12px;font-family:var(--font-ui);cursor:pointer">
+            </div>
+            <!-- Quick filters -->
+            <div style="display:flex;gap:6px;margin-left:8px">
+              <button onclick="setProdDateRange(7)" class="prod-quick-btn" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:var(--font-ui)">7 días</button>
+              <button onclick="setProdDateRange(15)" class="prod-quick-btn" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:var(--font-ui)">15 días</button>
+              <button onclick="setProdDateRange(30)" class="prod-quick-btn" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:var(--font-ui)">30 días</button>
+            </div>
+            <button onclick="fetchHistoricProductivity()" style="margin-left:auto;padding:7px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-ui);transition:all 0.2s;box-shadow:0 2px 8px rgba(139,92,246,0.3)">🔍 Consultar</button>
           </div>
         </div>
 
@@ -1547,7 +1579,7 @@
             <span style="font-size:12.5px;color:var(--text);font-weight:700" id="prodPeriodLabel">Cargando...</span>
           </div>
           <div style="margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:5px" title="El agente mide los segundos sin movimiento de mouse/teclado. La columna idle_seconds se agrega a BigQuery con la próxima actualización de esquema.">
+            <div style="display:flex;align-items:center;gap:5px" title="El agente mide los segundos sin movimiento de mouse/teclado.">
               <span style="font-size:10px;color:var(--text3)">Inactividad por usuario:</span>
               <span style="font-size:11px;font-weight:700;padding:2px 8px;background:rgba(245,158,11,0.12);color:var(--amber);border-radius:4px" id="prodIdleStatus">⏳ Activando...</span>
             </div>
@@ -1998,9 +2030,9 @@
         </div>
 
         <div class="two-col">
-          <div class="card">
+          <div class="card" style="display:flex;flex-direction:column;min-height:0">
             <div class="card-header"><span>🔍</span><span class="card-title">Eventos de Monitoreo — Tiempo Real</span></div>
-            <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+            <div style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0">
               <table class="data-table" id="secEventsTable">
                 <thead><tr><th></th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>Categoría</th><th>Hora</th><th>Severidad</th></tr></thead>
                 <tbody id="secEventsBody">
@@ -2263,10 +2295,10 @@
         <div class="card" style="padding:0;overflow:hidden">
           <table class="prod-table" style="width:100%">
             <thead>
-              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>2FA</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Páginas</th><th>2FA</th><th>Último Acceso</th><th>Estado</th><th>Acciones</th></tr>
             </thead>
             <tbody id="usersTableBody">
-              <tr><td colspan="6" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
+              <tr><td colspan="8" style="text-align:center;color:var(--text3)">Cargando usuarios...</td></tr>
             </tbody>
           </table>
         </div>
@@ -2274,20 +2306,28 @@
 
       <!-- Modal: Crear/Editar Usuario -->
       <div id="userModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
-        <div class="login-card" style="animation:loginSlideUp 0.3s">
+        <div class="login-card" style="animation:loginSlideUp 0.3s;max-width:520px;max-height:90vh;overflow-y:auto">
           <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)" id="userModalTitle">Nuevo Usuario</h3>
           <div class="login-field"><label>Nombre Completo</label><input id="umName" placeholder="Nombre Apellido" /></div>
           <div class="login-field"><label>Email</label><input id="umEmail" type="email" placeholder="email@empresa.com" /></div>
           <div class="login-field" id="umPasswordField"><label>Contraseña</label><input id="umPassword" type="password" placeholder="Mínimo 6 caracteres" /></div>
           <div class="login-field">
             <label>Rol</label>
-            <select id="umRole" style="width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--font-ui)">
+            <select id="umRole" onchange="updatePageTogglesFromRole(this.value)" style="width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--font-ui)">
               <option value="admin">🔑 Administrador</option>
               <option value="analyst">📊 Analista</option>
               <option value="viewer" selected>👁 Visor</option>
             </select>
           </div>
-          <div style="display:flex;gap:10px;margin-top:12px">
+
+          <!-- Permisos de Páginas -->
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <label style="display:block;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">📋 Páginas Visibles</label>
+            <div id="umPagesGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:16px">
             <button onclick="closeUserModal()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
             <button onclick="saveUser()" class="login-btn" style="flex:1;margin-top:0">💾 Guardar</button>
           </div>
@@ -3512,6 +3552,113 @@ function updateAlertsFeed() {
 
 // ── Módulo de Productividad ──
 let _prodData = null;
+let _prodMode = 'today'; // 'today' | 'historic'
+
+function setProdMode(mode) {
+  _prodMode = mode;
+  const btnToday = document.getElementById('prodBtnToday');
+  const btnHistoric = document.getElementById('prodBtnHistoric');
+  const datePanel = document.getElementById('prodDatePanel');
+  
+  if (mode === 'today') {
+    btnToday.style.background = 'linear-gradient(135deg,#6C9FFF,#22D3EE)';
+    btnToday.style.color = '#fff';
+    btnToday.style.boxShadow = '0 2px 8px rgba(108,159,255,0.3)';
+    btnHistoric.style.background = 'transparent';
+    btnHistoric.style.color = 'var(--text3)';
+    btnHistoric.style.boxShadow = 'none';
+    if (datePanel) datePanel.style.display = 'none';
+    // Recargar datos de hoy
+    fetchProductivity();
+  } else {
+    btnHistoric.style.background = 'linear-gradient(135deg,#8B5CF6,#EC4899)';
+    btnHistoric.style.color = '#fff';
+    btnHistoric.style.boxShadow = '0 2px 8px rgba(139,92,246,0.3)';
+    btnToday.style.background = 'transparent';
+    btnToday.style.color = 'var(--text3)';
+    btnToday.style.boxShadow = 'none';
+    if (datePanel) {
+      datePanel.style.display = 'block';
+      // Set default dates if empty
+      const fromEl = document.getElementById('prodDateFrom');
+      const toEl = document.getElementById('prodDateTo');
+      if (fromEl && !fromEl.value) {
+        const d = new Date(); d.setDate(d.getDate() - 7);
+        fromEl.value = d.toISOString().split('T')[0];
+      }
+      if (toEl && !toEl.value) {
+        toEl.value = new Date().toISOString().split('T')[0];
+      }
+    }
+  }
+}
+
+function setProdDateRange(days) {
+  const fromEl = document.getElementById('prodDateFrom');
+  const toEl = document.getElementById('prodDateTo');
+  if (fromEl && toEl) {
+    const now = new Date();
+    toEl.value = now.toISOString().split('T')[0];
+    const from = new Date(now);
+    from.setDate(now.getDate() - days);
+    fromEl.value = from.toISOString().split('T')[0];
+  }
+  // Highlight active button
+  document.querySelectorAll('.prod-quick-btn').forEach(b => {
+    b.style.background = 'var(--surface2)';
+    b.style.color = 'var(--text2)';
+    b.style.borderColor = 'var(--border)';
+  });
+  event.target.style.background = 'rgba(139,92,246,0.2)';
+  event.target.style.color = '#A78BFA';
+  event.target.style.borderColor = '#8B5CF6';
+}
+
+function fetchHistoricProductivity() {
+  const fromEl = document.getElementById('prodDateFrom');
+  const toEl = document.getElementById('prodDateTo');
+  if (!fromEl || !toEl || !fromEl.value || !toEl.value) {
+    alert('Por favor selecciona un rango de fechas');
+    return;
+  }
+  const periodEl = document.getElementById('prodPeriodLabel');
+  if (periodEl) periodEl.textContent = '⏳ Consultando histórico...';
+  
+  fetch(`/api/productividad/historico?from=${fromEl.value}&to=${toEl.value}`)
+    .then(res => res.json())
+    .then(data => {
+      _prodData = data;
+      // Update period label
+      if (periodEl) {
+        const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'});
+        periodEl.textContent = `${fmt(fromEl.value)} — ${fmt(toEl.value)} (histórico)`;
+      }
+      const pointsEl = document.getElementById('prodDataPoints');
+      if (pointsEl) {
+        const count = (data.users_productivity_table || []).length;
+        pointsEl.textContent = count > 0 ? `${count} usuario${count !== 1 ? 's' : ''}` : '—';
+      }
+      // Populate user selector
+      const sel = document.getElementById('prodUserSelector');
+      if (sel && data.users_productivity_table) {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="__all__">📊 Todos los usuarios</option>';
+        const seenIds = new Set();
+        data.users_productivity_table.forEach(u => {
+          if (!seenIds.has(u.device_id)) {
+            seenIds.add(u.device_id);
+            sel.innerHTML += `<option value="${u.device_id}">👤 ${u.usuario} — ${u.device_id}</option>`;
+          }
+        });
+        if (currentVal) sel.value = currentVal;
+      }
+      loadUserProductivity(sel ? sel.value : '__all__');
+    })
+    .catch(err => {
+      console.warn('[Prod] Error cargando histórico:', err);
+      if (periodEl) periodEl.textContent = 'Error al consultar histórico';
+    });
+}
 
 function fetchProductivity() {
   fetch('/api/productividad')
@@ -3524,14 +3671,15 @@ function fetchProductivity() {
       const pointsEl = document.getElementById('prodDataPoints');
       if (periodEl) {
         if (data.period_start && data.period_end) {
-          const fmt = d => new Date(d).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'});
-          periodEl.textContent = `${fmt(data.period_start)} — ${fmt(data.period_end)}`;
+          const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'});
+          if (data.period_start === data.period_end) {
+            // Hoy
+            periodEl.textContent = `Hoy — ${fmt(data.period_start)} (Tiempo Real)`;
+          } else {
+            periodEl.textContent = `${fmt(data.period_start)} — ${fmt(data.period_end)}`;
+          }
         } else {
-          // Calcular desde los datos disponibles
-          const now = new Date();
-          const sevenAgo = new Date(now); sevenAgo.setDate(now.getDate() - 7);
-          const fmt = d => d.toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'});
-          periodEl.textContent = `${fmt(sevenAgo)} — ${fmt(now)} (últimos 7 días)`;
+          periodEl.textContent = `Hoy — ${new Date().toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'})} (Tiempo Real)`;
         }
       }
       if (pointsEl) {
@@ -3885,8 +4033,8 @@ function fetchSecurity() {
           const devName = row.device_name || row.device_id || '—';
           const icon = row.icon || '🔐';
           const cat = row.category || 'general';
-          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General',seguridad:'Seguridad',ubicacion:'Ubicación',usb:'Puerto USB',vpn:'VPN'};
-          const catColors2 = {seguridad:'#EF4444',ubicacion:'#F59E0B',usb:'#A78BFA',vpn:'#EF4444',disponibilidad:'#F87171',rendimiento:'#FBBF24',red:'#6C9FFF',software:'#F59E0B',estado:'#10B981',general:'#8B9DAF',almacenamiento:'#A78BFA',navegacion:'#34D399',productividad:'#06B6D4'};
+          const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General',seguridad:'Seguridad',ubicacion:'Ubicación',usb:'Puerto USB',vpn:'VPN',puertos:'Puertos'};
+          const catColors2 = {seguridad:'#EF4444',ubicacion:'#F59E0B',usb:'#A78BFA',vpn:'#EF4444',disponibilidad:'#F87171',rendimiento:'#FBBF24',red:'#6C9FFF',software:'#F59E0B',estado:'#10B981',general:'#8B9DAF',almacenamiento:'#A78BFA',navegacion:'#34D399',productividad:'#06B6D4',puertos:'#F97316'};
           const catC = catColors2[cat] || '#8B9DAF';
           
           tbody.innerHTML += `<tr>
@@ -3915,9 +4063,9 @@ function fetchSecurity() {
       // Categories Panel
       const catPanel = document.getElementById('secCategoriesPanel');
       if (catPanel && data.categories) {
-        const catColors = {disponibilidad:'#F87171',rendimiento:'#FBBF24',almacenamiento:'#A78BFA',red:'#6C9FFF',software:'#F59E0B',navegacion:'#34D399',productividad:'#06B6D4',estado:'#10B981',general:'#8B9DAF'};
-        const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General'};
-        const catIcons = {disponibilidad:'⚫',rendimiento:'🔥',almacenamiento:'💿',red:'📡',software:'⚠️',navegacion:'🌐',productividad:'📱',estado:'✅',general:'🔐'};
+        const catColors = {disponibilidad:'#F87171',rendimiento:'#FBBF24',almacenamiento:'#A78BFA',red:'#6C9FFF',software:'#F59E0B',navegacion:'#34D399',productividad:'#06B6D4',estado:'#10B981',general:'#8B9DAF',seguridad:'#EF4444',ubicacion:'#F59E0B',usb:'#A78BFA',vpn:'#EF4444',puertos:'#F97316'};
+        const catLabels = {disponibilidad:'Disponibilidad',rendimiento:'Rendimiento',almacenamiento:'Almacenamiento',red:'Red',software:'Software',navegacion:'Navegación',productividad:'Productividad',estado:'Estado',general:'General',seguridad:'Seguridad',ubicacion:'Ubicación',usb:'Puerto USB',vpn:'VPN',puertos:'Puertos'};
+        const catIcons = {disponibilidad:'⚫',rendimiento:'🔥',almacenamiento:'💿',red:'📡',software:'⚠️',navegacion:'🌐',productividad:'📱',estado:'✅',general:'🔐',seguridad:'🔒',ubicacion:'📍',usb:'🔌',vpn:'🛡️',puertos:'🚪'};
         
         let cp = '';
         const total = Object.values(data.categories).reduce((s,v) => s+v, 0);
@@ -4682,7 +4830,20 @@ async function fetchUsers() {
       const roleColor  = roleColors[u.role] || '#888';
       const totp2fa    = u.totp_enabled ? '<span style="color:#34D399;font-size:12px">✅ Activo</span>'
                                         : '<span style="color:#F87171;font-size:12px">⚠️ Pendiente</span>';
-      // Escapar para uso seguro en atributos data-*
+      // Parse allowed pages
+      let userPages = null;
+      if (u.allowed_pages) {
+        if (typeof u.allowed_pages === 'string') {
+          try { userPages = JSON.parse(u.allowed_pages); } catch(e) { userPages = null; }
+        } else if (Array.isArray(u.allowed_pages)) {
+          userPages = u.allowed_pages;
+        }
+      }
+      const pageCount = userPages ? userPages.length : (ROLE_PAGE_DEFAULTS[u.role] || []).length;
+      const totalPages = PAGE_DEFINITIONS.length;
+      const pagesLabel = `${pageCount}/${totalPages}`;
+      const pagesColor = pageCount === totalPages ? '#34D399' : pageCount > 5 ? '#6C9FFF' : '#FBBF24';
+      
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><div style="display:flex;align-items:center;gap:10px">
@@ -4691,6 +4852,7 @@ async function fetchUsers() {
         </div></td>
         <td class="mono" style="font-size:12px">${u.email}</td>
         <td><span style="padding:4px 10px;border-radius:6px;background:${roleColor}18;color:${roleColor};font-size:11px;font-weight:600">${roleIcons[u.role]||''} ${u.role_label}</span></td>
+        <td><span style="padding:3px 8px;border-radius:6px;background:${pagesColor}18;color:${pagesColor};font-size:11px;font-weight:600">📋 ${pagesLabel}</span></td>
         <td>${totp2fa}</td>
         <td style="font-size:12px;color:var(--text2)">${lastLogin}</td>
         <td><span class="badge ok" style="font-size:11px">Activo</span></td>
@@ -4699,9 +4861,8 @@ async function fetchUsers() {
           ${isAdmin && u.totp_enabled ? '<button class="reset-2fa-btn" style="padding:5px 10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;color:#FBBF24;cursor:pointer;font-size:11px;margin-right:4px" title="Resetear 2FA">🔄 2FA</button>' : ''}
           <button class="del-user-btn" style="padding:5px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;color:#F87171;cursor:pointer;font-size:11px">🗑️</button>
         </td>`;
-      // Usar dataset para evitar problemas con comillas en nombres
       row.querySelector('.edit-user-btn').addEventListener('click', () =>
-        openEditUserModal(u.user_id, u.full_name, u.email, u.role));
+        openEditUserModal(u.user_id, u.full_name, u.email, u.role, userPages));
       if (row.querySelector('.reset-2fa-btn'))
         row.querySelector('.reset-2fa-btn').addEventListener('click', () => reset2FA(u.user_id, u.full_name));
       row.querySelector('.del-user-btn').addEventListener('click', () =>
@@ -4729,6 +4890,59 @@ async function reset2FA(userId, userName) {
 
 let editingUserId = null;
 
+// ── Page Permissions Config ──
+const PAGE_DEFINITIONS = [
+  {id: 'dashboard',      icon: '⬡',  label: 'Dashboard General'},
+  {id: 'equipo',         icon: '💻', label: 'Por Equipo'},
+  {id: 'productividad',  icon: '📊', label: 'Productividad'},
+  {id: 'seguridad',      icon: '🔍', label: 'Monitoreo y Seguimiento'},
+  {id: 'kpibuilder',     icon: '🛠', label: 'KPI Builder'},
+  {id: 'mesa',           icon: '🎫', label: 'Mesa de Ayuda'},
+  {id: 'agentes',        icon: '🤖', label: 'Agentes IA'},
+  {id: 'informes',       icon: '📈', label: 'Informes'},
+  {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'}
+];
+
+const ROLE_PAGE_DEFAULTS = {
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios'],
+  analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
+  viewer:  ['dashboard','equipo','productividad']
+};
+
+function renderPageToggles(enabledPages) {
+  const grid = document.getElementById('umPagesGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  PAGE_DEFINITIONS.forEach(pg => {
+    const isOn = enabledPages.includes(pg.id);
+    const item = document.createElement('label');
+    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s';
+    item.innerHTML = `
+      <div style="position:relative;width:36px;height:20px;flex-shrink:0">
+        <input type="checkbox" data-page="${pg.id}" ${isOn ? 'checked' : ''} 
+          style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2;margin:0"
+          onchange="this.parentElement.querySelector('.toggle-track').style.background=this.checked?'linear-gradient(135deg,#34D399,#10B981)':'var(--surface3)';this.parentElement.querySelector('.toggle-knob').style.transform=this.checked?'translateX(16px)':'translateX(0)'">
+        <div class="toggle-track" style="position:absolute;top:0;left:0;width:36px;height:20px;border-radius:10px;background:${isOn?'linear-gradient(135deg,#34D399,#10B981)':'var(--surface3)'};transition:background 0.2s"></div>
+        <div class="toggle-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:transform 0.2s;transform:${isOn?'translateX(16px)':'translateX(0)'}"></div>
+      </div>
+      <span style="font-size:13px;color:var(--text)">${pg.icon} ${pg.label}</span>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+function updatePageTogglesFromRole(role) {
+  const defaults = ROLE_PAGE_DEFAULTS[role] || ROLE_PAGE_DEFAULTS.viewer;
+  renderPageToggles(defaults);
+}
+
+function getSelectedPages() {
+  const checks = document.querySelectorAll('#umPagesGrid input[data-page]');
+  const pages = [];
+  checks.forEach(c => { if (c.checked) pages.push(c.dataset.page); });
+  return pages;
+}
+
 function openUserModal() {
   editingUserId = null;
   document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
@@ -4737,10 +4951,11 @@ function openUserModal() {
   document.getElementById('umPassword').value = '';
   document.getElementById('umRole').value = 'viewer';
   document.getElementById('umPasswordField').style.display = '';
+  renderPageToggles(ROLE_PAGE_DEFAULTS.viewer);
   document.getElementById('userModal').style.display = 'flex';
 }
 
-function openEditUserModal(id, name, email, role) {
+function openEditUserModal(id, name, email, role, allowedPages) {
   editingUserId = id;
   document.getElementById('userModalTitle').textContent = 'Editar Usuario';
   document.getElementById('umName').value = name;
@@ -4748,6 +4963,14 @@ function openEditUserModal(id, name, email, role) {
   document.getElementById('umRole').value = role;
   document.getElementById('umPassword').value = '';
   document.getElementById('umPasswordField').style.display = 'none';
+  // Use user's custom pages or role defaults
+  let pages = ROLE_PAGE_DEFAULTS[role] || ROLE_PAGE_DEFAULTS.viewer;
+  if (allowedPages && Array.isArray(allowedPages) && allowedPages.length > 0) {
+    pages = allowedPages;
+  } else if (typeof allowedPages === 'string' && allowedPages) {
+    try { pages = JSON.parse(allowedPages); } catch(e) {}
+  }
+  renderPageToggles(pages);
   document.getElementById('userModal').style.display = 'flex';
 }
 
@@ -4761,15 +4984,17 @@ async function saveUser() {
   const email = document.getElementById('umEmail').value.trim();
   const password = document.getElementById('umPassword').value;
   const role = document.getElementById('umRole').value;
+  const allowedPages = getSelectedPages();
   
   if (!name || !email) { alert('Nombre y email son requeridos'); return; }
+  if (allowedPages.length === 0) { alert('Debe seleccionar al menos una página visible'); return; }
   
   if (editingUserId) {
     // Update
     const res = await fetch('/api/users/update', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: editingUserId, full_name: name, email, role})
+      body: JSON.stringify({user_id: editingUserId, full_name: name, email, role, allowed_pages: allowedPages})
     });
     const data = await res.json();
     if (data.success) { closeUserModal(); fetchUsers(); }
@@ -4780,7 +5005,7 @@ async function saveUser() {
     const res = await fetch('/api/users/create', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({full_name: name, email, password, role})
+      body: JSON.stringify({full_name: name, email, password, role, allowed_pages: allowedPages})
     });
     const data = await res.json();
     if (data.success) { closeUserModal(); fetchUsers(); }

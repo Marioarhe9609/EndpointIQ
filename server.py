@@ -324,6 +324,17 @@ def create_session(user):
     """Create a new session token for a user."""
     token = str(uuid.uuid4())
     expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=12)
+    # Parse allowed_pages: JSON string → list, list → list, None → None
+    raw_ap = user.get("allowed_pages")
+    if isinstance(raw_ap, str):
+        try:
+            allowed_pages = json.loads(raw_ap)
+        except (json.JSONDecodeError, ValueError):
+            allowed_pages = None
+    elif isinstance(raw_ap, list):
+        allowed_pages = raw_ap
+    else:
+        allowed_pages = None
     with sessions_lock:
         sessions[token] = {
             "user_id": user["user_id"],
@@ -331,7 +342,8 @@ def create_session(user):
             "role": user["role"],
             "full_name": user["full_name"],
             "avatar": user.get("avatar", "??"),
-            "expires": expires
+            "expires": expires,
+            "allowed_pages": allowed_pages
         }
     return token
 
@@ -356,11 +368,17 @@ def invalidate_session(token):
 def load_users_from_bq():
     """Load users from BigQuery into memory cache (including 2FA fields)."""
     global users_cache
+    # Auto-migrate: ensure allowed_pages column exists
+    try:
+        run_bq_query("ALTER TABLE onyx.eq_users ADD COLUMN IF NOT EXISTS allowed_pages STRING")
+        print("[AUTH] Schema migration: allowed_pages column ensured")
+    except Exception as me:
+        print(f"[AUTH] Schema migration note: {me}")
     try:
         rows = run_bq_query("""
             SELECT user_id, email, password_hash, salt, full_name, role, avatar,
                    created_at, last_login, is_active,
-                   totp_secret, totp_enabled
+                   totp_secret, totp_enabled, allowed_pages
             FROM onyx.eq_users
             WHERE is_active = true
             ORDER BY created_at
@@ -949,6 +967,22 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         
+        # ── Servir archivos estáticos (logo, imágenes) ──
+        if path == "/onyx_logo.jpeg":
+            logo_path = os.path.join(os.path.dirname(__file__), "onyx_logo.jpeg")
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            self.send_response(404)
+            self.end_headers()
+            return
         # ── Auth endpoints (no auth required) ──
         if path == "/api/auth/me":
             session = self.get_current_session()
@@ -963,7 +997,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "role_label": ROLE_LABELS.get(session["role"], session["role"]),
                 "full_name": session["full_name"],
                 "avatar": session["avatar"],
-                "permissions": list(ROLE_PERMISSIONS.get(session["role"], set()))
+                "permissions": session.get("allowed_pages") or list(ROLE_PERMISSIONS.get(session["role"], set()))
             })
             return
         
@@ -985,7 +1019,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         "created_at": u.get("created_at"),
                         "last_login": u.get("last_login"),
                         "is_active":  u.get("is_active", True),
-                        "totp_enabled": bool(u.get("totp_enabled"))  # para indicador 2FA en panel admin
+                        "totp_enabled": bool(u.get("totp_enabled")),  # para indicador 2FA en panel admin
+                        "allowed_pages": u.get("allowed_pages")
                     })
             self.send_json(safe_users)
             return
@@ -1266,37 +1301,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     }
                     latest["network_info"] = json.dumps(fallback_net)
                 
-                # ── Fallback: Generate browser_history from top_processes ──
-                if latest and not latest.get("browser_history"):
-                    procs = latest.get("top_processes", [])
-                    if isinstance(procs, str):
-                        try: procs = json.loads(procs)
-                        except: procs = []
-                    browsers_found = set()
-                    for p in procs:
-                        pn = (p.get("name", "") or "").lower().replace(".exe", "")
-                        if pn in ("chrome", "msedge", "firefox", "brave", "opera"):
-                            browsers_found.add(pn)
-                    if browsers_found:
-                        _edge_dom = [("outlook.office.com", 8), ("teams.microsoft.com", 5),
-                                     ("sharepoint.com", 4), ("google.com", 6), ("youtube.com", 3)]
-                        _chrome_dom = [("google.com", 10), ("mail.google.com", 5),
-                                       ("youtube.com", 7), ("docs.google.com", 4), ("github.com", 3)]
-                        _ff_dom = [("google.com", 8), ("github.com", 5),
-                                   ("stackoverflow.com", 4), ("youtube.com", 6), ("reddit.com", 3)]
-                        fallback_bh = []
-                        seed_val = hash(device_id) % 10
-                        for br in browsers_found:
-                            pool = _edge_dom if br == "msedge" else _chrome_dom if br == "chrome" else _ff_dom
-                            for dom, bv in pool:
-                                fallback_bh.append({
-                                    "browser": br,
-                                    "domain": dom,
-                                    "title": f"{dom} — {br}",
-                                    "url": f"https://{dom}",
-                                    "visits": max(1, bv + (seed_val % 3))
-                                })
-                        latest["browser_history"] = json.dumps(fallback_bh)
+                # NOTE: No fake browser_history fallback — show real data only
                 
                 # ── USB Ports for this device ──
                 usb_device_data = None
@@ -1337,23 +1342,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                             event_logs_data = el_raw
                 
                 if not event_logs_data:
-                    import hashlib as _hl3
-                    from datetime import datetime as _dt, timedelta as _td
-                    now_dt = _dt.utcnow()
-                    seed3 = int(_hl3.md5(device_id.encode()).hexdigest()[:8], 16) % 100
-                    event_logs_data = [
-                        {"log":"System","id":7036,"severity":"Info","source":"Service Control Manager","message":"El servicio Windows Update entró en estado: detenido","time":(now_dt - _td(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"sistema","event_type":"servicio"},
-                        {"log":"System","id":7036,"severity":"Info","source":"Service Control Manager","message":"El servicio BITS entró en estado: en ejecución","time":(now_dt - _td(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"sistema","event_type":"servicio"},
-                        {"log":"Application","id":1000,"severity":"Error","source":"Application Error","message":"Nombre de la aplicación con errores: svchost.exe, versión: 10.0.19041.1","time":(now_dt - _td(hours=3)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"aplicacion","event_type":"error_app"},
-                        {"log":"Security","id":4624,"severity":"Info","source":"Microsoft-Windows-Security-Auditing","message":"Se ha iniciado sesión correctamente con una cuenta. Tipo de inicio: 2 (Interactivo)","time":(now_dt - _td(hours=4)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"seguridad","event_type":"inicio_sesion"},
-                        {"log":"System","id":6005,"severity":"Info","source":"EventLog","message":"Se inició el servicio de registro de eventos","time":(now_dt - _td(hours=5)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"sistema","event_type":"apagado"},
-                    ]
-                    if seed3 % 3 == 0:
-                        event_logs_data.insert(0, {"log":"Security","id":4625,"severity":"Advertencia","source":"Microsoft-Windows-Security-Auditing","message":"Error en un intento de inicio de sesión de una cuenta. Razón del error: Nombre de usuario o contraseña incorrectos","time":(now_dt - _td(minutes=30)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"seguridad","event_type":"inicio_sesion"})
-                    if seed3 % 4 == 0:
-                        event_logs_data.insert(0, {"log":"System","id":11,"severity":"Error","source":"Disk","message":"El controlador detectó un error en \\Device\\Harddisk0\\DR0 durante una operación de paginación","time":(now_dt - _td(minutes=45)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"sistema","event_type":"disco"})
-                    if seed3 % 5 == 0:
-                        event_logs_data.insert(0, {"log":"System","id":41,"severity":"Crítico","source":"Kernel-Power","message":"El sistema se ha reiniciado sin cerrarse limpiamente primero. Este error podría deberse a que el sistema dejó de responder","time":(now_dt - _td(hours=12)).strftime("%Y-%m-%dT%H:%M:%S"),"category":"sistema","event_type":"energia"})
+                    event_logs_data = []  # No fake data — show real agent data only
                 
                 # ── Downloads Metadata for this device ──
                 downloads_device_data = None
@@ -1377,6 +1366,265 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     "downloads_metadata": downloads_device_data
                 })
                 
+        elif path.startswith("/api/productividad/historico"):
+            # Historical productivity from BigQuery
+            params = urllib.parse.parse_qs(parsed_url.query)
+            date_from = params.get("from", [""])[0]
+            date_to = params.get("to", [""])[0]
+            
+            if not date_from or not date_to:
+                self.send_json({"error": "Parámetros 'from' y 'to' son requeridos"}, 400)
+                return
+            
+            try:
+                # Query BigQuery for metrics in the date range
+                query = f"""
+                    SELECT device_id, timestamp, top_processes, browser_history,
+                           cpu_usage, ram_usage
+                    FROM `onyx.eq_metrics`
+                    WHERE DATE(timestamp) BETWEEN '{date_from}' AND '{date_to}'
+                    ORDER BY timestamp DESC
+                """
+                rows = run_bq_query(query)
+                
+                if not rows:
+                    self.send_json({
+                        "average_productivity_index": 0,
+                        "avg_hours": 0,
+                        "users_below_threshold": 0,
+                        "excessive_ocio_users": 0,
+                        "users_productivity_table": [],
+                        "top_apps": [],
+                        "desktop_apps": [],
+                        "web_pages": [],
+                        "per_device_apps": {},
+                        "per_device_web": {},
+                        "distribution": {"trabajo": 0, "comunicacion": 0, "web": 0, "ocio": 0},
+                        "period_start": date_from,
+                        "period_end": date_to
+                    })
+                    return
+                
+                # Classification sets
+                work_apps = {"excel", "word", "powerpoint", "code", "visual studio", "notepad++", "acrobat", "sap",
+                             "autocad", "photoshop", "eclipse", "intellij", "pycharm", "vscode", "antigravity",
+                             "devenv", "sqlserver", "pgadmin", "dbeaver", "terminal", "powershell", "cmd",
+                             "explorer", "taskmgr", "mmc", "regedit", "winword", "onenote", "onedrive",
+                             "searchhost", "runtimebroker", "applicationframehost", "shellexperiencehost"}
+                comm_apps = {"teams", "outlook", "slack", "zoom", "skype", "thunderbird", "telegram", "discord", "lync"}
+                web_apps = {"chrome", "msedge", "firefox", "brave", "opera", "safari", "edge", "iexplore", "msedgewebview"}
+                ocio_apps = {"spotify", "netflix", "vlc", "steam", "epic", "whatsapp", "tiktok"}
+                system_procs = {"sistema + otros", "memcompression", "system", "idle", "svchost", "csrss",
+                               "wininit", "services", "lsass", "smss", "dwm", "fontdrvhost", "sihost",
+                               "ctfmon", "securityhealthservice", "wmiprvse", "spoolsv"}
+                
+                # Group by device_id
+                device_metrics = {}
+                for row in rows:
+                    d_id = row.get("device_id", "")
+                    if d_id not in device_metrics:
+                        device_metrics[d_id] = []
+                    device_metrics[d_id].append(row)
+                
+                users_table = []
+                all_apps_count = {}
+                total_work = 0
+                total_comm = 0
+                total_web = 0
+                total_ocio = 0
+                all_browser_domains = {}
+                
+                name_map = {"equipo": "Jhoan R.", "jenn": "Jennifer", "desktop": "Desktop"}
+                app_icons = {"antigravity": ("💻", "#06B6D4"), "outlook": ("📧", "#3B82F6"), "teams": ("🤝", "#10B981"),
+                            "word": ("📄", "#6366F1"), "excel": ("📊", "#F59E0B"), "powerpoint": ("🖥", "#8B5CF6"),
+                            "code": ("💻", "#06B6D4"), "chrome": ("🌐", "#4285F4"), "firefox": ("🦊", "#FF7139"),
+                            "msedge": ("🌐", "#0078D7"), "slack": ("💬", "#EC4899"), "zoom": ("📹", "#14B8A6"),
+                            "explorer": ("📁", "#64748B"), "acrobat": ("📕", "#DC2626"), "python": ("🐍", "#22C55E")}
+                
+                for d_id, metrics_list in device_metrics.items():
+                    work_h = 0
+                    comm_h = 0
+                    web_h = 0
+                    ocio_h = 0
+                    other_h = 0
+                    n_samples = len(metrics_list)
+                    
+                    for m in metrics_list:
+                        procs = []
+                        if m.get("top_processes"):
+                            try:
+                                procs = json.loads(m["top_processes"]) if isinstance(m["top_processes"], str) else m["top_processes"]
+                            except: pass
+                        
+                        for p in procs:
+                            name = (p.get("name", "") or "").lower().replace(".exe", "")
+                            mem = p.get("mem", 0) or 0
+                            cpu = p.get("cpu", 0) or 0
+                            usage = max(float(mem), float(cpu))
+                            display_name = p.get("name", "Unknown").replace(".exe", "")
+                            
+                            if any(s in name for s in system_procs):
+                                continue
+                            
+                            all_apps_count[display_name] = all_apps_count.get(display_name, 0) + usage
+                            
+                            if any(w in name for w in work_apps):
+                                work_h += usage
+                            elif any(c in name for c in comm_apps):
+                                comm_h += usage
+                            elif any(w in name for w in web_apps):
+                                web_h += usage * 0.4
+                                work_h += usage * 0.4
+                                ocio_h += usage * 0.2
+                            elif any(o in name for o in ocio_apps):
+                                ocio_h += usage
+                            else:
+                                work_h += usage * 0.5
+                                other_h += usage * 0.5
+                        
+                        # Browser history
+                        bh_raw = m.get("browser_history")
+                        if bh_raw and bh_raw != "[]" and bh_raw != "null":
+                            try:
+                                bh = json.loads(bh_raw) if isinstance(bh_raw, str) else bh_raw
+                                if isinstance(bh, list):
+                                    for entry in bh:
+                                        domain = entry.get("domain", "")
+                                        visits = entry.get("visits", 1)
+                                        if domain and not domain.endswith(".exe"):
+                                            all_browser_domains[domain] = all_browser_domains.get(domain, 0) + visits
+                            except: pass
+                    
+                    # Normalize by number of samples for daily average
+                    days_factor = max(n_samples, 1)
+                    total_usage = work_h + comm_h + web_h + ocio_h + other_h
+                    scale = 8.0 / max(total_usage / days_factor, 1)
+                    
+                    w_hr = round(work_h / days_factor * scale, 1)
+                    c_hr = round(comm_h / days_factor * scale, 1)
+                    wb_hr = round(web_h / days_factor * scale, 1)
+                    o_hr = round(ocio_h / days_factor * scale, 1)
+                    total_hr = round(w_hr + c_hr + wb_hr + o_hr, 1)
+                    
+                    prod_index = int((w_hr + c_hr) / max(total_hr, 0.1) * 100) if total_hr > 0 else 0
+                    prod_index = min(prod_index, 100)
+                    
+                    total_work += w_hr
+                    total_comm += c_hr
+                    total_web += wb_hr
+                    total_ocio += o_hr
+                    
+                    parts = d_id.replace("eiq-", "").split("-")
+                    user_name = parts[0].title() if parts else d_id
+                    user_name = name_map.get(user_name.lower(), user_name)
+                    
+                    users_table.append({
+                        "usuario": user_name,
+                        "device_id": d_id,
+                        "trabajo": f"{w_hr}h",
+                        "comun": f"{c_hr}h",
+                        "web": f"{wb_hr}h",
+                        "ocio": f"{o_hr}h",
+                        "index": prod_index,
+                        "sites": "N/A",
+                        "samples": n_samples
+                    })
+                
+                n_users = max(len(users_table), 1)
+                avg_prod = int(sum(u["index"] for u in users_table) / n_users) if users_table else 0
+                below_threshold = sum(1 for u in users_table if u["index"] < 60)
+                excessive = sum(1 for u in users_table if u["index"] < 40)
+                
+                sorted_apps = sorted(all_apps_count.items(), key=lambda x: x[1], reverse=True)[:6]
+                max_usage_val = sorted_apps[0][1] if sorted_apps else 1
+                top_apps = [{"name": a[0], "hours": round(a[1] * 0.05, 1), "pct": int(a[1] / max_usage_val * 100)} for a in sorted_apps]
+                
+                # Desktop apps
+                desktop_apps_list = []
+                sorted_desktop = sorted(
+                    [(k, v) for k, v in all_apps_count.items() if not any(s in k.lower() for s in system_procs)],
+                    key=lambda x: x[1], reverse=True
+                )[:8]
+                max_desk = sorted_desktop[0][1] if sorted_desktop else 1
+                total_desk = sum(v for _, v in sorted_desktop) or 1
+                for dname, dval in sorted_desktop:
+                    icon, color = "⚙️", "#64748B"
+                    for key, (ic, cl) in app_icons.items():
+                        if key in dname.lower():
+                            icon, color = ic, cl
+                            break
+                    hours = round(dval / total_desk * 8, 1)
+                    pct = int(dval / max_desk * 100)
+                    desktop_apps_list.append({
+                        "name": dname, "icon": icon, "color": color,
+                        "hours": f"{hours}h", "pct": pct,
+                        "pct_label": f"{int(dval/total_desk*100)}%"
+                    })
+                
+                # Web pages
+                web_domains = []
+                work_domains = {"sharepoint.com", "office.com", "github.com", "gitlab.com",
+                               "docs.google.com", "drive.google.com", "stackoverflow.com",
+                               "login.microsoftonline.com", "cloud.google.com"}
+                comm_domains_set = {"outlook.com", "outlook.office.com", "teams.microsoft.com",
+                               "slack.com", "meet.google.com", "zoom.us", "mail.google.com"}
+                ocio_domains_set = {"youtube.com", "netflix.com", "tiktok.com", "instagram.com",
+                               "facebook.com", "twitter.com", "reddit.com"}
+                
+                if all_browser_domains:
+                    total_visits = sum(all_browser_domains.values())
+                    sorted_bd = sorted(all_browser_domains.items(), key=lambda x: x[1], reverse=True)[:10]
+                    for domain, visits in sorted_bd:
+                        cat = "Web"
+                        cls = "cat-web"
+                        dl = domain.lower()
+                        if any(w in dl for w in work_domains):
+                            cat = "Trabajo"
+                            cls = "cat-trabajo"
+                        elif any(c in dl for c in comm_domains_set):
+                            cat = "Comun."
+                            cls = "cat-comun"
+                        elif any(o in dl for o in ocio_domains_set):
+                            cat = "Ocio"
+                            cls = "cat-social"
+                        proportion = visits / max(total_visits, 1)
+                        total_mins = int(8 * 60 * proportion)
+                        h = total_mins // 60
+                        mi = total_mins % 60
+                        web_domains.append({
+                            "domain": domain, "category": cat, "cat_class": cls,
+                            "time": f"{h}h {mi:02d}m", "visits": visits
+                        })
+                
+                grand_total = max(total_work + total_comm + total_web + total_ocio, 0.1)
+                
+                self.send_json({
+                    "average_productivity_index": avg_prod,
+                    "avg_hours": round((total_work + total_comm + total_web + total_ocio) / n_users, 1),
+                    "users_below_threshold": below_threshold,
+                    "excessive_ocio_users": excessive,
+                    "users_productivity_table": users_table,
+                    "top_apps": top_apps,
+                    "desktop_apps": desktop_apps_list,
+                    "web_pages": web_domains,
+                    "per_device_apps": {},
+                    "per_device_web": {},
+                    "distribution": {
+                        "trabajo": int(total_work / grand_total * 100),
+                        "comunicacion": int(total_comm / grand_total * 100),
+                        "web": int(total_web / grand_total * 100),
+                        "ocio": int(total_ocio / grand_total * 100)
+                    },
+                    "period_start": date_from,
+                    "period_end": date_to
+                })
+            except Exception as e:
+                print(f"[PROD-HIST] Error: {e}")
+                import traceback
+                traceback.print_exc()
+                self.send_json({"error": str(e)}, 500)
+            return
+
         elif path == "/api/productividad":
             with cache_lock:
                 # Clasificacion de procesos
@@ -1391,6 +1639,35 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 system_procs = {"sistema + otros", "memcompression", "system", "idle", "svchost", "csrss", 
                                "wininit", "services", "lsass", "smss", "dwm", "fontdrvhost", "sihost",
                                "ctfmon", "securityhealthservice", "wmiprvse", "spoolsv"}
+                
+                # ── Filtrar solo datos de HOY ──
+                today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+                
+                # Filtrar latest_metrics que sean de hoy
+                today_metrics = []
+                for m in cache.get("latest_metrics", []):
+                    ts = m.get("timestamp", "")
+                    ts_str = str(ts)[:10] if ts else ""
+                    if ts_str == today_str:
+                        today_metrics.append(m)
+                
+                # Si no hay datos de hoy en latest_metrics, buscar en all_metrics
+                if not today_metrics:
+                    for m in cache.get("all_metrics", []):
+                        ts = m.get("timestamp", "")
+                        ts_str = str(ts)[:10] if ts else ""
+                        if ts_str == today_str:
+                            today_metrics.append(m)
+                
+                # Dedup por device_id (quedarse con la más reciente)
+                seen_today = {}
+                for m in today_metrics:
+                    d_id = m.get("device_id", "")
+                    if d_id not in seen_today:
+                        seen_today[d_id] = m
+                today_metrics_dedup = list(seen_today.values())
+                
+                print(f"[PROD-TODAY] Fecha: {today_str}, Métricas de hoy: {len(today_metrics_dedup)} dispositivos")
                 
                 # DEDUPLICAR sync_status por device_id (tomar solo el más reciente)
                 seen_devices = set()
@@ -1411,12 +1688,10 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 
                 for dev in unique_devices:
                     d_id = dev.get("device_id", "")
-                    # Solo tomar la PRIMERA métrica por device (deduplicar)
-                    dev_metric = None
-                    for m in cache["latest_metrics"]:
-                        if m.get("device_id") == d_id:
-                            dev_metric = m
-                            break
+                    # Solo usar métricas de HOY
+                    dev_metric = seen_today.get(d_id)
+                    if not dev_metric:
+                        continue  # Saltar dispositivos sin datos de hoy
                     
                     work_h = 0
                     comm_h = 0
@@ -1601,65 +1876,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         if domain and not domain.endswith(".exe"):
                             all_browser_domains[domain] = all_browser_domains.get(domain, 0) + visits
                 
-                # ── Fallback: Generate web data from browser processes if no browser_history ──
-                if not all_browser_domains:
-                    # Detect active browsers from top_processes
-                    browser_map = {}  # {device_id: [browser_names]}
-                    for dev in unique_devices:
-                        d_id = dev.get("device_id", "")
-                        for m in cache["latest_metrics"]:
-                            if m.get("device_id") == d_id:
-                                procs = m.get("top_processes", [])
-                                if isinstance(procs, str):
-                                    try: procs = json.loads(procs)
-                                    except: procs = []
-                                browsers = []
-                                for p in procs:
-                                    pname = (p.get("name", "") or "").lower().replace(".exe", "")
-                                    if pname in ("chrome", "msedge", "firefox", "brave", "opera"):
-                                        browsers.append(pname)
-                                if browsers:
-                                    browser_map[d_id] = browsers
-                                break
-                    
-                    if browser_map:
-                        # Generate realistic domains based on detected browsers
-                        import random
-                        edge_domains = [
-                            ("outlook.office.com", 18), ("teams.microsoft.com", 14), 
-                            ("sharepoint.com", 10), ("office.com", 8),
-                            ("login.microsoftonline.com", 6), ("google.com", 12),
-                            ("github.com", 5), ("stackoverflow.com", 7),
-                            ("youtube.com", 9), ("docs.google.com", 4)
-                        ]
-                        chrome_domains = [
-                            ("google.com", 20), ("mail.google.com", 12),
-                            ("docs.google.com", 8), ("drive.google.com", 6),
-                            ("youtube.com", 15), ("stackoverflow.com", 10),
-                            ("github.com", 7), ("calendar.google.com", 4),
-                            ("meet.google.com", 3), ("cloud.google.com", 5)
-                        ]
-                        firefox_domains = [
-                            ("google.com", 15), ("github.com", 12),
-                            ("stackoverflow.com", 10), ("developer.mozilla.org", 8),
-                            ("reddit.com", 6), ("youtube.com", 11),
-                            ("docs.google.com", 5), ("wikipedia.org", 4)
-                        ]
-                        
-                        for d_id, browsers in browser_map.items():
-                            seed = hash(d_id) % 100
-                            for browser in set(browsers):
-                                if browser == "msedge":
-                                    domains_pool = edge_domains
-                                elif browser == "chrome":
-                                    domains_pool = chrome_domains
-                                else:
-                                    domains_pool = firefox_domains
-                                
-                                for domain, base_visits in domains_pool:
-                                    # Add some per-device variation
-                                    visits = max(1, base_visits + (seed % 5) - 2)
-                                    all_browser_domains[domain] = all_browser_domains.get(domain, 0) + visits
+                # NOTE: No fallback — if no real browser_history, web pages will be empty
                 
                 # Domain category classification
                 work_domains = {"sharepoint.com", "office.com", "office365.com", "github.com", 
@@ -1724,7 +1941,9 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         "comunicacion": int(total_comm / grand_total * 100),
                         "web": int(total_web / grand_total * 100),
                         "ocio": int(total_ocio / grand_total * 100)
-                    }
+                    },
+                    "period_start": today_str,
+                    "period_end": today_str
                 })
             
         elif path == "/api/seguridad":
@@ -1955,22 +2174,11 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     
                     usb_ports_by_device[d_id] = usb_data
                 
-                # ── Demo event: Cambio de Zona (for presentation) ──
-                demo_ts = now.strftime("%Y-%m-%dT10:32:00")
-                events.append({
-                    "timestamp": demo_ts, "device_id": "demo-zone", "device_name": "Jennifer",
-                    "event_type": "Cambio de Zona",
-                    "details": "Se movió de Medellín a Bogotá — nueva IP detectada",
-                    "severity": "Media", "icon": "📍", "category": "ubicacion",
-                    "city": "Bogotá"
-                })
+                # ── Improve coordinate precision using agent's public_ip ──
+                # Each agent reports its public IP via network_info.public_ip
+                # Use that for precise geolocation instead of hardcoded subnets
+                device_geo_cache = {}
                 
-                # ── Improve coordinate precision using WiFi subnet + IP geolocation ──
-                # Use the WiFi subnet as a location differentiator within the same city
-                # Each subnet = different physical location (home/office)
-                wifi_subnet_coords = {}
-                
-                # First try from latest_metrics network_info
                 for m in cache.get("latest_metrics", []):
                     d_id = m.get("device_id", "")
                     net_raw = m.get("network_info", "")
@@ -1984,56 +2192,43 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     else:
                         net = {}
                     
-                    wifi_ssid = net.get("wifi_ssid", "")
-                    local_ip = ""
-                    for iface in net.get("interfaces", []):
-                        if iface.get("type") == "WiFi":
-                            local_ip = iface.get("ip", "")
-                            break
+                    public_ip = net.get("public_ip", "")
+                    city_agent = net.get("city", "")
                     
-                    # If no WiFi interface found, use last_ip from sync_status
-                    if not local_ip:
-                        for ss in cache.get("sync_status", []):
-                            if ss.get("device_id") == d_id:
-                                local_ip = ss.get("last_ip", "")
-                                break
-                    
-                    # Extract subnet (e.g., "192.168.0" from "192.168.0.44")
-                    subnet = ".".join(local_ip.split(".")[:3]) if local_ip else ""
-                    if subnet and d_id:
-                        wifi_subnet_coords[d_id] = {"subnet": subnet, "ssid": wifi_ssid}
-                        print(f"[MAP-DBG] Device {d_id} -> subnet={subnet}, ssid={wifi_ssid}, local_ip={local_ip}")
+                    if public_ip and d_id:
+                        geo = _geolocate_ip(public_ip)
+                        device_geo_cache[d_id] = {
+                            "lat": geo.get("lat", 4.6097),
+                            "lon": geo.get("lon", -74.0817),
+                            "city": geo.get("city", city_agent or "Bogotá"),
+                            "country": geo.get("country", "Colombia"),
+                            "ip": public_ip
+                        }
+                        print(f"[MAP] Device {d_id} -> public_ip={public_ip} -> ({geo.get('lat')}, {geo.get('lon')}) {geo.get('city')}")
                     else:
-                        print(f"[MAP-DBG] Device {d_id} -> NO subnet (net_raw type={type(net_raw).__name__}, local_ip='{local_ip}')")
+                        print(f"[MAP] Device {d_id} -> NO public_ip in network_info")
                 
-                # Apply precise coordinates based on actual device network data
+                # Apply coordinates to connection_map
                 for dev in connection_map:
                     d_id = dev.get("device_id", "")
-                    wifi = wifi_subnet_coords.get(d_id, {})
-                    subnet = wifi.get("subnet", "")
-                    
-                    # Map WiFi subnets to precise Bogotá coordinates
-                    # Based on real WiFi network data from each agent
-                    if subnet == "192.168.0":
-                        # Desktop/Mario - Red 192.168.0.x
-                        dev["lat"] = 4.6248
-                        dev["lon"] = -74.0636
-                        dev["city"] = "Bogotá, D.C."
-                        print(f"[MAP] {dev['name']} -> subnet {subnet} -> ({dev['lat']}, {dev['lon']})")
-                    elif subnet == "192.168.80":
-                        # Jhoan R. - Red 192.168.80.x  
-                        dev["lat"] = 4.7020
-                        dev["lon"] = -74.0426
-                        dev["city"] = "Bogotá, D.C."
-                        print(f"[MAP] {dev['name']} -> subnet {subnet} -> ({dev['lat']}, {dev['lon']})")
-                    elif subnet == "192.168.2":
-                        # Jennifer - Red 192.168.2.x
-                        dev["lat"] = 4.7352
-                        dev["lon"] = -74.0965
-                        dev["city"] = "Bogotá, D.C."
-                        print(f"[MAP] {dev['name']} -> subnet {subnet} -> ({dev['lat']}, {dev['lon']})")
+                    if d_id in device_geo_cache:
+                        geo = device_geo_cache[d_id]
+                        dev["lat"] = geo["lat"]
+                        dev["lon"] = geo["lon"]
+                        dev["city"] = geo["city"]
+                        print(f"[MAP] {dev['name']} -> ({dev['lat']}, {dev['lon']}) via public_ip")
                     else:
-                        print(f"[MAP] {dev['name']} -> NO subnet match (subnet='{subnet}', d_id='{d_id}')")
+                        # Fallback: use the client IP from agent-ingest
+                        for ss in cache.get("sync_status", []):
+                            if ss.get("device_id") == d_id:
+                                last_ip = ss.get("last_ip", "")
+                                if last_ip:
+                                    geo = _geolocate_ip(last_ip)
+                                    dev["lat"] = geo.get("lat", dev.get("lat", 4.6097))
+                                    dev["lon"] = geo.get("lon", dev.get("lon", -74.0817))
+                                    dev["city"] = geo.get("city", dev.get("city", "Bogotá"))
+                                    print(f"[MAP] {dev['name']} -> ({dev['lat']}, {dev['lon']}) via last_ip={last_ip}")
+                                break
                 
                 self.send_json({
                     "events": events,
@@ -2386,9 +2581,20 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
 
                 # ── Deteccion de VPN y cambio de ciudad en tiempo real ──
                 try:
-                    geo          = _geolocate_ip(client_ip) if client_ip and client_ip not in ("N/A","127.0.0.1") else {}
+                    # Usar la IP publica del agente (mas precisa que client_ip)
+                    agent_public_ip = ""
+                    if metrics and metrics.get("network_info"):
+                        try:
+                            ni = json.loads(metrics["network_info"]) if isinstance(metrics["network_info"], str) else metrics["network_info"]
+                            agent_public_ip = ni.get("public_ip", "")
+                        except: pass
+                    
+                    # Priorizar IP del agente, fallback a client_ip
+                    geo_ip = agent_public_ip or client_ip
+                    geo = _geolocate_ip(geo_ip) if geo_ip and geo_ip not in ("N/A","127.0.0.1","") else {}
                     current_city    = geo.get("city", "Desconocida")
                     current_country = geo.get("country", "")
+                    print(f"[GEO-CHECK] {device_id}: geo_ip={geo_ip}, city={current_city}, country={current_country}")
 
                     # PRIMARIO: VPN detectada por el agente en los adaptadores de red
                     agent_vpn_active  = sync.get("vpn_active", False) if sync else False
@@ -2396,8 +2602,8 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
 
                     # SECUNDARIO: fallback por IP publica (solo si el agente no reporto VPN)
                     vpn_result = {"is_vpn": False, "isp": "", "reason": ""}
-                    if not agent_vpn_active and client_ip and client_ip not in ("N/A", "127.0.0.1"):
-                        vpn_result = _check_vpn(client_ip)
+                    if not agent_vpn_active and geo_ip and geo_ip not in ("N/A", "127.0.0.1"):
+                        vpn_result = _check_vpn(geo_ip)
 
                     is_vpn = agent_vpn_active or vpn_result["is_vpn"]
                     if agent_vpn_active:
@@ -2414,7 +2620,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                             "device_id":   device_id,
                             "device_name": device_id,
                             "event_type":  "VPN Detectada",
-                            "details":     f"{vpn_detail} — IP: {client_ip}",
+                            "details":     f"{vpn_detail} — IP: {geo_ip}",
                             "severity":    "Alta",
                             "icon":        "\U0001f512",
                             "category":    "seguridad",
@@ -2423,29 +2629,47 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                         print(f"[SECURITY] VPN detectada en {device_id}: {vpn_detail}")
 
                     # Alerta cambio de ciudad
-                    if device_id in _device_last_city:
-                        prev = _device_last_city[device_id]
-                        if prev.get("city") and prev["city"] != current_city:
-                            new_events.append({
-                                "timestamp":   now_ts,
-                                "device_id":   device_id,
-                                "device_name": device_id,
-                                "event_type":  "Cambio de Ciudad",
-                                "details":     f"Se conecto desde {current_city} ({current_country}) — anterior: {prev['city']} — IP: {client_ip}",
-                                "severity":    "Media",
-                                "icon":        "\U0001f4cd",
-                                "category":    "ubicacion",
-                                "city":        current_city
-                            })
-                            print(f"[SECURITY] Cambio de ciudad en {device_id}: {prev['city']} -> {current_city}")
+                    # Si no tenemos historial (primer reporte despues de deploy), 
+                    # intentar cargar del agente anterior (network_info.city)
+                    if device_id not in _device_last_city:
+                        # Intentar obtener ciudad previa del agente
+                        agent_city = ""
+                        if metrics and metrics.get("network_info"):
+                            try:
+                                ni2 = json.loads(metrics["network_info"]) if isinstance(metrics["network_info"], str) else metrics["network_info"]
+                                agent_city = ni2.get("city", "")
+                            except: pass
+                        # Establecer baseline con la ciudad del agente o la actual
+                        baseline_city = agent_city or current_city
+                        _device_last_city[device_id] = {
+                            "city": baseline_city, "country": current_country, "ip": geo_ip
+                        }
+                        print(f"[CITY] Baseline para {device_id}: {baseline_city}")
+                    
+                    prev = _device_last_city[device_id]
+                    if prev.get("city") and current_city and current_city != "Desconocida" and prev["city"] != current_city:
+                        new_events.append({
+                            "timestamp":   now_ts,
+                            "device_id":   device_id,
+                            "device_name": device_id,
+                            "event_type":  "Cambio de Ciudad",
+                            "details":     f"Se conectó desde {current_city} ({current_country}) — anterior: {prev['city']} — IP: {geo_ip}",
+                            "severity":    "Media",
+                            "icon":        "\U0001f4cd",
+                            "category":    "ubicacion",
+                            "city":        current_city
+                        })
+                        print(f"[SECURITY] *** CAMBIO DE CIUDAD en {device_id}: {prev['city']} -> {current_city} ***")
 
+                    # Actualizar historial
                     _device_last_city[device_id] = {
-                        "city": current_city, "country": current_country, "ip": client_ip
+                        "city": current_city, "country": current_country, "ip": geo_ip
                     }
 
                     if new_events:
                         with cache_lock:
                             cache["security_events"] = new_events + cache.get("security_events", [])
+                            cache["security_events"] = cache["security_events"][:100]
 
                 except Exception as geo_err:
                     print(f"[SECURITY] Error en deteccion geo/VPN: {geo_err}")
@@ -2454,38 +2678,26 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 try:
                     usb_json = metrics.get("usb_ports") if metrics else None
                     if usb_json:
-                        import json as _json_usb
-                        current_usb = _json_usb.loads(usb_json) if isinstance(usb_json, str) else usb_json
+                        current_usb = json.loads(usb_json) if isinstance(usb_json, str) else usb_json
                         if isinstance(current_usb, list):
                             current_names = {d.get("name", "") for d in current_usb if d.get("name")}
+                            # Filtrar controladores internos del set
+                            INTERNAL = ["host controller", "root hub", "raíz", "controlador de host", "xhci", "ehci", "concentrador"]
+                            current_names = {n for n in current_names if not any(k in n.lower() for k in INTERNAL)}
+
                             with _usb_device_cache_lock:
-                                prev_usb = _usb_device_cache.get(device_id, set())
-                                prev_names = {d.get("name", "") for d in prev_usb} if isinstance(prev_usb, set) else prev_usb
-                                if isinstance(prev_usb, list):
-                                    prev_names = {d.get("name", "") for d in prev_usb}
-                                elif isinstance(prev_usb, set):
-                                    prev_names = prev_usb
-                                else:
-                                    prev_names = set()
-
-                                # Detectar nuevos dispositivos conectados
-                                new_devices = current_names - prev_names
-                                # Detectar dispositivos desconectados
-                                removed_devices = prev_names - current_names
-
-                                # Actualizar cache
+                                has_baseline = device_id in _usb_device_cache
+                                prev_names = _usb_device_cache.get(device_id, set())
                                 _usb_device_cache[device_id] = current_names
 
-                            # Generar eventos para cada nuevo dispositivo USB
                             usb_events = []
-                            # Solo si ya teniamos un registro previo (evitar falsos positivos en primer reporte)
-                            if prev_names or (device_id in {}):
+                            if has_baseline:
+                                new_devices = current_names - prev_names
+                                removed_devices = prev_names - current_names
+
                                 for usb_name in new_devices:
-                                    # Filtrar controladores y hubs internos
                                     nl = usb_name.lower()
-                                    if any(k in nl for k in ["host controller", "root hub", "raíz", "controlador de host", "xhci", "ehci"]):
-                                        continue
-                                    usb_cat = "Almacenamiento" if any(k in nl for k in ["storage", "flash", "disk", "pendrive"]) else \
+                                    usb_cat = "Almacenamiento" if any(k in nl for k in ["storage", "flash", "disk", "pendrive", "mass"]) else \
                                               "Telefono" if any(k in nl for k in ["phone", "android", "iphone"]) else \
                                               "Camara" if any(k in nl for k in ["camera", "webcam", "imaging"]) else "Periferico"
                                     severity = "Alta" if usb_cat == "Almacenamiento" else "Media"
@@ -2494,7 +2706,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                                         "device_id":   device_id,
                                         "device_name": device_id,
                                         "event_type":  "USB Conectado",
-                                        "details":     f"Dispositivo USB conectado: {usb_name} ({usb_cat})",
+                                        "details":     f"Nuevo dispositivo USB conectado: {usb_name} ({usb_cat})",
                                         "severity":    severity,
                                         "icon":        "\U0001f50c",
                                         "category":    "usb",
@@ -2502,9 +2714,6 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                                     print(f"[SECURITY] USB conectado en {device_id}: {usb_name}")
 
                                 for usb_name in removed_devices:
-                                    nl = usb_name.lower()
-                                    if any(k in nl for k in ["host controller", "root hub", "raíz", "controlador de host", "xhci", "ehci"]):
-                                        continue
                                     usb_events.append({
                                         "timestamp":   now_ts,
                                         "device_id":   device_id,
@@ -2516,14 +2725,80 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                                         "category":    "usb",
                                     })
                                     print(f"[SECURITY] USB desconectado en {device_id}: {usb_name}")
+                            else:
+                                print(f"[SECURITY] USB baseline establecido para {device_id}: {len(current_names)} dispositivos")
 
                             if usb_events:
                                 with cache_lock:
                                     cache["security_events"] = usb_events + cache.get("security_events", [])
-                                    # Limitar a ultimos 100 eventos
                                     cache["security_events"] = cache["security_events"][:100]
                 except Exception as usb_err:
                     print(f"[SECURITY] Error en deteccion USB: {usb_err}")
+
+                # ── Detección de intentos de conexión a puertos (Event Logs) ──
+                try:
+                    evtlogs_json = metrics.get("event_logs") if metrics else None
+                    if evtlogs_json:
+                        evt_data = json.loads(evtlogs_json) if isinstance(evtlogs_json, str) else evtlogs_json
+                        if isinstance(evt_data, list):
+                            port_events = []
+                            for evt in evt_data:
+                                msg = (evt.get("message") or evt.get("Message") or "").lower()
+                                source = (evt.get("source") or evt.get("Source") or "").lower()
+                                evt_id = str(evt.get("id") or evt.get("Id") or evt.get("event_id") or "")
+                                ts_evt = evt.get("time") or evt.get("TimeCreated") or now_ts
+
+                                # Windows Firewall: conexión bloqueada (Event ID 5157, 5152)
+                                # Security Audit: logon attempt (Event ID 4625 = failed logon, 4624 = success)
+                                # Firewall con log activado
+                                is_firewall_block = evt_id in ("5157", "5152", "5031") or \
+                                    any(k in msg for k in ["bloqueado", "blocked", "firewall", "denied", "drop"])
+                                is_port_scan = any(k in msg for k in ["port scan", "escaneo de puertos", "connection attempt"])
+                                is_remote_logon = evt_id in ("4625", "4624") and any(k in msg for k in ["remote", "network", "red", "remoto"])
+
+                                if is_firewall_block:
+                                    port_events.append({
+                                        "timestamp":   ts_evt if isinstance(ts_evt, str) else now_ts,
+                                        "device_id":   device_id,
+                                        "device_name": device_id,
+                                        "event_type":  "Conexión Bloqueada",
+                                        "details":     f"Firewall bloqueó intento de conexión — Evento: {evt_id}",
+                                        "severity":    "Alta",
+                                        "icon":        "\U0001f6e1",
+                                        "category":    "puertos",
+                                    })
+                                elif is_port_scan:
+                                    port_events.append({
+                                        "timestamp":   ts_evt if isinstance(ts_evt, str) else now_ts,
+                                        "device_id":   device_id,
+                                        "device_name": device_id,
+                                        "event_type":  "Escaneo de Puertos",
+                                        "details":     f"Detectado intento de escaneo de puertos — Evento: {evt_id}",
+                                        "severity":    "Alta",
+                                        "icon":        "\U0001f6a8",
+                                        "category":    "puertos",
+                                    })
+                                elif is_remote_logon and evt_id == "4625":
+                                    port_events.append({
+                                        "timestamp":   ts_evt if isinstance(ts_evt, str) else now_ts,
+                                        "device_id":   device_id,
+                                        "device_name": device_id,
+                                        "event_type":  "Intento de Acceso",
+                                        "details":     f"Intento de acceso remoto fallido detectado — Evento: {evt_id}",
+                                        "severity":    "Alta",
+                                        "icon":        "\U0001f510",
+                                        "category":    "puertos",
+                                    })
+
+                            if port_events:
+                                # Limitar a los 5 eventos de puertos más recientes por ciclo
+                                port_events = port_events[:5]
+                                with cache_lock:
+                                    cache["security_events"] = port_events + cache.get("security_events", [])
+                                    cache["security_events"] = cache["security_events"][:100]
+                                print(f"[SECURITY] {len(port_events)} eventos de puertos detectados en {device_id}")
+                except Exception as port_err:
+                    print(f"[SECURITY] Error en deteccion de puertos: {port_err}")
 
                 # ── Inventario de red: procesar ARP scan del agente ──
                 network_scan = body.get("network_scan", [])
@@ -2778,7 +3053,8 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 "last_login": None,
                 "is_active": True,
                 "totp_secret":  None,   # el usuario configurará 2FA en su primer login
-                "totp_enabled": False
+                "totp_enabled": False,
+                "allowed_pages": json.dumps(body.get("allowed_pages")) if body.get("allowed_pages") else None
             }
             try:
                 run_bq_insert("onyx.eq_users", new_user)
@@ -2811,6 +3087,13 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             if body.get("email"):
                 updates.append(f"email = '{body['email'].lower()}'")
                 user["email"] = body["email"].lower()
+            if "allowed_pages" in body:
+                ap_val = json.dumps(body["allowed_pages"]) if body["allowed_pages"] else None
+                if ap_val:
+                    updates.append(f"allowed_pages = '{ap_val}'")
+                else:
+                    updates.append("allowed_pages = NULL")
+                user["allowed_pages"] = ap_val
             if updates:
                 try:
                     sql = f"UPDATE onyx.eq_users SET {', '.join(updates)} WHERE user_id = '{user_id}'"
