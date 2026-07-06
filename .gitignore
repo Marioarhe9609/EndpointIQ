@@ -25,6 +25,8 @@ temp_*.json
 # Credentials / Secrets — NEVER commit these
 env.yaml
 env.yml
+env-dev.yaml
+env-test.yaml
 *.env
 .env.*
 /onyx_credentials.json

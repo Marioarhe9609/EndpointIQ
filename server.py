@@ -178,6 +178,10 @@ _device_last_city = {}
 # Track location_enabled state per device for GPS monitoring
 _device_location_state = {}
 
+# Persistent GPS coordinates cache (survives BQ sync refreshes)
+# {device_id: {"lat": float, "lon": float, "city": str, "country": str, "ts": datetime}}
+_device_gps_cache = {}
+
 # Capa de caché global para evitar latencia de consultas repetitivas a BigQuery
 cache = {
     "last_sync": None,
@@ -2013,8 +2017,16 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         ip = m["local_ip"]
                     net_info = m.get("network_info", "")
                     
-                    # Connection map entry with geolocation
-                    geo = _geolocate_ip(ip)
+                    # Connection map entry with geolocation (GPS prioritized)
+                    if d_id in _device_gps_cache:
+                        gps = _device_gps_cache[d_id]
+                        geo = {"lat": gps["lat"], "lon": gps["lon"], 
+                               "city": gps.get("city", "Bogotá"), "country": gps.get("country", "Colombia"),
+                               "region": "", "isp": "GPS"}
+                        geo_source = "GPS"
+                    else:
+                        geo = _geolocate_ip(ip)
+                        geo_source = "IP"
                     current_city = geo.get("city", "Bogotá")
                     current_country = geo.get("country", "Colombia")
                     
@@ -2025,7 +2037,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         "country": current_country,
                         "city": current_city,
                         "region": geo.get("region", ""),
-                        "isp": geo.get("isp", "")
+                        "isp": geo.get("isp", ""),
+                        "geo_source": geo_source
                     })
                     
                     # Zone/City change detection
@@ -2206,37 +2219,18 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     public_ip = net.get("public_ip", "")
                     city_agent = net.get("city", "")
                     
-                    if public_ip and d_id:
-                        # Priorizar GPS del sync_status si está disponible
-                        gps_used = False
-                        for ss in cache.get("sync_status", []):
-                            if ss.get("device_id") == d_id and ss.get("geo_source") == "GPS":
-                                g_lat = ss.get("geo_lat")
-                                g_lon = ss.get("geo_lon")
-                                if g_lat is not None and g_lon is not None:
-                                    # Reverse geocoding para la ciudad
-                                    gps_city = "Bogotá"
-                                    try:
-                                        import urllib.request as _urlreq2
-                                        _rg_url = f"https://nominatim.openstreetmap.org/reverse?lat={g_lat}&lon={g_lon}&format=json&zoom=10"
-                                        _rg_req = _urlreq2.Request(_rg_url, headers={"User-Agent": "EIQ-Server/1.0"})
-                                        _rg_resp = _urlreq2.urlopen(_rg_req, timeout=4)
-                                        _rg_data = json.loads(_rg_resp.read())
-                                        _rg_addr = _rg_data.get("address", {})
-                                        gps_city = (_rg_addr.get("city") or _rg_addr.get("town") 
-                                                   or _rg_addr.get("village") or _rg_addr.get("municipality")
-                                                   or _rg_addr.get("state", "").split(",")[0].strip()
-                                                   or _rg_addr.get("suburb", "").replace("Localidad ", "") or "Bogotá")
-                                    except Exception:
-                                        pass
-                                    device_geo_cache[d_id] = {
-                                        "lat": g_lat, "lon": g_lon,
-                                        "city": gps_city, "country": "Colombia", "ip": public_ip
-                                    }
-                                    print(f"[MAP] Device {d_id} -> GPS ({g_lat}, {g_lon}) {gps_city}")
-                                    gps_used = True
-                                break
-                        if not gps_used:
+                    if d_id:
+                        # Priorizar GPS del caché persistente
+                        if d_id in _device_gps_cache:
+                            gps = _device_gps_cache[d_id]
+                            device_geo_cache[d_id] = {
+                                "lat": gps["lat"], "lon": gps["lon"],
+                                "city": gps.get("city", "Bogotá"),
+                                "country": gps.get("country", "Colombia"),
+                                "ip": public_ip or ""
+                            }
+                            print(f"[MAP] Device {d_id} -> GPS ({gps['lat']}, {gps['lon']}) {gps.get('city')}")
+                        elif public_ip:
                             geo = _geolocate_ip(public_ip)
                             device_geo_cache[d_id] = {
                                 "lat": geo.get("lat", 4.6097),
@@ -2246,8 +2240,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                 "ip": public_ip
                             }
                             print(f"[MAP] Device {d_id} -> IP {public_ip} -> ({geo.get('lat')}, {geo.get('lon')}) {geo.get('city')}")
-                    else:
-                        print(f"[MAP] Device {d_id} -> NO public_ip in network_info")
+                        else:
+                            print(f"[MAP] Device {d_id} -> NO public_ip, NO GPS")
                 
                 # Apply coordinates to connection_map
                 for dev in connection_map:
@@ -2257,7 +2251,16 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         dev["lat"] = geo["lat"]
                         dev["lon"] = geo["lon"]
                         dev["city"] = geo["city"]
-                        print(f"[MAP] {dev['name']} -> ({dev['lat']}, {dev['lon']}) via public_ip")
+                        if d_id in _device_gps_cache:
+                            dev["geo_source"] = "GPS"
+                        print(f"[MAP] {dev['name']} -> ({dev['lat']}, {dev['lon']}) geo_source={dev.get('geo_source', 'IP')}")
+                    elif d_id in _device_gps_cache:
+                        gps = _device_gps_cache[d_id]
+                        dev["lat"] = gps["lat"]
+                        dev["lon"] = gps["lon"]
+                        dev["city"] = gps.get("city", "Bogotá")
+                        dev["geo_source"] = "GPS"
+                        print(f"[MAP] {dev['name']} -> GPS fallback ({gps['lat']}, {gps['lon']})")
                     else:
                         # Fallback: use the client IP from agent-ingest
                         for ss in cache.get("sync_status", []):
@@ -2268,7 +2271,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                     dev["lat"] = geo.get("lat", dev.get("lat", 4.6097))
                                     dev["lon"] = geo.get("lon", dev.get("lon", -74.0817))
                                     dev["city"] = geo.get("city", dev.get("city", "Bogotá"))
-                                    print(f"[MAP] {dev['name']} -> ({dev['lat']}, {dev['lon']}) via last_ip={last_ip}")
+                                    dev["geo_source"] = "IP"
+                                    print(f"[MAP] {dev['name']} -> IP fallback ({dev['lat']}, {dev['lon']})")
                                 break
                 
                 self.send_json({
@@ -2676,6 +2680,12 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                             "isp": "GPS"
                         }
                         geo_ip = agent_public_ip or client_ip
+                        # Guardar en caché GPS persistente (no se pierde al refrescar BQ)
+                        _device_gps_cache[device_id] = {
+                            "lat": gps_lat, "lon": gps_lon,
+                            "city": geo["city"], "country": geo["country"],
+                            "ts": datetime.datetime.now(datetime.timezone.utc)
+                        }
                         print(f"[GEO-CHECK] {device_id}: USANDO GPS lat={gps_lat}, lon={gps_lon}, city={geo['city']}")
                     else:
                         # Fallback a geolocalización por IP

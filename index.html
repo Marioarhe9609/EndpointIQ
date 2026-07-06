@@ -5984,6 +5984,11 @@ window.updateGoogleMapMarkers = function(devices) {
   const seenCoords = {};
   const bounds = [];
   
+  const onlineCount = devices.filter(d => d.status === 'online').length;
+  const offlineCount = devices.length - onlineCount;
+  const countEl = document.getElementById('mapDeviceCount');
+  if (countEl) countEl.textContent = `${devices.length} dispositivos (${onlineCount} en línea)`;
+  
   devices.forEach((dev, index) => {
     let lat = Number(dev.lat) || 4.6097;
     let lng = Number(dev.lon) || -74.0817;
@@ -5993,7 +5998,7 @@ window.updateGoogleMapMarkers = function(devices) {
     if (seenCoords[coordKey]) {
       const count = seenCoords[coordKey];
       const angle = (count * 2 * Math.PI) / 6;
-      const radius = 0.015 * Math.ceil(count / 6);
+      const radius = 0.008 * Math.ceil(count / 6);
       lat += radius * Math.cos(angle);
       lng += radius * Math.sin(angle);
       seenCoords[coordKey]++;
@@ -6005,41 +6010,45 @@ window.updateGoogleMapMarkers = function(devices) {
     dev.lon = lng;
     
     const isOnline = dev.status === 'online';
-    const color = isOnline ? pinColors[index % pinColors.length] : '#EF4444';
+    const color = isOnline ? '#10B981' : '#EF4444';
+    const glow = isOnline ? '0 0 12px #10B98188' : '0 0 12px #EF444488';
     
-    // Create circle marker (dot) - scales well for 1000+ devices
+    // Create circle marker with glow effect
     const marker = L.circleMarker([lat, lng], {
-      radius: 7,
+      radius: 8,
       fillColor: color,
-      fillOpacity: 0.9,
-      color: '#FFFFFF',
-      weight: 1.5,
-      opacity: 0.8
+      fillOpacity: 0.95,
+      color: color,
+      weight: 2,
+      opacity: 0.6
     }).addTo(leafletMapInstance);
     
-    // Popup on click (not label)
+    // Popup with device details
+    const geoSource = dev.geo_source || 'IP';
+    const geoIcon = geoSource === 'GPS' ? '🛰️ GPS' : '🌐 IP';
     const popupContent = `
-      <div style="background:#040d21;color:#F1F5F9;font-family:'DM Sans',sans-serif;padding:12px 16px;border-radius:10px;border:1px solid ${color}44;min-width:180px">
+      <div style="background:#040d21;color:#F1F5F9;font-family:'DM Sans',sans-serif;padding:12px 16px;border-radius:10px;border:1px solid ${color}44;min-width:200px">
         <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">● ${dev.name}</div>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:11px">
+          <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? '🟢 Conectado' : '🔴 Desconectado'}</span>
           <span style="color:#64748B">IP:</span><span style="font-family:monospace;color:#CBD5E1">${dev.ip || 'N/A'}</span>
           <span style="color:#64748B">Ciudad:</span><span style="color:#CBD5E1">${dev.city || 'Bogotá'}</span>
           <span style="color:#64748B">País:</span><span style="color:#CBD5E1">${dev.country || 'Colombia'}</span>
-          <span style="color:#64748B">Coord:</span><span style="font-family:monospace;color:#3B82F6">${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+          <span style="color:#64748B">Coord:</span><span style="font-family:monospace;color:#3B82F6">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+          <span style="color:#64748B">Fuente:</span><span style="color:${geoSource === 'GPS' ? '#FBBF24' : '#64748B'};font-weight:600">${geoIcon}</span>
           <span style="color:#64748B">ISP:</span><span style="color:#CBD5E1">${dev.isp || 'N/A'}</span>
-          <span style="color:#64748B">Estado:</span><span style="color:${color};font-weight:700">${isOnline ? 'Conectado' : 'Desconectado'}</span>
         </div>
       </div>`;
     
     marker.bindPopup(popupContent, {
       className: 'onyx-popup',
-      maxWidth: 280,
+      maxWidth: 300,
       closeButton: true
     });
     
     // Hover effect - enlarge on hover
-    marker.on('mouseover', function() { this.setRadius(10); this.setStyle({weight: 2.5}); });
-    marker.on('mouseout', function() { this.setRadius(7); this.setStyle({weight: 1.5}); });
+    marker.on('mouseover', function() { this.setRadius(11); this.setStyle({weight: 3, fillOpacity: 1}); });
+    marker.on('mouseout', function() { this.setRadius(8); this.setStyle({weight: 2, fillOpacity: 0.95}); });
     
     leafletMapMarkers.push(marker);
     bounds.push([lat, lng]);
