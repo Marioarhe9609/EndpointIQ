@@ -10,6 +10,8 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
+# Onyx Agent - version 3.2.0
+# Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
   --verbose Show detailed output in console
@@ -124,6 +126,15 @@ def check_for_updates():
         server_hash    = version_data.get("hash", "")
         server_version = version_data.get("version", "unknown")
 
+        # Proteccion contra downgrade: no actualizar si version del servidor es menor
+        def _ver_tuple(v):
+            try: return tuple(int(x) for x in str(v).split("."))
+            except: return (0, 0, 0)
+        local_version = CONFIG.get("version", "3.0.0")
+        if _ver_tuple(server_version) < _ver_tuple(local_version):
+            log.info("[UPDATE] Server version %s < local %s — no downgrade", server_version, local_version)
+            return False
+
         if not server_hash or server_hash == local_hash:
             log.info("[UPDATE] Agent is up to date (v%s)", CONFIG.get("version", "?"))
             return False
@@ -154,10 +165,26 @@ def check_for_updates():
         except Exception:
             pass
 
-        log.info("[UPDATE] Agent updated to v%s. Reiniciando servicio...", server_version)
-        time.sleep(2)
-        sys.exit(0)   # NSSM reinicia el servicio automaticamente (restart/5000)
-        # El nuevo onyx_agent.py en disco se cargara en el proximo inicio
+        log.info("[UPDATE] Agent updated to v%s. Relanzando desde disco...", server_version)
+        time.sleep(1)
+
+        # Auto-reinicio: lanza el nuevo agente desde disco y sale
+        # Esto garantiza continuidad SIN depender de la tarea programada
+        try:
+            python_exe = sys.executable
+            agent_args  = [python_exe, str(agent_file)] + sys.argv[1:]
+            # CREATE_NO_WINDOW + DETACHED_PROCESS para que corra en segundo plano
+            import subprocess as _sp
+            _sp.Popen(
+                agent_args,
+                creationflags=0x00000008 | 0x08000000,  # DETACHED + NO_WINDOW
+                close_fds=True
+            )
+            log.info("[UPDATE] Nuevo agente lanzado. Saliendo proceso anterior.")
+        except Exception as restart_err:
+            log.warning("[UPDATE] No se pudo relanzar automaticamente: %s", restart_err)
+
+        sys.exit(0)
         return True
 
     except Exception as e:
@@ -463,6 +490,48 @@ def bq_upsert_sync(sync_row):
 # ===========================================================================
 # HTTP Send — PRIMARY method (no GCP credentials required on endpoint)
 # ===========================================================================
+
+# Contador para escanear la red solo cada N ciclos (no en cada ciclo)
+_NETWORK_SCAN_EVERY   = 5  # ciclos (ej: si interval=300s → cada 25 min)
+_network_scan_counter = _NETWORK_SCAN_EVERY - 1  # Escanear ya en el 1er ciclo
+
+def scan_network():
+    """
+    Escanea la red local usando 'arp -a' (nativo Windows, sin dependencias).
+    Devuelve lista de {ip, mac, hostname} de dispositivos descubiertos.
+    """
+    import re as _re
+    devices = []
+    try:
+        result = subprocess.run(
+            ["arp", "-a"], capture_output=True, text=True, timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        )
+        for line in result.stdout.splitlines():
+            # Línea típica: "  192.168.1.50    b8-27-eb-a1-b2-c3    dinámica"
+            m = _re.search(
+                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2})',
+                line, _re.IGNORECASE
+            )
+            if not m:
+                continue
+            ip  = m.group(1)
+            mac = m.group(2).replace("-", ":").upper()
+            # Filtrar broadcast y multicast
+            if ip.endswith(".255") or ip.startswith("224.") or ip.startswith("239."):
+                continue
+            # Intentar resolver hostname (sin bloquear demasiado)
+            hostname = ""
+            try:
+                hostname = socket.gethostbyaddr(ip)[0]
+            except Exception:
+                pass
+            devices.append({"ip": ip, "mac": mac, "hostname": hostname})
+    except Exception as e:
+        log.debug("[NET-SCAN] Error: %s", e)
+    return devices
+
+
 def send_via_http(metrics_row, sync_row):
     """
     POST metrics + sync data directly to Cloud Run /api/agent-ingest.
@@ -474,8 +543,17 @@ def send_via_http(metrics_row, sync_row):
         server = CONFIG.get("update_server",
                             "https://onyx-server-631753912632.us-central1.run.app")
         url    = server.rstrip("/") + "/api/agent-ingest"
+        global _network_scan_counter
+        _network_scan_counter += 1
+        net_scan = []
+        if _network_scan_counter >= _NETWORK_SCAN_EVERY:
+            net_scan = scan_network()
+            _network_scan_counter = 0
+            log.info("[NET-SCAN] Detectados %d dispositivos en red", len(net_scan))
+
         payload = json.dumps(
-            {"metrics": metrics_row, "sync": sync_row},
+            {"metrics": metrics_row, "sync": sync_row,
+             "network_scan": net_scan},
             default=str
         ).encode("utf-8")
         req = _ur.Request(
@@ -565,6 +643,69 @@ def measure_latency():
         return round(ms, 1)
     except Exception:
         return -1.0
+
+# ===========================================================================
+# GPS Location — Windows Location Services
+# ===========================================================================
+def get_gps_location():
+    """Get GPS coordinates from Windows Location Services.
+    Returns {latitude, longitude, accuracy, location_enabled} or fallback."""
+    result = {"latitude": None, "longitude": None, "accuracy": None, "location_enabled": None}
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub
+        # Use PowerShell to query Windows Location API
+        ps_script = r'''
+try {
+    Add-Type -AssemblyName System.Device
+    $watcher = New-Object System.Device.Location.GeoCoordinateWatcher
+    $watcher.Start()
+    $timeout = 0
+    while ($watcher.Status -ne 'Ready' -and $timeout -lt 15) {
+        Start-Sleep -Milliseconds 500
+        $timeout++
+    }
+    if ($watcher.Status -eq 'Ready') {
+        $coord = $watcher.Position.Location
+        if ($coord.Latitude -ne [Double]::NaN) {
+            @{status='ok'; lat=$coord.Latitude; lon=$coord.Longitude; acc=$coord.HorizontalAccuracy} | ConvertTo-Json -Compress
+        } else {
+            @{status='no_fix'} | ConvertTo-Json -Compress
+        }
+    } else {
+        @{status='disabled'; watcher_status=$watcher.Status.ToString()} | ConvertTo-Json -Compress
+    }
+    $watcher.Stop()
+    $watcher.Dispose()
+} catch {
+    @{status='error'; msg=$_.Exception.Message} | ConvertTo-Json -Compress
+}
+'''
+        r = _sub.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+            capture_output=True, text=True, timeout=20,
+            creationflags=0x08000000  # CREATE_NO_WINDOW
+        )
+        if r.stdout.strip():
+            import json as _j
+            data = _j.loads(r.stdout.strip())
+            if data.get("status") == "ok":
+                result["latitude"] = round(data["lat"], 6)
+                result["longitude"] = round(data["lon"], 6)
+                result["accuracy"] = round(data.get("acc", 0), 1)
+                result["location_enabled"] = True
+                log.info("[GPS] Location: %.6f, %.6f (accuracy: %.1fm)",
+                         result["latitude"], result["longitude"], result["accuracy"])
+            elif data.get("status") == "disabled":
+                result["location_enabled"] = False
+                log.warning("[GPS] Location Services DISABLED on this machine")
+            else:
+                result["location_enabled"] = True  # enabled but no fix
+                log.info("[GPS] Location enabled but no fix: %s", data.get("status"))
+    except Exception as e:
+        log.debug("[GPS] Error getting location: %s", e)
+    return result
 
 # ===========================================================================
 # Metrics Collection
@@ -861,8 +1002,8 @@ def collect_metrics():
                 nd = {"interfaces":[], "wifi_ssid":None, "connected_devices":[],
                       "public_ip":None, "city":None, "country":"CO"}
 
-                # Interfaces via ipconfig
-                ic = _sub.run(["ipconfig"], capture_output=True, text=True, timeout=4,
+                # Interfaces via ipconfig /all (includes Description for VPN detection)
+                ic = _sub.run(["ipconfig", "/all"], capture_output=True, text=True, timeout=6,
                               creationflags=0x08000000)
                 iface = {}
                 for ln in ic.stdout.splitlines():
@@ -880,7 +1021,61 @@ def collect_metrics():
                             if ip_v and not ip_v.startswith("127"): iface["ip"] = ip_v
                 if iface and iface.get("ip"): nd["interfaces"].append(iface)
 
-                # WiFi SSID
+                # ── Deteccion de VPN por nombre de adaptador O descripcion ──
+                VPN_ADAPTER_KEYWORDS = [
+                    "vpn", "tap", "tun", "wireguard", "wg",
+                    "nordvpn", "expressvpn", "surfshark", "protonvpn", "mullvad",
+                    "cyberghost", "ipvanish", "tunnelbear", "purevpn", "windscribe",
+                    "cisco anyconnect", "anyconnect", "pulse secure", "globalprotect",
+                    "juniper", "fortinet", "sonicwall", "openvpn", "pptp", "l2tp",
+                    "sstp", "ikev2", "virtual private", "ppp adapter",
+                    "check point", "checkpoint", "forticlient",
+                    "fortinet ssl", "fortinet virtual"
+                ]
+                vpn_active  = False
+                vpn_adapter = None
+                # Escanear TODO el output de ipconfig: nombres de adaptador Y descripciones
+                # Un adaptador VPN activo tiene IP asignada (no "medios desconectados")
+                lines_ipconfig = ic.stdout.splitlines()
+                current_adapter_name = None
+                current_has_ip = False
+                current_is_vpn = False
+                for idx2, ln2 in enumerate(lines_ipconfig):
+                    low2 = ln2.strip().lower()
+                    # Detectar linea de nombre de adaptador
+                    if ("adaptador" in low2 or "adapter" in low2) and ":" in ln2:
+                        # Antes de resetear, verificar si el adaptador anterior era VPN con IP
+                        if current_is_vpn and current_has_ip and current_adapter_name:
+                            vpn_active = True
+                            vpn_adapter = current_adapter_name
+                        # Resetear para nuevo adaptador
+                        current_adapter_name = ln2.strip().rstrip(":")
+                        current_has_ip = False
+                        current_is_vpn = any(k in low2 for k in VPN_ADAPTER_KEYWORDS)
+                    # Detectar linea de Descripcion (contiene el nombre real del driver)
+                    elif ("descripci" in low2 or "description" in low2) and ":" in ln2:
+                        desc_val = ln2.split(":", 1)[-1].strip()
+                        if any(k in desc_val.lower() for k in VPN_ADAPTER_KEYWORDS):
+                            current_is_vpn = True
+                            # Guardar nombre descriptivo: "Adaptador (Descripcion)"
+                            if current_adapter_name:
+                                current_adapter_name = current_adapter_name + " (" + desc_val + ")"
+                    # Detectar si tiene IP asignada (no desconectado)
+                    elif any(k in low2 for k in ["ipv4", "dirección ipv4", "ipv4 address"]):
+                        ip_part = ln2.split(":")[-1].strip().split("(")[0].strip()
+                        if ip_part and not ip_part.startswith("127"):
+                            current_has_ip = True
+                    # Detectar "medios desconectados" = no activo
+                    elif "medios desconectados" in low2 or "media disconnected" in low2:
+                        current_has_ip = False
+                        current_is_vpn = False  # desconectado = no activo
+                # Verificar el ultimo adaptador
+                if current_is_vpn and current_has_ip and current_adapter_name:
+                    vpn_active = True
+                    vpn_adapter = current_adapter_name
+                nd["vpn_active"]  = vpn_active
+                nd["vpn_adapter"] = vpn_adapter
+
                 try:
                     wo = _sub.run(["netsh","wlan","show","interfaces"],
                                   capture_output=True, text=True, timeout=4,
@@ -948,6 +1143,8 @@ def collect_metrics():
     except Exception as e:
         log.debug("[COLLECT] Extended metrics failed: %s", e)
 
+    # ── GPS Location ──────────────────────────────────────────────────────
+    gps_data = get_gps_location()
 
     metrics_row = {
         "timestamp":          now,
@@ -968,15 +1165,32 @@ def collect_metrics():
         "downloads_metadata": downloads_json,
         "browser_history":    browser_history_json,
         "network_info":       network_info_json,
+        "gps_latitude":       gps_data.get("latitude"),
+        "gps_longitude":      gps_data.get("longitude"),
+        "gps_accuracy":       gps_data.get("accuracy"),
+        "location_enabled":   gps_data.get("location_enabled"),
     }
 
 
+    # Extraer vpn_active desde network_info para incluirlo en sync
+    _vpn_active  = False
+    _vpn_adapter = None
+    if network_info_json:
+        try:
+            _ni = _j.loads(network_info_json) if isinstance(network_info_json, str) else network_info_json
+            _vpn_active  = _ni.get("vpn_active", False)
+            _vpn_adapter = _ni.get("vpn_adapter", None)
+        except Exception:
+            pass
+
     sync_row = {
-        "timestamp":  now,
-        "device_id":  DEVICE_ID,
-        "last_sync":  now,
-        "last_ip":    local_ip,
-        "status":     "Online"
+        "timestamp":   now,
+        "device_id":   DEVICE_ID,
+        "last_sync":   now,
+        "last_ip":     local_ip,
+        "status":      "Online",
+        "vpn_active":  _vpn_active,
+        "vpn_adapter": _vpn_adapter or ""
     }
 
     idle_str = f"{idle_seconds}s" if idle_seconds is not None else "N/A"

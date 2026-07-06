@@ -175,6 +175,9 @@ def _geolocate_ip(ip):
 # Track last known city per device for zone change detection
 _device_last_city = {}
 
+# Track location_enabled state per device for GPS monitoring
+_device_location_state = {}
+
 # Capa de caché global para evitar latencia de consultas repetitivas a BigQuery
 cache = {
     "last_sync": None,
@@ -374,6 +377,14 @@ def load_users_from_bq():
         print("[AUTH] Schema migration: allowed_pages column ensured")
     except Exception as me:
         print(f"[AUTH] Schema migration note: {me}")
+    # Auto-migrate: GPS columns in eq_hardware_metrics
+    for col, col_type in [("gps_latitude", "FLOAT64"), ("gps_longitude", "FLOAT64"),
+                           ("gps_accuracy", "FLOAT64"), ("location_enabled", "BOOL")]:
+        try:
+            run_bq_query(f"ALTER TABLE onyx.eq_hardware_metrics ADD COLUMN IF NOT EXISTS {col} {col_type}")
+        except Exception:
+            pass
+    print("[AUTH] Schema migration: GPS columns ensured")
     try:
         rows = run_bq_query("""
             SELECT user_id, email, password_hash, salt, full_name, role, avatar,
@@ -2196,15 +2207,45 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     city_agent = net.get("city", "")
                     
                     if public_ip and d_id:
-                        geo = _geolocate_ip(public_ip)
-                        device_geo_cache[d_id] = {
-                            "lat": geo.get("lat", 4.6097),
-                            "lon": geo.get("lon", -74.0817),
-                            "city": geo.get("city", city_agent or "Bogotá"),
-                            "country": geo.get("country", "Colombia"),
-                            "ip": public_ip
-                        }
-                        print(f"[MAP] Device {d_id} -> public_ip={public_ip} -> ({geo.get('lat')}, {geo.get('lon')}) {geo.get('city')}")
+                        # Priorizar GPS del sync_status si está disponible
+                        gps_used = False
+                        for ss in cache.get("sync_status", []):
+                            if ss.get("device_id") == d_id and ss.get("geo_source") == "GPS":
+                                g_lat = ss.get("geo_lat")
+                                g_lon = ss.get("geo_lon")
+                                if g_lat is not None and g_lon is not None:
+                                    # Reverse geocoding para la ciudad
+                                    gps_city = "Bogotá"
+                                    try:
+                                        import urllib.request as _urlreq2
+                                        _rg_url = f"https://nominatim.openstreetmap.org/reverse?lat={g_lat}&lon={g_lon}&format=json&zoom=10"
+                                        _rg_req = _urlreq2.Request(_rg_url, headers={"User-Agent": "EIQ-Server/1.0"})
+                                        _rg_resp = _urlreq2.urlopen(_rg_req, timeout=4)
+                                        _rg_data = json.loads(_rg_resp.read())
+                                        _rg_addr = _rg_data.get("address", {})
+                                        gps_city = (_rg_addr.get("city") or _rg_addr.get("town") 
+                                                   or _rg_addr.get("village") or _rg_addr.get("municipality")
+                                                   or _rg_addr.get("state", "").split(",")[0].strip()
+                                                   or _rg_addr.get("suburb", "").replace("Localidad ", "") or "Bogotá")
+                                    except Exception:
+                                        pass
+                                    device_geo_cache[d_id] = {
+                                        "lat": g_lat, "lon": g_lon,
+                                        "city": gps_city, "country": "Colombia", "ip": public_ip
+                                    }
+                                    print(f"[MAP] Device {d_id} -> GPS ({g_lat}, {g_lon}) {gps_city}")
+                                    gps_used = True
+                                break
+                        if not gps_used:
+                            geo = _geolocate_ip(public_ip)
+                            device_geo_cache[d_id] = {
+                                "lat": geo.get("lat", 4.6097),
+                                "lon": geo.get("lon", -74.0817),
+                                "city": geo.get("city", city_agent or "Bogotá"),
+                                "country": geo.get("country", "Colombia"),
+                                "ip": public_ip
+                            }
+                            print(f"[MAP] Device {d_id} -> IP {public_ip} -> ({geo.get('lat')}, {geo.get('lon')}) {geo.get('city')}")
                     else:
                         print(f"[MAP] Device {d_id} -> NO public_ip in network_info")
                 
@@ -2359,6 +2400,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "onyx_agent.py",
                 "onyx_updater.py",
                 "onyx_config.json",
+                "onyx_credentials.json",
                 "onyx_launcher.vbs",
                 "instalar.ps1",
                 "onyx_uninstaller.ps1",
@@ -2380,13 +2422,19 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         if fname == "onyx_credentials.json":
                             # Primero intentar desde disco, luego desde env var
                             if os.path.exists(fpath):
-                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                                zf.write(fpath, f"{fname}")
+                                print(f"[ZIP] credentials from file: {fpath}")
                             else:
-                                creds_b64 = os.environ.get("ONYX_CREDENTIALS_B64", "")
+                                creds_b64 = os.environ.get("ONYX_CREDENTIALS_B64", "").strip().strip('"')
+                                print(f"[ZIP] credentials from env var: {len(creds_b64)} chars")
                                 if creds_b64:
                                     import base64 as _b64
-                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", _b64.b64decode(creds_b64))
-                                    print(f"[ZIP] credentials injected from env var")
+                                    try:
+                                        decoded = _b64.b64decode(creds_b64)
+                                        zf.writestr(f"{fname}", decoded)
+                                        print(f"[ZIP] credentials injected OK: {len(decoded)} bytes")
+                                    except Exception as b64err:
+                                        print(f"[ZIP] ERROR decoding base64: {b64err}")
                                 else:
                                     print(f"[ZIP] WARNING: no credentials available (no file, no env var)")
                         elif os.path.exists(fpath):
@@ -2397,12 +2445,12 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                     conf_data["update_server"] = update_server
                                     conf_data["dataset"] = current_dataset
                                     conf_str = json.dumps(conf_data, indent=4)
-                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", conf_str)
+                                    zf.writestr(f"{fname}", conf_str)
                                 except Exception as ex:
                                     print(f"[ZIP] Error dynamic config override: {ex}")
-                                    zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                                    zf.write(fpath, f"{fname}")
                             else:
-                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                                zf.write(fpath, f"{fname}")
                     readme = """════════════════════════════════════════════════
   ONYX — Agente de Monitoreo v3.0
   By Agentica
@@ -2436,7 +2484,7 @@ SOPORTE:
 ──────────────────────────────
 Plataforma: https://onyx-server-631753912632.us-central1.run.app
 """
-                    zf.writestr("Onyx-Agent-v3.0/LEEME.txt", readme)
+                    zf.writestr("LEEME.txt", readme)
 
                 zip_data = zip_buffer.getvalue()
                 self.send_response(200)
@@ -2589,12 +2637,65 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                             agent_public_ip = ni.get("public_ip", "")
                         except: pass
                     
-                    # Priorizar IP del agente, fallback a client_ip
-                    geo_ip = agent_public_ip or client_ip
-                    geo = _geolocate_ip(geo_ip) if geo_ip and geo_ip not in ("N/A","127.0.0.1","") else {}
+                    # ── GPS vs IP geolocation priority ──
+                    # Si el agente envía coordenadas GPS reales, usarlas directamente
+                    gps_lat = metrics.get("gps_latitude") if metrics else None
+                    gps_lon = metrics.get("gps_longitude") if metrics else None
+                    location_enabled = metrics.get("location_enabled", True) if metrics else True
+
+                    if gps_lat is not None and gps_lon is not None:
+                        # Usar coordenadas GPS del dispositivo (más precisas que IP)
+                        # Reverse geocoding para obtener nombre real de la ciudad
+                        gps_city = ""
+                        gps_country = ""
+                        try:
+                            import urllib.request as _urlreq
+                            _rgeo_url = f"https://nominatim.openstreetmap.org/reverse?lat={gps_lat}&lon={gps_lon}&format=json&zoom=10"
+                            _rgeo_req = _urlreq.Request(_rgeo_url, headers={"User-Agent": "EIQ-Server/1.0"})
+                            _rgeo_resp = _urlreq.urlopen(_rgeo_req, timeout=4)
+                            _rgeo_data = json.loads(_rgeo_resp.read())
+                            addr = _rgeo_data.get("address", {})
+                            gps_city = (addr.get("city") or addr.get("town") or addr.get("village") 
+                                       or addr.get("municipality") or addr.get("county") 
+                                       or addr.get("state", "").split(",")[0].strip()
+                                       or addr.get("suburb", "").replace("Localidad ", "") or "")
+                            gps_country = addr.get("country", "")
+                            print(f"[GEO-CHECK] {device_id}: Reverse geocode GPS -> {gps_city}, {gps_country}")
+                        except Exception as rgeo_err:
+                            print(f"[GEO-CHECK] {device_id}: Reverse geocode failed: {rgeo_err}")
+                            # Fallback: usar IP para la ciudad pero GPS para coordenadas
+                            _ip_geo = _geolocate_ip(agent_public_ip or client_ip)
+                            gps_city = _ip_geo.get("city", "")
+                            gps_country = _ip_geo.get("country", "")
+                        
+                        geo = {
+                            "lat": gps_lat,
+                            "lon": gps_lon,
+                            "city": gps_city or "Desconocida",
+                            "country": gps_country or "",
+                            "isp": "GPS"
+                        }
+                        geo_ip = agent_public_ip or client_ip
+                        print(f"[GEO-CHECK] {device_id}: USANDO GPS lat={gps_lat}, lon={gps_lon}, city={geo['city']}")
+                    else:
+                        # Fallback a geolocalización por IP
+                        geo_ip = agent_public_ip or client_ip
+                        geo = _geolocate_ip(geo_ip) if geo_ip and geo_ip not in ("N/A","127.0.0.1","") else {}
+                        print(f"[GEO-CHECK] {device_id}: Fallback IP geo_ip={geo_ip}")
+
                     current_city    = geo.get("city", "Desconocida")
                     current_country = geo.get("country", "")
-                    print(f"[GEO-CHECK] {device_id}: geo_ip={geo_ip}, city={current_city}, country={current_country}")
+                    print(f"[GEO-CHECK] {device_id}: city={current_city}, country={current_country}")
+
+                    # Guardar coordenadas GPS en sync_status para el mapa
+                    if sync and gps_lat is not None and gps_lon is not None:
+                        sync["geo_lat"] = gps_lat
+                        sync["geo_lon"] = gps_lon
+                        sync["geo_source"] = "GPS"
+                    elif sync and geo:
+                        sync["geo_lat"] = geo.get("lat")
+                        sync["geo_lon"] = geo.get("lon")
+                        sync["geo_source"] = "IP"
 
                     # PRIMARIO: VPN detectada por el agente en los adaptadores de red
                     agent_vpn_active  = sync.get("vpn_active", False) if sync else False
@@ -2665,6 +2766,40 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                     _device_last_city[device_id] = {
                         "city": current_city, "country": current_country, "ip": geo_ip
                     }
+
+                    # ── Monitoreo de estado de Servicios de Ubicación ──
+                    if not location_enabled:
+                        # Ubicación desactivada — verificar si es un cambio nuevo
+                        prev_state = _device_location_state.get(device_id)
+                        if prev_state is not False:
+                            # Estado nuevo o cambió de True a False
+                            loc_event = {
+                                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                "device_id": device_id,
+                                "event_type": "Ubicación Desactivada",
+                                "severity": "warning",
+                                "description": f"Los Servicios de Ubicación de Windows están DESACTIVADOS en {device_id}",
+                                "source": "GPS Monitor"
+                            }
+                            new_events.append(loc_event)
+                            print(f"[GPS] Servicios de Ubicación DESACTIVADOS en {device_id}")
+                        _device_location_state[device_id] = False
+                    else:
+                        # Ubicación activada — verificar si se reactivó
+                        prev_state = _device_location_state.get(device_id)
+                        if prev_state is False:
+                            # Se reactivó después de estar desactivada
+                            loc_event = {
+                                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                "device_id": device_id,
+                                "event_type": "Ubicación Reactivada",
+                                "severity": "info",
+                                "description": f"Servicios de Ubicación reactivados en {device_id}",
+                                "source": "GPS Monitor"
+                            }
+                            new_events.append(loc_event)
+                            print(f"[GPS] Servicios de Ubicación REACTIVADOS en {device_id}")
+                        _device_location_state[device_id] = True
 
                     if new_events:
                         with cache_lock:
