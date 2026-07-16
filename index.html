@@ -922,6 +922,14 @@
               <span class="nav-icon">🔒</span>
               <span class="nav-label">DLP</span>
             </a>
+            <a href="#" class="nav-item" data-view="politicas" data-requires="politicas" onclick="showView('politicas')">
+              <span class="nav-icon">📜</span>
+              <span class="nav-label">Políticas</span>
+            </a>
+            <a href="#" class="nav-item" data-view="informes-iso" data-requires="informes-iso" onclick="showView('informes-iso')">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Informe ISO</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2532,6 +2540,90 @@
           </div>
         </div>
 
+        <div class="view" id="view-politicas">
+          <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">📜 Políticas de Seguridad</h2>
+              <p style="color:var(--text3);font-size:13px;margin-top:4px">Gestión de políticas ISO 27001 — Control A.5.1</p>
+            </div>
+            <button onclick="showCreatePolicyModal()" class="btn btn-primary">➕ Nueva Política</button>
+          </div>
+
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card blue"><div class="kpi-label">Total Políticas</div><div class="kpi-value" id="polTotal">0</div><div class="kpi-delta">Documentadas</div><div class="kpi-icon-bg">📜</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Activas</div><div class="kpi-value" id="polActive">0</div><div class="kpi-delta">En vigor</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Requieren Aceptación</div><div class="kpi-value" id="polAcceptance">0</div><div class="kpi-delta">Pendientes de firma</div><div class="kpi-icon-bg">✍️</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Categorías</div><div class="kpi-value" id="polCategories">0</div><div class="kpi-delta">Áreas cubiertas</div><div class="kpi-icon-bg">📂</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>📋</span><span class="card-title">Políticas Registradas</span>
+              <button onclick="loadPolicies()" class="btn btn-primary" style="margin-left:auto">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Título</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Categoría</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Versión</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Estado</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Aceptaciones</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Creado Por</th>
+                  </tr>
+                </thead>
+                <tbody id="policiesTableBody">
+                  <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Cargando políticas...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-informes-iso">
+          <div style="margin-bottom:20px">
+            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">📊 Informe ISO 27001</h2>
+            <p style="color:var(--text3);font-size:13px;margin-top:4px">Reporte de cumplimiento normativo — Estado general de controles</p>
+          </div>
+
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card green"><div class="kpi-label">Cumplimiento Global</div><div class="kpi-value" id="isoGlobalPct">--%</div><div class="kpi-delta">Controles conformes</div><div class="kpi-icon-bg">🎯</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Controles Evaluados</div><div class="kpi-value" id="isoTotalControls">0</div><div class="kpi-delta">ISO 27001:2022</div><div class="kpi-icon-bg">📋</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Conformes</div><div class="kpi-value" id="isoCompliant">0</div><div class="kpi-delta">Totalmente implementados</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card red"><div class="kpi-label">No Conformes</div><div class="kpi-value" id="isoNonCompliant">0</div><div class="kpi-delta">Requieren acción</div><div class="kpi-icon-bg">❌</div></div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><span>📊</span><span class="card-title">Estado de Controles ISO 27001</span>
+              <button onclick="loadISOReport()" class="btn btn-primary" style="margin-left:auto">🔄 Generar Reporte</button>
+              <button onclick="exportISOCSV()" class="btn btn-ghost" style="margin-left:8px">📥 Exportar CSV</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Control</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Nombre</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Estado</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Detalle</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Evidencia</th>
+                  </tr>
+                </thead>
+                <tbody id="isoControlsBody">
+                  <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">Haz clic en 'Generar Reporte' para evaluar controles</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>📅</span><span class="card-title">Información del Reporte</span></div>
+            <div class="card-body" id="isoReportMeta">
+              <p style="color:var(--text3);text-align:center">Genera un reporte para ver los detalles</p>
+            </div>
+          </div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2555,7 +2647,9 @@ const titles = {
   usuarios:      'Gestión de Usuarios',
   auditoria:     'Auditoría ISO 27001',
   cumplimiento:  'Cumplimiento ISO 27001',
-  dlp: 'DLP & Vulnerabilidades'
+  dlp: 'DLP & Vulnerabilidades',
+  politicas: 'Políticas de Seguridad',
+  'informes-iso': 'Informe ISO 27001'
 };
 
 // ── Navegación de Vistas ──
@@ -2593,6 +2687,8 @@ function showView(id) {
     loadAuditLog();
   } else if (id === 'cumplimiento') { loadCompliance(); }
             else if (id === 'dlp') { loadDLP(); }
+            else if (id === 'politicas') { loadPolicies(); }
+            else if (id === 'informes-iso') { loadISOReport(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -4732,6 +4828,27 @@ function showApp() {
   markSyncNow();
   fetchDevices();
   fetchNetworkSummary();
+  // Check pending policies after login
+  fetch('/api/policies/pending', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      if (data.pending && data.pending.length > 0) {
+        const p = data.pending[0];
+        const modal = document.createElement('div');
+        modal.id = 'policyAcceptModal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+        modal.innerHTML = `
+          <div class="login-card" style="animation:loginSlideUp 0.3s;max-width:500px;width:90%">
+            <h3 style="margin:0 0 8px;font-family:var(--font-disp);color:var(--text)">📜 Política Pendiente de Aceptación</h3>
+            <p style="color:var(--text3);font-size:12px;margin:0 0 16px">${p.category}</p>
+            <h4 style="color:var(--text);margin:0 0 8px">${p.title}</h4>
+            <p style="color:var(--text2);font-size:13px;line-height:1.6;margin:0 0 20px;max-height:200px;overflow-y:auto;padding:12px;background:var(--surface2);border-radius:8px">${p.description || 'Sin descripción'}</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><input type="checkbox" id="policyAcceptCheck" /><label style="color:var(--text2);font-size:13px">He leído y acepto esta política</label></div>
+            <button onclick="acceptPendingPolicy('${p.policy_id}')" class="login-btn" style="width:100%">✅ Aceptar Política</button>
+          </div>`;
+        document.body.appendChild(modal);
+      }
+    }).catch(() => {});
 }
 
 function applyRolePermissions(permissions) {
@@ -5093,11 +5210,13 @@ const PAGE_DEFINITIONS = [
   {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'},
   {id: 'auditoria',      icon: '📋', label: 'Auditoría'},
   {id: 'cumplimiento',   icon: '🛡️', label: 'Cumplimiento'},
-  {id: 'dlp', icon: '🔒', label: 'DLP'}
+  {id: 'dlp', icon: '🔒', label: 'DLP'},
+  {id: 'politicas', icon: '📜', label: 'Políticas'},
+  {id: 'informes-iso', icon: '📊', label: 'Informe ISO'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -5991,6 +6110,151 @@ function loadDLP() {
       console.error('[DLP] Error:', err);
       document.getElementById('dlpAlertsBody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:#EF4444">Error cargando DLP</td></tr>';
     });
+}
+
+// ═══════ POLÍTICAS DE SEGURIDAD ═══════
+let _policiesData = [];
+function loadPolicies() {
+  fetch('/api/policies', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      _policiesData = data.policies || [];
+      const active = _policiesData.filter(p => p.status === 'active');
+      const cats = new Set(_policiesData.map(p => p.category));
+      const needAcc = _policiesData.filter(p => p.requires_acceptance);
+      document.getElementById('polTotal').textContent = _policiesData.length;
+      document.getElementById('polActive').textContent = active.length;
+      document.getElementById('polAcceptance').textContent = needAcc.length;
+      document.getElementById('polCategories').textContent = cats.size;
+      
+      const tbody = document.getElementById('policiesTableBody');
+      if (!_policiesData.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">No hay políticas registradas. Crea una con el botón ➕</td></tr>';
+        return;
+      }
+      tbody.innerHTML = _policiesData.map(p => {
+        const statusBadge = p.status === 'active' 
+          ? '<span style="background:rgba(16,185,129,0.12);color:#10B981;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✅ Activa</span>'
+          : '<span style="background:rgba(107,114,128,0.12);color:#6B7280;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⏸️ Inactiva</span>';
+        return `<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">
+          <td style="padding:10px 14px;color:var(--text);font-weight:500">${p.title}</td>
+          <td style="padding:10px 14px;color:var(--text2)">${p.category}</td>
+          <td style="padding:10px 14px;color:var(--text3)">v${p.version}</td>
+          <td style="padding:10px 14px">${statusBadge}</td>
+          <td style="padding:10px 14px;color:var(--text2)">${p.accepted_count || 0} usuarios</td>
+          <td style="padding:10px 14px;color:var(--text3)">${p.created_by || ''}</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(err => console.error('[POLICIES]', err));
+}
+
+function showCreatePolicyModal() {
+  const cats = ['Seguridad de la Información','Control de Acceso','Gestión de Activos','Protección de Datos','Uso Aceptable','Gestión de Incidentes','Continuidad de Negocio','Cumplimiento Legal'];
+  const catOptions = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  const modal = document.createElement('div');
+  modal.id = 'policyModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div class="login-card" style="animation:loginSlideUp 0.3s;max-width:500px;width:90%">
+      <h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">📜 Nueva Política</h3>
+      <div class="login-field"><label>Título</label><input id="polTitle" placeholder="Ej: Política de Control de Acceso" /></div>
+      <div class="login-field"><label>Categoría</label><select id="polCategory" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui)">${catOptions}</select></div>
+      <div class="login-field"><label>Descripción</label><textarea id="polDesc" rows="3" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui);resize:vertical" placeholder="Describe el propósito de esta política..."></textarea></div>
+      <div class="login-field"><label>Contenido / Lineamientos</label><textarea id="polContent" rows="5" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui);resize:vertical" placeholder="Detalla las reglas y lineamientos..."></textarea></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><input type="checkbox" id="polRequiresAcc" checked /><label style="color:var(--text2);font-size:13px">Requiere aceptación de usuarios</label></div>
+      <div id="polError" class="login-error"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('policyModal').remove()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>
+        <button onclick="createPolicy()" class="login-btn" style="flex:1;margin-top:0">💾 Crear Política</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function createPolicy() {
+  const title = document.getElementById('polTitle').value.trim();
+  if (!title) { document.getElementById('polError').textContent = 'El título es requerido'; return; }
+  fetch('/api/policies/create', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title: title,
+      category: document.getElementById('polCategory').value,
+      description: document.getElementById('polDesc').value,
+      content: document.getElementById('polContent').value,
+      requires_acceptance: document.getElementById('polRequiresAcc').checked
+    })
+  }).then(r => r.json()).then(data => {
+    if (data.ok) { document.getElementById('policyModal').remove(); loadPolicies(); }
+    else { document.getElementById('polError').textContent = data.error || 'Error'; }
+  }).catch(err => { document.getElementById('polError').textContent = 'Error de conexión'; });
+}
+
+function acceptPendingPolicy(policyId) {
+  if (!document.getElementById('policyAcceptCheck').checked) { alert('Debes marcar que has leído la política'); return; }
+  fetch('/api/policies/accept', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({policy_id: policyId})
+  }).then(r => r.json()).then(data => {
+    if (data.ok) { document.getElementById('policyAcceptModal').remove(); }
+  }).catch(() => {});
+}
+
+// ═══════ INFORME ISO 27001 ═══════
+let _isoReportData = null;
+function loadISOReport() {
+  fetch('/api/iso-report', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      _isoReportData = data;
+      const pct = data.compliance_pct || 0;
+      document.getElementById('isoGlobalPct').textContent = pct + '%';
+      document.getElementById('isoGlobalPct').style.color = pct >= 80 ? '#10B981' : pct >= 50 ? '#FBBF24' : '#EF4444';
+      document.getElementById('isoTotalControls').textContent = data.total_controls || 0;
+      document.getElementById('isoCompliant').textContent = data.compliant || 0;
+      document.getElementById('isoNonCompliant').textContent = data.non_compliant || 0;
+      
+      const tbody = document.getElementById('isoControlsBody');
+      const controls = data.controls || [];
+      tbody.innerHTML = controls.map(c => {
+        const statusMap = {
+          compliant: {bg: 'rgba(16,185,129,0.12)', color: '#10B981', label: '✅ Conforme'},
+          partial: {bg: 'rgba(251,191,36,0.12)', color: '#FBBF24', label: '⚠️ Parcial'},
+          non_compliant: {bg: 'rgba(239,68,68,0.12)', color: '#EF4444', label: '❌ No Conforme'}
+        };
+        const st = statusMap[c.status] || statusMap.partial;
+        return `<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">
+          <td style="padding:10px 14px;color:var(--accent);font-weight:600;font-family:var(--font-mono,monospace)">${c.id}</td>
+          <td style="padding:10px 14px;color:var(--text);font-weight:500">${c.name}</td>
+          <td style="padding:10px 14px"><span style="background:${st.bg};color:${st.color};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">${st.label}</span></td>
+          <td style="padding:10px 14px;color:var(--text2)">${c.detail}</td>
+          <td style="padding:10px 14px;color:var(--text3);font-size:12px">${c.evidence}</td>
+        </tr>`;
+      }).join('');
+      
+      document.getElementById('isoReportMeta').innerHTML = `
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div><span style="color:var(--text3);font-size:12px">Generado:</span><br><span style="color:var(--text);font-size:14px;font-weight:500">${new Date(data.generated_at).toLocaleString()}</span></div>
+          <div><span style="color:var(--text3);font-size:12px">Norma:</span><br><span style="color:var(--text);font-size:14px;font-weight:500">ISO/IEC 27001:2022</span></div>
+          <div><span style="color:var(--text3);font-size:12px">Alcance:</span><br><span style="color:var(--text);font-size:14px;font-weight:500">Plataforma EndpointIQ — Monitoreo de Endpoints</span></div>
+        </div>`;
+    })
+    .catch(err => console.error('[ISO]', err));
+}
+
+function exportISOCSV() {
+  if (!_isoReportData) { loadISOReport(); return; }
+  let csv = 'Control,Nombre,Estado,Detalle,Evidencia\n';
+  (_isoReportData.controls || []).forEach(c => {
+    csv += `"${c.id}","${c.name}","${c.status}","${c.detail}","${c.evidence}"\n`;
+  });
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ISO27001_Report_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
 }
 </script>
 <!-- CHATBOT FLOTANTE GLOBAL -->

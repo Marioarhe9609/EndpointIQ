@@ -229,8 +229,8 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp"},
-    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso"},
+    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
 
@@ -2636,6 +2636,160 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             })
             return
 
+            # ── ISO 27001: Policies Management ──
+        elif path == "/api/policies":
+            session = self.require_auth()
+            if not session:
+                return
+            try:
+                rows = run_bq_query("""
+                    SELECT policy_id, title, category, version, status,
+                           description, created_by, created_at, updated_at,
+                           requires_acceptance
+                    FROM onyx.eq_policies
+                    ORDER BY category, title
+                """)
+            except Exception:
+                rows = []
+            # Get acceptance counts
+            try:
+                acc = run_bq_query("""
+                    SELECT policy_id, COUNT(*) as accepted_count
+                    FROM onyx.eq_policy_acceptances
+                    GROUP BY policy_id
+                """)
+                acc_map = {a["policy_id"]: a["accepted_count"] for a in acc}
+            except Exception:
+                acc_map = {}
+            for r in rows:
+                r["accepted_count"] = acc_map.get(r.get("policy_id", ""), 0)
+            self.send_json({"policies": rows})
+            return
+
+        elif path == "/api/policies/pending":
+            session = self.require_auth()
+            if not session:
+                return
+            uid = session["user_id"]
+            try:
+                # ISO 27001 A.8.26 — Parameterized query to prevent SQL injection
+                if USE_SDK:
+                    sql = """
+                        SELECT p.policy_id, p.title, p.category, p.version, p.description
+                        FROM onyx.eq_policies p
+                        WHERE p.status = 'active' AND p.requires_acceptance = true
+                          AND p.policy_id NOT IN (
+                            SELECT a.policy_id FROM onyx.eq_policy_acceptances a
+                            WHERE a.user_id = @uid
+                          )
+                        ORDER BY p.category
+                    """
+                    dataset = os.environ.get("BQ_DATASET", "onyx")
+                    if dataset != "onyx":
+                        sql = sql.replace("onyx.", f"{dataset}.")
+                    job_config = bigquery.QueryJobConfig(
+                        query_parameters=[bigquery.ScalarQueryParameter("uid", "STRING", uid)]
+                    )
+                    results = BQ_CLIENT.query(
+                        sql, job_config=job_config,
+                        location="us-central1" if "K_SERVICE" in os.environ else None
+                    ).result()
+                    pending = []
+                    for row in results:
+                        d = dict(row)
+                        for k, v in d.items():
+                            if hasattr(v, 'isoformat'):
+                                d[k] = v.isoformat()
+                            elif v is not None and not isinstance(v, (str, int, float, bool)):
+                                d[k] = str(v)
+                        pending.append(d)
+                else:
+                    # CLI fallback — sanitize uid (allow only uuid chars)
+                    import re as _re
+                    safe_uid = _re.sub(r'[^a-fA-F0-9\-]', '', uid)
+                    pending = run_bq_query(f"""
+                        SELECT p.policy_id, p.title, p.category, p.version, p.description
+                        FROM onyx.eq_policies p
+                        WHERE p.status = 'active' AND p.requires_acceptance = true
+                          AND p.policy_id NOT IN (
+                            SELECT a.policy_id FROM onyx.eq_policy_acceptances a
+                            WHERE a.user_id = '{safe_uid}'
+                          )
+                        ORDER BY p.category
+                    """)
+            except Exception:
+                pending = []
+            self.send_json({"pending": pending})
+            return
+
+        elif path == "/api/iso-report":
+            session = self.require_auth()
+            if not session:
+                return
+            report = {"generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "controls": []}
+            with cache_lock:
+                # A.5.1 - Information Security Policies
+                try:
+                    policies = run_bq_query("SELECT COUNT(*) as cnt FROM onyx.eq_policies WHERE status='active'")
+                    policy_count = policies[0]["cnt"] if policies else 0
+                except Exception:
+                    policy_count = 0
+                report["controls"].append({"id": "A.5.1", "name": "Políticas de Seguridad", "status": "compliant" if policy_count > 0 else "non_compliant", "detail": f"{policy_count} políticas activas", "evidence": "eq_policies table"})
+
+                # A.5.17 - Authentication
+                totp_users = sum(1 for u in cache.get("users_cache", {}).values() if u.get("totp_enabled"))
+                total_users = len(cache.get("users_cache", {}))
+                report["controls"].append({"id": "A.5.17", "name": "Autenticación", "status": "compliant" if totp_users == total_users and total_users > 0 else "partial", "detail": f"{totp_users}/{total_users} usuarios con 2FA", "evidence": "eq_users.totp_enabled"})
+
+                # A.8.1 - Asset Management
+                total_dev = len(cache.get("sync_status", []))
+                online_dev = sum(1 for d in cache.get("sync_status", []) if d.get("status") == "Online")
+                report["controls"].append({"id": "A.8.1", "name": "Gestión de Activos", "status": "compliant" if total_dev > 0 else "non_compliant", "detail": f"{total_dev} dispositivos ({online_dev} online)", "evidence": "eq_sync_status"})
+
+                # A.8.7 - Malware Protection
+                av_ok = 0
+                for m in cache.get("latest_metrics", []):
+                    if m.get("antivirus_enabled") == True:
+                        av_ok += 1
+                report["controls"].append({"id": "A.8.7", "name": "Protección Malware", "status": "compliant" if av_ok == total_dev and total_dev > 0 else "partial" if av_ok > 0 else "non_compliant", "detail": f"{av_ok}/{total_dev} con antivirus activo", "evidence": "agent metrics"})
+
+                # A.8.12 - DLP
+                dlp_issues = 0
+                for m in cache.get("latest_metrics", []):
+                    try:
+                        remote = json.loads(m.get("dlp_remote_access", "[]")) if isinstance(m.get("dlp_remote_access"), str) else m.get("dlp_remote_access", [])
+                        if remote:
+                            dlp_issues += 1
+                    except Exception:
+                        pass
+                report["controls"].append({"id": "A.8.12", "name": "Prevención Pérdida Datos", "status": "compliant" if dlp_issues == 0 else "partial", "detail": f"{dlp_issues} dispositivos con acceso remoto no autorizado", "evidence": "DLP monitoring"})
+
+                # A.8.20 - Network Security
+                fw_ok = sum(1 for m in cache.get("latest_metrics", []) if m.get("firewall_enabled") == True)
+                report["controls"].append({"id": "A.8.20", "name": "Seguridad de Red", "status": "compliant" if fw_ok == total_dev and total_dev > 0 else "partial", "detail": f"{fw_ok}/{total_dev} con firewall activo", "evidence": "agent metrics"})
+
+                # A.8.24 - Cryptography
+                bl_ok = sum(1 for m in cache.get("latest_metrics", []) if m.get("bitlocker_enabled") == True)
+                report["controls"].append({"id": "A.8.24", "name": "Cifrado de Datos", "status": "compliant" if bl_ok == total_dev and total_dev > 0 else "partial" if bl_ok > 0 else "non_compliant", "detail": f"{bl_ok}/{total_dev} con BitLocker", "evidence": "agent metrics"})
+
+                # A.8.34 - Audit Logging
+                try:
+                    audit_count = run_bq_query("SELECT COUNT(*) as cnt FROM onyx.eq_audit_log")
+                    log_count = audit_count[0]["cnt"] if audit_count else 0
+                except Exception:
+                    log_count = 0
+                report["controls"].append({"id": "A.8.34", "name": "Registros de Auditoría", "status": "compliant" if log_count > 0 else "non_compliant", "detail": f"{log_count} eventos registrados", "evidence": "eq_audit_log"})
+
+            # Calculate overall
+            statuses = [c["status"] for c in report["controls"]]
+            report["total_controls"] = len(report["controls"])
+            report["compliant"] = statuses.count("compliant")
+            report["partial"] = statuses.count("partial")
+            report["non_compliant"] = statuses.count("non_compliant")
+            report["compliance_pct"] = round(report["compliant"] / report["total_controls"] * 100, 1) if report["total_controls"] else 0
+            self.send_json(report)
+            return
+
         elif path == "/api/installer-download":
             # Serve Onyx Agent installer as a ZIP — admin only
             session = self.get_current_session()
@@ -3656,6 +3810,52 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             except Exception as e:
                 self.send_json({"success": False, "error": str(e)}, 500)
                 
+        elif path == "/api/policies/create":
+            session = self.require_auth()
+            if not session or session["role"] != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            policy = {
+                "policy_id": str(uuid.uuid4()),
+                "title": body.get("title", ""),
+                "category": body.get("category", "General"),
+                "version": body.get("version", "1.0"),
+                "status": "active",
+                "description": body.get("description", ""),
+                "content": body.get("content", ""),
+                "requires_acceptance": body.get("requires_acceptance", True),
+                "created_by": session["email"],
+                "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }
+            try:
+                run_bq_insert("onyx.eq_policies", policy)
+                audit_log("CREATE_POLICY", session["email"], self.client_address[0], "POLICY", policy["policy_id"], {"title": policy["title"]})
+                self.send_json({"ok": True, "policy_id": policy["policy_id"]})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/policies/accept":
+            session = self.require_auth()
+            if not session:
+                return
+            acceptance = {
+                "acceptance_id": str(uuid.uuid4()),
+                "policy_id": body.get("policy_id", ""),
+                "user_id": session["user_id"],
+                "user_email": session["email"],
+                "accepted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "ip_address": self.client_address[0]
+            }
+            try:
+                run_bq_insert("onyx.eq_policy_acceptances", acceptance)
+                audit_log("ACCEPT_POLICY", session["email"], self.client_address[0], "POLICY", body.get("policy_id", ""))
+                self.send_json({"ok": True})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
         else:
             self.send_json({"error": "Endpoint no encontrado"}, 404)
 
