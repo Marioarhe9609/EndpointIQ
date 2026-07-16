@@ -229,7 +229,7 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion"},
     "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
@@ -623,6 +623,24 @@ def run_bq_update_user(set_clause_parts, where_field, where_value):
         for p in params:
             safe_sql = safe_sql.replace(f"@{p.name}", f"'{p.value.replace(chr(39), chr(39)+chr(39))}'")
         run_bq_query(safe_sql)
+
+def audit_log(action, actor_email="system", actor_ip="", target_type="", target_id="", details="", result="SUCCESS"):
+    """ISO 27001 A.8.34 — Immutable audit trail. Logs administrative actions to BigQuery."""
+    try:
+        row = {
+            "audit_id": str(uuid.uuid4()),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "actor_email": str(actor_email),
+            "actor_ip": str(actor_ip),
+            "action": str(action),
+            "target_type": str(target_type),
+            "target_id": str(target_id),
+            "details": json.dumps(details) if isinstance(details, dict) else str(details),
+            "result": str(result)
+        }
+        run_bq_insert("onyx.eq_audit_log", row)
+    except Exception as e:
+        print(f"[AUDIT] Error logging: {e}")
 
 def run_bq_insert(table, row_dict):
     """Inserta una fila en BigQuery usando SDK o bq CLI como fallback."""
@@ -2437,6 +2455,27 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             else:
                 self.send_json({"error": "Credentials file not found"}, 404)
 
+        # ── ISO 27001: Audit Log ──
+        elif path == "/api/audit-log":
+            session = self.require_auth()
+            if not session:
+                return
+            if session["role"] != "admin":
+                self.send_json({"error": "Solo administradores pueden ver el audit log"}, 403)
+                return
+            try:
+                rows = run_bq_query("""
+                    SELECT audit_id, timestamp, actor_email, actor_ip, action,
+                           target_type, target_id, details, result
+                    FROM onyx.eq_audit_log
+                    ORDER BY timestamp DESC
+                    LIMIT 500
+                """)
+                self.send_json({"audit_log": rows})
+            except Exception as e:
+                self.send_json({"audit_log": [], "error": str(e)})
+            return
+
         elif path == "/api/installer-download":
             # Serve Onyx Agent installer as a ZIP — admin only
             session = self.get_current_session()
@@ -3044,16 +3083,19 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             # Brute-force check
             is_locked, attempts_left = _check_login_attempts(email)
             if is_locked:
+                audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", f"Cuenta bloqueada por brute-force", "FAILURE")
                 self.send_json({"error": f"Cuenta bloqueada por {LOCKOUT_MINUTES} min tras demasiados intentos fallidos"}, 429)
                 return
 
             user = find_user_by_email(email)
             if not user or not user.get("is_active", True):
                 _record_failed_login(email)
+                audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
                 self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
             if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
                 _record_failed_login(email)
+                audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
                 self.send_json({"error": "Credenciales incorrectas"}, 401)
                 return
 
@@ -3139,6 +3181,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 run_bq_update_user([("last_login", now_iso)], "user_id", uid)
             except Exception:
                 pass
+            audit_log("LOGIN", user["email"], self.client_address[0], "USER", user["user_id"], "Login exitoso")
             self.send_json_with_cookie({
                 "success": True, "totp_setup": True,
                 "user": {"user_id": user["user_id"], "email": user["email"],
@@ -3171,6 +3214,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 run_bq_update_user([("last_login", now_iso)], "user_id", user['user_id'])
             except Exception:
                 pass
+            audit_log("LOGIN", user["email"], self.client_address[0], "USER", user["user_id"], "Login exitoso")
             self.send_json_with_cookie({
                 "success": True,
                 "user": {"user_id": user["user_id"], "email": user["email"],
@@ -3205,6 +3249,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                         u["totp_enabled"] = False
                         break
             print(f"[2FA] Admin {session['email']} reseteó 2FA de user_id={target_uid}")
+            audit_log("RESET_2FA", session["email"], self.client_address[0], "USER", target_uid)
             self.send_json({"success": True, "message": "2FA reseteado. El usuario deberá configurarlo en su próximo login"})
             return
         
@@ -3265,6 +3310,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 run_bq_insert("onyx.eq_users", new_user)
                 with users_cache_lock:
                     users_cache.append(new_user)
+                audit_log("CREATE_USER", session["email"], self.client_address[0], "USER", new_user["user_id"], {"email": new_user["email"], "role": new_user["role"]})
                 self.send_json({"success": True, "user_id": new_user["user_id"]})
             except Exception as e:
                 self.send_json({"success": False, "error": str(e)}, 500)
@@ -3299,6 +3345,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                     run_bq_update_user(update_pairs, "user_id", user_id)
                 except Exception as e:
                     print(f"[AUTH] Update error: {e}")
+                audit_log("UPDATE_USER", session["email"], self.client_address[0], "USER", user_id, {"changes": [p[0] for p in update_pairs]})
             self.send_json({"success": True})
             return
         
@@ -3319,6 +3366,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 run_bq_update_user([("is_active", False)], "user_id", user_id)
                 with users_cache_lock:
                     users_cache[:] = [u for u in users_cache if u.get("user_id") != user_id]
+                audit_log("DEACTIVATE_USER", session["email"], self.client_address[0], "USER", user_id, {"email": user.get("email", "")})
             except Exception as e:
                 print(f"[AUTH] Delete error: {e}")
             self.send_json({"success": True})
@@ -3364,6 +3412,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 )
             except Exception as e:
                 print(f"[AUTH] Password change error: {e}")
+            audit_log("CHANGE_PASSWORD", session["email"], self.client_address[0], "USER", session["user_id"])
             self.send_json({"success": True})
             return
             

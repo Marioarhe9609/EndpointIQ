@@ -910,6 +910,10 @@
     <div class="nav-section">Reportes</div>
     <a class="nav-item" data-requires="informes"><span class="nav-icon">📈</span> Informes</a>
     <a class="nav-item" onclick="showView('usuarios')" data-requires="usuarios"><span class="nav-icon">👥</span> Gestión Usuarios</a>
+    <a href="#" class="nav-item" data-view="auditoria" data-requires="auditoria" onclick="showView('auditoria')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Auditoría</span>
+    </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2348,6 +2352,68 @@
         </div>
       </div>
 
+      <!-- ═══════════════ AUDITORÍA ISO 27001 ═══════════════ -->
+        <div class="view" id="view-auditoria">
+          <div style="margin-bottom:20px">
+            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">📋 Auditoría ISO 27001</h2>
+            <p style="color:var(--text3);font-size:13px;margin-top:4px">Registro inmutable de acciones administrativas — Control A.8.34</p>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card blue"><div class="kpi-label">Eventos Totales</div><div class="kpi-value" id="auditTotalEvents">0</div><div class="kpi-delta">Todos los registros</div><div class="kpi-icon-bg">📊</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Exitosos</div><div class="kpi-value" id="auditSuccessCount">0</div><div class="kpi-delta">Operaciones correctas</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card red"><div class="kpi-label">Fallidos</div><div class="kpi-value" id="auditFailCount">0</div><div class="kpi-delta">Intentos rechazados</div><div class="kpi-icon-bg">❌</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Usuarios Activos</div><div class="kpi-value" id="auditUniqueUsers">0</div><div class="kpi-delta">Actores únicos</div><div class="kpi-icon-bg">👤</div></div>
+          </div>
+
+          <!-- Filters -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <select id="auditFilterAction" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-ui)">
+                <option value="">Todas las acciones</option>
+                <option value="LOGIN">Login</option>
+                <option value="LOGIN_FAILED">Login Fallido</option>
+                <option value="CREATE_USER">Crear Usuario</option>
+                <option value="UPDATE_USER">Actualizar Usuario</option>
+                <option value="DEACTIVATE_USER">Desactivar Usuario</option>
+                <option value="CHANGE_PASSWORD">Cambiar Contraseña</option>
+                <option value="RESET_2FA">Reset 2FA</option>
+              </select>
+              <select id="auditFilterResult" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-ui)">
+                <option value="">Todos los resultados</option>
+                <option value="SUCCESS">Exitoso</option>
+                <option value="FAILURE">Fallido</option>
+              </select>
+              <button onclick="loadAuditLog()" class="btn btn-primary">🔄 Actualizar</button>
+              <button onclick="exportAuditCSV()" class="btn btn-ghost">📥 Exportar CSV</button>
+            </div>
+          </div>
+
+          <!-- Audit Table -->
+          <div class="card">
+            <div class="card-header"><span>📋</span><span class="card-title">Registro de Auditoría</span></div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Fecha/Hora</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Acción</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Actor</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">IP</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Objetivo</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Detalles</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Cargando registros de auditoría...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2368,7 +2434,8 @@ const titles = {
   seguridad:     'Monitoreo y Seguimiento',
   agentes:       'Agentes Inteligentes IA',
   kpibuilder:    'KPI Builder Asistido por IA',
-  usuarios:      'Gestión de Usuarios'
+  usuarios:      'Gestión de Usuarios',
+  auditoria:     'Auditoría ISO 27001'
 };
 
 // ── Navegación de Vistas ──
@@ -2402,6 +2469,8 @@ function showView(id) {
     fetchWhatsAppHistory();
   } else if (id === 'usuarios') {
     fetchUsers();
+  } else if (id === 'auditoria') {
+    loadAuditLog();
   }
 }
 
@@ -4900,11 +4969,12 @@ const PAGE_DEFINITIONS = [
   {id: 'mesa',           icon: '🎫', label: 'Mesa de Ayuda'},
   {id: 'agentes',        icon: '🤖', label: 'Agentes IA'},
   {id: 'informes',       icon: '📈', label: 'Informes'},
-  {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'}
+  {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'},
+  {id: 'auditoria',      icon: '📋', label: 'Auditoría'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -5591,6 +5661,94 @@ window.onload = () => {
       .catch(() => {});
   }, 5000);
 };
+
+// ═══════════════ AUDITORÍA ISO 27001 ═══════════════
+function loadAuditLog() {
+  fetch('/api/audit-log', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      const logs = data.audit_log || [];
+      const filterAction = document.getElementById('auditFilterAction').value;
+      const filterResult = document.getElementById('auditFilterResult').value;
+
+      let filtered = logs;
+      if (filterAction) filtered = filtered.filter(l => l.action === filterAction);
+      if (filterResult) filtered = filtered.filter(l => l.result === filterResult);
+
+      // Update KPIs
+      document.getElementById('auditTotalEvents').textContent = logs.length;
+      document.getElementById('auditSuccessCount').textContent = logs.filter(l => l.result === 'SUCCESS').length;
+      document.getElementById('auditFailCount').textContent = logs.filter(l => l.result === 'FAILURE').length;
+      const uniqueActors = new Set(logs.map(l => l.actor_email));
+      document.getElementById('auditUniqueUsers').textContent = uniqueActors.size;
+
+      // Render table
+      const tbody = document.getElementById('auditTableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">No hay registros de auditoría</td></tr>';
+        return;
+      }
+
+      const actionIcons = {
+        'LOGIN': '🔓', 'LOGIN_FAILED': '🔴', 'CREATE_USER': '👤',
+        'UPDATE_USER': '✏️', 'DEACTIVATE_USER': '🗑️', 'CHANGE_PASSWORD': '🔑',
+        'RESET_2FA': '🔄', 'EXPORT_DATA': '📥'
+      };
+      const actionColors = {
+        'LOGIN': '#10B981', 'LOGIN_FAILED': '#EF4444', 'CREATE_USER': '#6C9FFF',
+        'UPDATE_USER': '#FBBF24', 'DEACTIVATE_USER': '#EF4444', 'CHANGE_PASSWORD': '#A78BFA',
+        'RESET_2FA': '#06B6D4', 'EXPORT_DATA': '#F97316'
+      };
+
+      tbody.innerHTML = filtered.map(function(log) {
+        var icon = actionIcons[log.action] || '📋';
+        var color = actionColors[log.action] || '#64748B';
+        var ts = log.timestamp ? new Date(log.timestamp).toLocaleString('es-CO') : '';
+        var resultBadge = log.result === 'SUCCESS'
+          ? '<span style="background:rgba(16,185,129,0.12);color:#10B981;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">✅ Exitoso</span>'
+          : '<span style="background:rgba(239,68,68,0.12);color:#EF4444;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600">❌ Fallido</span>';
+        var details = log.details || '';
+        try { var d = JSON.parse(details); details = Object.entries(d).map(function(e) { return e[0] + ': ' + e[1]; }).join(', '); } catch(e) {}
+        var targetId = log.target_id ? '(' + log.target_id.substring(0,8) + '...)' : '';
+
+        return '<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">'
+          + '<td style="padding:10px 14px;color:var(--text2);font-size:12px;white-space:nowrap">' + ts + '</td>'
+          + '<td style="padding:10px 14px"><span style="color:' + color + ';font-weight:600">' + icon + ' ' + log.action + '</span></td>'
+          + '<td style="padding:10px 14px;color:var(--text2)">' + (log.actor_email || '') + '</td>'
+          + '<td style="padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text3)">' + (log.actor_ip || '') + '</td>'
+          + '<td style="padding:10px 14px;color:var(--text2);font-size:12px">' + (log.target_type || '') + ' ' + targetId + '</td>'
+          + '<td style="padding:10px 14px;color:var(--text3);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis">' + details + '</td>'
+          + '<td style="padding:10px 14px">' + resultBadge + '</td>'
+          + '</tr>';
+      }).join('');
+    })
+    .catch(function(err) {
+      console.error('[AUDIT] Error loading:', err);
+      document.getElementById('auditTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#EF4444">Error cargando auditoría</td></tr>';
+    });
+}
+
+function exportAuditCSV() {
+  fetch('/api/audit-log', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      const logs = data.audit_log || [];
+      const headers = ['Fecha','Acción','Actor','IP','Tipo Objetivo','ID Objetivo','Detalles','Resultado'];
+      const csv = [headers.join(','), ...logs.map(function(l) {
+        return [
+          l.timestamp, l.action, l.actor_email, l.actor_ip,
+          l.target_type, l.target_id,
+          '"' + (l.details || '').replace(/"/g, '""') + '"',
+          l.result
+        ].join(',');
+      })].join('\n');
+      var blob = new Blob([csv], {type: 'text/csv'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'audit_log_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+    });
+}
 </script>
 <!-- CHATBOT FLOTANTE GLOBAL -->
 <!-- ========================================== -->
