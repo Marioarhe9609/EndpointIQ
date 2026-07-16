@@ -229,8 +229,8 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso"},
-    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso", "incidentes", "capacitacion"},
+    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso", "incidentes", "capacitacion"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
 
@@ -2790,6 +2790,76 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             self.send_json(report)
             return
 
+            # ── ISO 27001: Incident Management (A.5.24) ──
+        elif path == "/api/incidents":
+            session = self.require_auth()
+            if not session:
+                return
+            try:
+                rows = run_bq_query("""
+                    SELECT incident_id, title, category, severity, status,
+                           reported_by, reported_at, description,
+                           affected_systems, resolution, resolved_at
+                    FROM onyx.eq_incidents
+                    ORDER BY reported_at DESC
+                    LIMIT 200
+                """)
+            except Exception:
+                rows = []
+            total = len(rows)
+            open_inc = sum(1 for r in rows if r.get("status") in ("open", "investigating"))
+            resolved = sum(1 for r in rows if r.get("status") == "resolved")
+            critical = sum(1 for r in rows if r.get("severity") == "critical")
+            self.send_json({"incidents": rows, "total": total, "open": open_inc, "resolved": resolved, "critical": critical})
+            return
+
+            # ── ISO 27001: Training & Awareness (A.6.3) ──
+        elif path == "/api/training":
+            session = self.require_auth()
+            if not session:
+                return
+            try:
+                modules = run_bq_query("""
+                    SELECT module_id, title, category, description,
+                           duration_minutes, is_mandatory, created_at
+                    FROM onyx.eq_training_modules
+                    WHERE is_active = true
+                    ORDER BY category, title
+                """)
+            except Exception:
+                modules = []
+            # Get completions for current user
+            uid = session["user_id"]
+            try:
+                import re as _re
+                safe_uid = _re.sub(r'[^a-fA-F0-9\-]', '', uid)
+                completions = run_bq_query(f"""
+                    SELECT module_id, completed_at, score
+                    FROM onyx.eq_training_completions
+                    WHERE user_id = '{safe_uid}'
+                """)
+                comp_map = {c["module_id"]: c for c in completions}
+            except Exception:
+                comp_map = {}
+            for m in modules:
+                c = comp_map.get(m.get("module_id", ""))
+                m["completed"] = c is not None
+                m["completed_at"] = c.get("completed_at", "") if c else ""
+                m["score"] = c.get("score", 0) if c else 0
+            total_modules = len(modules)
+            completed = sum(1 for m in modules if m["completed"])
+            mandatory = sum(1 for m in modules if m.get("is_mandatory"))
+            mandatory_done = sum(1 for m in modules if m.get("is_mandatory") and m["completed"])
+            self.send_json({
+                "modules": modules,
+                "total": total_modules,
+                "completed": completed,
+                "mandatory": mandatory,
+                "mandatory_completed": mandatory_done,
+                "completion_pct": round(completed / total_modules * 100, 1) if total_modules else 0
+            })
+            return
+
         elif path == "/api/installer-download":
             # Serve Onyx Agent installer as a ZIP — admin only
             session = self.get_current_session()
@@ -3851,6 +3921,111 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             try:
                 run_bq_insert("onyx.eq_policy_acceptances", acceptance)
                 audit_log("ACCEPT_POLICY", session["email"], self.client_address[0], "POLICY", body.get("policy_id", ""))
+                self.send_json({"ok": True})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/incidents/create":
+            session = self.require_auth()
+            if not session:
+                return
+            incident = {
+                "incident_id": str(uuid.uuid4()),
+                "title": body.get("title", ""),
+                "category": body.get("category", "General"),
+                "severity": body.get("severity", "medium"),
+                "status": "open",
+                "reported_by": session["email"],
+                "reported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "description": body.get("description", ""),
+                "affected_systems": body.get("affected_systems", ""),
+                "resolution": "",
+                "resolved_at": None
+            }
+            try:
+                run_bq_insert("onyx.eq_incidents", incident)
+                audit_log("CREATE_INCIDENT", session["email"], self.client_address[0], "INCIDENT", incident["incident_id"], {"title": incident["title"], "severity": incident["severity"]})
+                self.send_json({"ok": True, "incident_id": incident["incident_id"]})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/incidents/update":
+            session = self.require_auth()
+            if not session:
+                return
+            inc_id = body.get("incident_id", "")
+            import re as _re
+            safe_id = _re.sub(r'[^a-fA-F0-9\-]', '', inc_id)
+            if not safe_id or safe_id != inc_id:
+                self.send_json({"error": "Invalid incident_id"}, 400)
+                return
+            ALLOWED_STATUSES = {"open", "investigating", "contained", "resolved", "closed"}
+            updates = []
+            if body.get("status"):
+                status = body["status"].strip().lower()
+                if status not in ALLOWED_STATUSES:
+                    self.send_json({"error": f"Invalid status. Allowed: {', '.join(sorted(ALLOWED_STATUSES))}"}, 400)
+                    return
+                updates.append(f"status = '{status}'")
+                if status == "resolved":
+                    updates.append(f"resolved_at = '{datetime.datetime.now(datetime.timezone.utc).isoformat()}'")
+            if body.get("resolution"):
+                res = body["resolution"].replace("'", "''").replace("\\", "").replace(";", "")
+                updates.append(f"resolution = '{res}'")
+            if updates:
+                try:
+                    sql = f"UPDATE onyx.eq_incidents SET {', '.join(updates)} WHERE incident_id = '{safe_id}'"
+                    run_bq_query(sql)
+                    audit_log("UPDATE_INCIDENT", session["email"], self.client_address[0], "INCIDENT", inc_id, {"status": body.get("status", "")})
+                    self.send_json({"ok": True})
+                except Exception as e:
+                    self.send_json({"error": str(e)}, 500)
+            else:
+                self.send_json({"error": "No changes"}, 400)
+            return
+
+        elif path == "/api/training/create":
+            session = self.require_auth()
+            if not session or session["role"] != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            module = {
+                "module_id": str(uuid.uuid4()),
+                "title": body.get("title", ""),
+                "category": body.get("category", "General"),
+                "description": body.get("description", ""),
+                "content": body.get("content", ""),
+                "duration_minutes": body.get("duration_minutes", 15),
+                "is_mandatory": body.get("is_mandatory", True),
+                "is_active": True,
+                "created_by": session["email"],
+                "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }
+            try:
+                run_bq_insert("onyx.eq_training_modules", module)
+                audit_log("CREATE_TRAINING", session["email"], self.client_address[0], "TRAINING", module["module_id"], {"title": module["title"]})
+                self.send_json({"ok": True, "module_id": module["module_id"]})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/training/complete":
+            session = self.require_auth()
+            if not session:
+                return
+            completion = {
+                "completion_id": str(uuid.uuid4()),
+                "module_id": body.get("module_id", ""),
+                "user_id": session["user_id"],
+                "user_email": session["email"],
+                "completed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "score": body.get("score", 100)
+            }
+            try:
+                run_bq_insert("onyx.eq_training_completions", completion)
+                audit_log("COMPLETE_TRAINING", session["email"], self.client_address[0], "TRAINING", body.get("module_id", ""))
                 self.send_json({"ok": True})
             except Exception as e:
                 self.send_json({"error": str(e)}, 500)

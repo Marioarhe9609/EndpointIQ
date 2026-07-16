@@ -930,6 +930,14 @@
               <span class="nav-icon">📊</span>
               <span class="nav-label">Informe ISO</span>
             </a>
+            <a href="#" class="nav-item" data-view="incidentes" data-requires="incidentes" onclick="showView('incidentes')">
+              <span class="nav-icon">🚨</span>
+              <span class="nav-label">Incidentes</span>
+            </a>
+            <a href="#" class="nav-item" data-view="capacitacion" data-requires="capacitacion" onclick="showView('capacitacion')">
+              <span class="nav-icon">🎓</span>
+              <span class="nav-label">Capacitación</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2624,6 +2632,69 @@
           </div>
         </div>
 
+        <div class="view" id="view-incidentes">
+          <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">🚨 Gestión de Incidentes</h2>
+              <p style="color:var(--text3);font-size:13px;margin-top:4px">Reporte y seguimiento de incidentes de seguridad — ISO 27001 A.5.24</p>
+            </div>
+            <button onclick="showCreateIncidentModal()" class="btn btn-primary">➕ Reportar Incidente</button>
+          </div>
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card blue"><div class="kpi-label">Total Incidentes</div><div class="kpi-value" id="incTotal">0</div><div class="kpi-delta">Registrados</div><div class="kpi-icon-bg">📋</div></div>
+            <div class="kpi-card red"><div class="kpi-label">Abiertos</div><div class="kpi-value" id="incOpen">0</div><div class="kpi-delta">Requieren atención</div><div class="kpi-icon-bg">🔴</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Resueltos</div><div class="kpi-value" id="incResolved">0</div><div class="kpi-delta">Cerrados</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Críticos</div><div class="kpi-value" id="incCritical">0</div><div class="kpi-delta">Alta prioridad</div><div class="kpi-icon-bg">⚠️</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>🚨</span><span class="card-title">Registro de Incidentes</span>
+              <button onclick="loadIncidents()" class="btn btn-primary" style="margin-left:auto">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Severidad</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Título</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Categoría</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Estado</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Reportado Por</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Fecha</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="incidentsTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Cargando incidentes...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-capacitacion">
+          <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">🎓 Capacitación en Seguridad</h2>
+              <p style="color:var(--text3);font-size:13px;margin-top:4px">Formación y concienciación — ISO 27001 A.6.3</p>
+            </div>
+            <button onclick="showCreateTrainingModal()" class="btn btn-primary">➕ Nuevo Módulo</button>
+          </div>
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card blue"><div class="kpi-label">Total Módulos</div><div class="kpi-value" id="trainTotal">0</div><div class="kpi-delta">Disponibles</div><div class="kpi-icon-bg">📚</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Completados</div><div class="kpi-value" id="trainCompleted">0</div><div class="kpi-delta">Por ti</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Obligatorios</div><div class="kpi-value" id="trainMandatory">0</div><div class="kpi-delta">Requeridos</div><div class="kpi-icon-bg">⚠️</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Progreso</div><div class="kpi-value" id="trainProgress">0%</div><div class="kpi-delta">Completado</div><div class="kpi-icon-bg">🎯</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>📚</span><span class="card-title">Módulos de Capacitación</span>
+              <button onclick="loadTraining()" class="btn btn-primary" style="margin-left:auto">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" id="trainingModulesBody" style="padding:16px">
+              <p style="color:var(--text3);text-align:center">Cargando módulos...</p>
+            </div>
+          </div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2649,7 +2720,9 @@ const titles = {
   cumplimiento:  'Cumplimiento ISO 27001',
   dlp: 'DLP & Vulnerabilidades',
   politicas: 'Políticas de Seguridad',
-  'informes-iso': 'Informe ISO 27001'
+  'informes-iso': 'Informe ISO 27001',
+  incidentes: 'Gestión de Incidentes',
+  capacitacion: 'Capacitación en Seguridad'
 };
 
 // ── Navegación de Vistas ──
@@ -2689,6 +2762,8 @@ function showView(id) {
             else if (id === 'dlp') { loadDLP(); }
             else if (id === 'politicas') { loadPolicies(); }
             else if (id === 'informes-iso') { loadISOReport(); }
+            else if (id === 'incidentes') { loadIncidents(); }
+            else if (id === 'capacitacion') { loadTraining(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -5212,11 +5287,13 @@ const PAGE_DEFINITIONS = [
   {id: 'cumplimiento',   icon: '🛡️', label: 'Cumplimiento'},
   {id: 'dlp', icon: '🔒', label: 'DLP'},
   {id: 'politicas', icon: '📜', label: 'Políticas'},
-  {id: 'informes-iso', icon: '📊', label: 'Informe ISO'}
+  {id: 'informes-iso', icon: '📊', label: 'Informe ISO'},
+  {id: 'incidentes', icon: '🚨', label: 'Incidentes'},
+  {id: 'capacitacion', icon: '🎓', label: 'Capacitación'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso','incidentes','capacitacion'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -6255,6 +6332,187 @@ function exportISOCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = 'ISO27001_Report_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
+}
+
+// ═══════ GESTIÓN DE INCIDENTES (A.5.24) ═══════
+function loadIncidents() {
+  fetch('/api/incidents', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('incTotal').textContent = data.total || 0;
+      document.getElementById('incOpen').textContent = data.open || 0;
+      document.getElementById('incResolved').textContent = data.resolved || 0;
+      document.getElementById('incCritical').textContent = data.critical || 0;
+      const tbody = document.getElementById('incidentsTableBody');
+      const incidents = data.incidents || [];
+      if (!incidents.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">✅ Sin incidentes registrados</td></tr>';
+        return;
+      }
+      tbody.innerHTML = incidents.map(inc => {
+        const sevMap = {critical: {bg:'rgba(239,68,68,0.12)',color:'#EF4444',label:'🔴 Crítico'}, high: {bg:'rgba(251,191,36,0.12)',color:'#FBBF24',label:'🟠 Alto'}, medium: {bg:'rgba(108,159,255,0.12)',color:'#6C9FFF',label:'🔵 Medio'}, low: {bg:'rgba(16,185,129,0.12)',color:'#10B981',label:'🟢 Bajo'}};
+        const sev = sevMap[inc.severity] || sevMap.medium;
+        const statusMap = {open: {bg:'rgba(239,68,68,0.12)',color:'#EF4444',label:'Abierto'}, investigating: {bg:'rgba(251,191,36,0.12)',color:'#FBBF24',label:'Investigando'}, resolved: {bg:'rgba(16,185,129,0.12)',color:'#10B981',label:'Resuelto'}, closed: {bg:'rgba(107,114,128,0.12)',color:'#6B7280',label:'Cerrado'}};
+        const st = statusMap[inc.status] || statusMap.open;
+        const incId = String(inc.incident_id).replace(/[^a-zA-Z0-9_-]/g, '');
+        const actions = inc.status !== 'resolved' && inc.status !== 'closed'
+          ? '<button onclick="resolveIncident(\'' + incId + '\')" style="background:rgba(16,185,129,0.12);color:#10B981;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">✅ Resolver</button>'
+          : '<span style="color:var(--text3);font-size:11px">Resuelto</span>';
+        const safeTitle = (inc.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeCat = (inc.category || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeBy = (inc.reported_by || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">' +
+          '<td style="padding:10px 14px"><span style="background:' + sev.bg + ';color:' + sev.color + ';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">' + sev.label + '</span></td>' +
+          '<td style="padding:10px 14px;color:var(--text);font-weight:500">' + safeTitle + '</td>' +
+          '<td style="padding:10px 14px;color:var(--text2)">' + safeCat + '</td>' +
+          '<td style="padding:10px 14px"><span style="background:' + st.bg + ';color:' + st.color + ';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">' + st.label + '</span></td>' +
+          '<td style="padding:10px 14px;color:var(--text3)">' + safeBy + '</td>' +
+          '<td style="padding:10px 14px;color:var(--text3)">' + (inc.reported_at ? new Date(inc.reported_at).toLocaleDateString() : '') + '</td>' +
+          '<td style="padding:10px 14px">' + actions + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(err => console.error('[INCIDENTS]', err));
+}
+
+function showCreateIncidentModal() {
+  const cats = ['Brecha de Datos','Malware/Ransomware','Acceso No Autorizado','Phishing','Pérdida de Equipo','Falla de Sistema','Vulnerabilidad Detectada','Incumplimiento de Política','Otro'];
+  const catOpts = cats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+  const modal = document.createElement('div');
+  modal.id = 'incidentModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div class="login-card" style="animation:loginSlideUp 0.3s;max-width:500px;width:90%">' +
+      '<h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">🚨 Reportar Incidente</h3>' +
+      '<div class="login-field"><label>Título</label><input id="incTitle" placeholder="Breve descripción del incidente" /></div>' +
+      '<div class="login-field"><label>Categoría</label><select id="incCategory" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui)">' + catOpts + '</select></div>' +
+      '<div class="login-field"><label>Severidad</label><select id="incSeverity" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui)"><option value="low">🟢 Bajo</option><option value="medium" selected>🔵 Medio</option><option value="high">🟠 Alto</option><option value="critical">🔴 Crítico</option></select></div>' +
+      '<div class="login-field"><label>Descripción Detallada</label><textarea id="incDesc" rows="4" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui);resize:vertical" placeholder="Describe qué sucedió, cuándo y cómo se detectó..."></textarea></div>' +
+      '<div class="login-field"><label>Sistemas Afectados</label><input id="incSystems" placeholder="Ej: Servidor de correo, Base de datos" /></div>' +
+      '<div id="incError" class="login-error"></div>' +
+      '<div style="display:flex;gap:10px">' +
+        '<button onclick="document.getElementById(\'incidentModal\').remove()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>' +
+        '<button onclick="createIncident()" class="login-btn" style="flex:1;margin-top:0">🚨 Reportar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+function createIncident() {
+  const title = document.getElementById('incTitle').value.trim();
+  if (!title) { document.getElementById('incError').textContent = 'El título es requerido'; return; }
+  fetch('/api/incidents/create', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title, category: document.getElementById('incCategory').value,
+      severity: document.getElementById('incSeverity').value,
+      description: document.getElementById('incDesc').value,
+      affected_systems: document.getElementById('incSystems').value
+    })
+  }).then(r => r.json()).then(data => {
+    if (data.ok) { document.getElementById('incidentModal').remove(); loadIncidents(); }
+    else { document.getElementById('incError').textContent = data.error || 'Error'; }
+  }).catch(() => { document.getElementById('incError').textContent = 'Error de conexión'; });
+}
+
+function resolveIncident(id) {
+  const res = prompt('Describe la resolución del incidente:');
+  if (!res) return;
+  fetch('/api/incidents/update', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({incident_id: id, status: 'resolved', resolution: res})
+  }).then(r => r.json()).then(data => { if (data.ok) loadIncidents(); });
+}
+
+// ═══════ CAPACITACIÓN EN SEGURIDAD (A.6.3) ═══════
+function loadTraining() {
+  fetch('/api/training', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('trainTotal').textContent = data.total || 0;
+      document.getElementById('trainCompleted').textContent = data.completed || 0;
+      document.getElementById('trainMandatory').textContent = data.mandatory || 0;
+      document.getElementById('trainProgress').textContent = (data.completion_pct || 0) + '%';
+      const container = document.getElementById('trainingModulesBody');
+      const modules = data.modules || [];
+      if (!modules.length) {
+        container.innerHTML = '<p style="color:var(--text3);text-align:center">No hay módulos de capacitación. Crea uno con el botón ➕</p>';
+        return;
+      }
+      container.innerHTML = modules.map(m => {
+        const modId = String(m.module_id).replace(/[^a-zA-Z0-9_-]/g, '');
+        const badge = m.completed
+          ? '<span style="background:rgba(16,185,129,0.12);color:#10B981;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600">✅ Completado</span>'
+          : '<button onclick="completeTraining(\'' + modId + '\')" style="background:linear-gradient(135deg,#6C9FFF,#A78BFA);color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🎓 Completar</button>';
+        const mandBadge = m.is_mandatory ? '<span style="background:rgba(239,68,68,0.12);color:#EF4444;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-left:8px">OBLIGATORIO</span>' : '';
+        const safeTitle = (m.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeDesc = (m.description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeCat = (m.category || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<div style="padding:16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:var(--surface2)">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+            '<div><span style="font-weight:600;color:var(--text);font-size:14px">' + safeTitle + '</span>' + mandBadge + '</div>' +
+            badge +
+          '</div>' +
+          '<p style="color:var(--text2);font-size:13px;margin:0 0 8px;line-height:1.5">' + safeDesc + '</p>' +
+          '<div style="display:flex;gap:16px;font-size:12px;color:var(--text3)">' +
+            '<span>📂 ' + safeCat + '</span>' +
+            '<span>⏱️ ' + (m.duration_minutes || 15) + ' min</span>' +
+            (m.completed_at ? '<span>✅ ' + new Date(m.completed_at).toLocaleDateString() + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(err => console.error('[TRAINING]', err));
+}
+
+function showCreateTrainingModal() {
+  const cats = ['Seguridad de la Información','Phishing y Ingeniería Social','Protección de Datos','Control de Acceso','Respuesta a Incidentes','Uso de Dispositivos','Políticas Corporativas'];
+  const catOpts = cats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+  const modal = document.createElement('div');
+  modal.id = 'trainingModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div class="login-card" style="animation:loginSlideUp 0.3s;max-width:500px;width:90%">' +
+      '<h3 style="margin:0 0 20px;font-family:var(--font-disp);color:var(--text)">🎓 Nuevo Módulo de Capacitación</h3>' +
+      '<div class="login-field"><label>Título</label><input id="trainTitle" placeholder="Ej: Prevención de Phishing" /></div>' +
+      '<div class="login-field"><label>Categoría</label><select id="trainCategory" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui)">' + catOpts + '</select></div>' +
+      '<div class="login-field"><label>Descripción</label><textarea id="trainDesc" rows="3" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui);resize:vertical" placeholder="Qué aprenderá el usuario..."></textarea></div>' +
+      '<div class="login-field"><label>Contenido / Material</label><textarea id="trainContent" rows="5" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-ui);resize:vertical" placeholder="Instrucciones, links, material de estudio..."></textarea></div>' +
+      '<div class="login-field"><label>Duración (minutos)</label><input id="trainDuration" type="number" value="15" min="5" max="120" /></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><input type="checkbox" id="trainMandatoryCheck" checked /><label style="color:var(--text2);font-size:13px">Módulo obligatorio</label></div>' +
+      '<div id="trainError" class="login-error"></div>' +
+      '<div style="display:flex;gap:10px">' +
+        '<button onclick="document.getElementById(\'trainingModal\').remove()" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:var(--font-ui)">Cancelar</button>' +
+        '<button onclick="createTraining()" class="login-btn" style="flex:1;margin-top:0">💾 Crear Módulo</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+function createTraining() {
+  const title = document.getElementById('trainTitle').value.trim();
+  if (!title) { document.getElementById('trainError').textContent = 'El título es requerido'; return; }
+  fetch('/api/training/create', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title, category: document.getElementById('trainCategory').value,
+      description: document.getElementById('trainDesc').value,
+      content: document.getElementById('trainContent').value,
+      duration_minutes: parseInt(document.getElementById('trainDuration').value) || 15,
+      is_mandatory: document.getElementById('trainMandatoryCheck').checked
+    })
+  }).then(r => r.json()).then(data => {
+    if (data.ok) { document.getElementById('trainingModal').remove(); loadTraining(); }
+    else { document.getElementById('trainError').textContent = data.error || 'Error'; }
+  }).catch(() => { document.getElementById('trainError').textContent = 'Error de conexión'; });
+}
+
+function completeTraining(moduleId) {
+  if (!confirm('¿Confirmas que has completado este módulo de capacitación?')) return;
+  fetch('/api/training/complete', {
+    method: 'POST', credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({module_id: moduleId, score: 100})
+  }).then(r => r.json()).then(data => { if (data.ok) loadTraining(); });
 }
 </script>
 <!-- CHATBOT FLOTANTE GLOBAL -->
