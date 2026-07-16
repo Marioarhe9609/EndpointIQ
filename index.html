@@ -918,6 +918,10 @@
               <span class="nav-icon">🛡️</span>
               <span class="nav-label">Cumplimiento</span>
             </a>
+            <a href="#" class="nav-item" data-view="dlp" data-requires="dlp" onclick="showView('dlp')">
+              <span class="nav-icon">🔒</span>
+              <span class="nav-label">DLP</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2486,6 +2490,48 @@
           </div>
         </div>
 
+        <div class="view" id="view-dlp">
+          <div style="margin-bottom:20px">
+            <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">🔒 DLP & Vulnerabilidades</h2>
+            <p style="color:var(--text3);font-size:13px;margin-top:4px">Prevención de pérdida de datos — ISO 27001 A.8.12</p>
+          </div>
+
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card red"><div class="kpi-label">Alertas Críticas</div><div class="kpi-value" id="dlpCritical">0</div><div class="kpi-delta">Remote access / exfiltración</div><div class="kpi-icon-bg">🚨</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Advertencias</div><div class="kpi-value" id="dlpWarnings">0</div><div class="kpi-delta">Cloud sync / USB</div><div class="kpi-icon-bg">⚠️</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Equipos con Alertas</div><div class="kpi-value" id="dlpDevices">0</div><div class="kpi-delta">Dispositivos monitoreados</div><div class="kpi-icon-bg">💻</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Software Inventariado</div><div class="kpi-value" id="dlpSoftware">0</div><div class="kpi-delta">Dispositivos con inventario</div><div class="kpi-icon-bg">📦</div></div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><span>🚨</span><span class="card-title">Alertas DLP en Tiempo Real</span>
+              <button onclick="loadDLP()" class="btn btn-primary" style="margin-left:auto">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Severidad</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Dispositivo</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Tipo</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Detalle</th>
+                  </tr>
+                </thead>
+                <tbody id="dlpAlertsBody">
+                  <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text3)">Cargando alertas DLP...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>📦</span><span class="card-title">Inventario de Software por Dispositivo</span></div>
+            <div class="card-body" id="dlpSoftwareBody" style="padding:16px">
+              <p style="color:var(--text3);text-align:center">Cargando inventario...</p>
+            </div>
+          </div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2508,7 +2554,8 @@ const titles = {
   kpibuilder:    'KPI Builder Asistido por IA',
   usuarios:      'Gestión de Usuarios',
   auditoria:     'Auditoría ISO 27001',
-  cumplimiento:  'Cumplimiento ISO 27001'
+  cumplimiento:  'Cumplimiento ISO 27001',
+  dlp: 'DLP & Vulnerabilidades'
 };
 
 // ── Navegación de Vistas ──
@@ -2545,6 +2592,7 @@ function showView(id) {
   } else if (id === 'auditoria') {
     loadAuditLog();
   } else if (id === 'cumplimiento') { loadCompliance(); }
+            else if (id === 'dlp') { loadDLP(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -5044,11 +5092,12 @@ const PAGE_DEFINITIONS = [
   {id: 'informes',       icon: '📈', label: 'Informes'},
   {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'},
   {id: 'auditoria',      icon: '📋', label: 'Auditoría'},
-  {id: 'cumplimiento',   icon: '🛡️', label: 'Cumplimiento'}
+  {id: 'cumplimiento',   icon: '🛡️', label: 'Cumplimiento'},
+  {id: 'dlp', icon: '🔒', label: 'DLP'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -5885,6 +5934,62 @@ function loadCompliance() {
     .catch(err => {
       console.error('[COMPLIANCE] Error:', err);
       document.getElementById('compTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#EF4444">Error cargando datos</td></tr>';
+    });
+}
+
+// ═══════ DLP & VULNERABILIDADES ═══════
+function loadDLP() {
+  fetch('/api/dlp-dashboard', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('dlpCritical').textContent = data.critical_alerts || 0;
+      document.getElementById('dlpWarnings').textContent = data.warning_alerts || 0;
+      document.getElementById('dlpDevices').textContent = data.devices_with_alerts || 0;
+      document.getElementById('dlpSoftware').textContent = data.total_software_devices || 0;
+      
+      const tbody = document.getElementById('dlpAlertsBody');
+      const alerts = data.alerts || [];
+      if (!alerts.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text3)">✅ Sin alertas DLP — Todo seguro</td></tr>';
+      } else {
+        tbody.innerHTML = alerts.map(a => {
+          const sevColors = {critical: {bg: 'rgba(239,68,68,0.12)', color: '#EF4444', label: '🔴 Crítico'}, warning: {bg: 'rgba(251,191,36,0.12)', color: '#FBBF24', label: '🟡 Advertencia'}, info: {bg: 'rgba(108,159,255,0.12)', color: '#6C9FFF', label: '🔵 Info'}};
+          const sev = sevColors[a.severity] || sevColors.info;
+          return `<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">
+            <td style="padding:10px 14px"><span style="background:${sev.bg};color:${sev.color};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">${sev.label}</span></td>
+            <td style="padding:10px 14px;color:var(--text);font-weight:500">${a.hostname || a.device_id}</td>
+            <td style="padding:10px 14px;color:var(--text2)">${a.icon} ${a.type}</td>
+            <td style="padding:10px 14px;color:var(--text2)">${a.detail}</td>
+          </tr>`;
+        }).join('');
+      }
+      
+      // Software inventory
+      const swBody = document.getElementById('dlpSoftwareBody');
+      const swInv = data.software_inventory || {};
+      const deviceIds = Object.keys(swInv);
+      if (!deviceIds.length) {
+        swBody.innerHTML = '<p style="color:var(--text3);text-align:center">Sin datos de inventario. Esperando actualización de agentes...</p>';
+        return;
+      }
+      
+      let html = '';
+      deviceIds.forEach(did => {
+        const dev = swInv[did];
+        html += `<div style="margin-bottom:16px">`;
+        html += `<h4 style="margin:0 0 8px;color:var(--text);font-family:var(--font-disp)">${dev.hostname || did} <span style="font-size:12px;color:var(--text3);font-weight:400">(${dev.count} apps)</span></h4>`;
+        html += `<div style="display:flex;flex-wrap:wrap;gap:6px">`;
+        (dev.software || []).slice(0, 30).forEach(s => {
+          html += `<span style="background:var(--surface2);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--text2)">${s.name} <span style="color:var(--text3)">${s.version || ''}</span></span>`;
+        });
+        if (dev.count > 30) html += `<span style="padding:4px 10px;font-size:11px;color:var(--text3)">+${dev.count - 30} más</span>`;
+        html += `</div></div>`;
+      });
+      swBody.innerHTML = html;
+    })
+    .catch(err => {
+      console.error('[DLP] Error:', err);
+      document.getElementById('dlpAlertsBody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:#EF4444">Error cargando DLP</td></tr>';
     });
 }
 </script>

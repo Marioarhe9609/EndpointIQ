@@ -229,8 +229,8 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento"},
-    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp"},
+    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
 
@@ -2584,6 +2584,55 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "compliant_devices": compliant,
                 "critical_devices": critical,
                 "devices": sorted(devices, key=lambda x: x["score"])
+            })
+            return
+
+        # ── ISO 27001: DLP Dashboard ──
+        elif path == "/api/dlp-dashboard":
+            session = self.require_auth()
+            if not session:
+                return
+            dlp_alerts = []
+            sw_inventory = {}
+            with cache_lock:
+                for m in cache.get("latest_metrics", []):
+                    d_id = m.get("device_id", "")
+                    if not d_id:
+                        continue
+                    try:
+                        cloud = json.loads(m.get("dlp_cloud_sync", "[]")) if isinstance(m.get("dlp_cloud_sync"), str) else m.get("dlp_cloud_sync", [])
+                        remote = json.loads(m.get("dlp_remote_access", "[]")) if isinstance(m.get("dlp_remote_access"), str) else m.get("dlp_remote_access", [])
+                        capture = json.loads(m.get("dlp_screen_capture", "[]")) if isinstance(m.get("dlp_screen_capture"), str) else m.get("dlp_screen_capture", [])
+                        usb_events = m.get("dlp_usb_write_events", 0)
+                        hostname = d_id
+                        for s in cache.get("sync_status", []):
+                            if s.get("device_id") == d_id:
+                                hostname = s.get("hostname", d_id)
+                                break
+                        for app in (cloud or []):
+                            dlp_alerts.append({"device_id": d_id, "hostname": hostname, "type": "Cloud Sync", "severity": "warning", "detail": app, "icon": "\u2601\ufe0f"})
+                        for app in (remote or []):
+                            dlp_alerts.append({"device_id": d_id, "hostname": hostname, "type": "Remote Access", "severity": "critical", "detail": app, "icon": "\ud83d\udda5\ufe0f"})
+                        for app in (capture or []):
+                            dlp_alerts.append({"device_id": d_id, "hostname": hostname, "type": "Screen Capture", "severity": "info", "detail": app, "icon": "\ud83d\udcf8"})
+                        if usb_events and int(usb_events) > 0:
+                            dlp_alerts.append({"device_id": d_id, "hostname": hostname, "type": "USB Activity", "severity": "warning", "detail": f"{usb_events} eventos USB", "icon": "\ud83d\udcbe"})
+                        try:
+                            sw = json.loads(m.get("software_inventory", "[]")) if isinstance(m.get("software_inventory"), str) else m.get("software_inventory", [])
+                            if sw:
+                                sw_inventory[d_id] = {"hostname": hostname, "software": sw, "count": len(sw)}
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+            self.send_json({
+                "total_alerts": len(dlp_alerts),
+                "critical_alerts": sum(1 for a in dlp_alerts if a["severity"] == "critical"),
+                "warning_alerts": sum(1 for a in dlp_alerts if a["severity"] == "warning"),
+                "devices_with_alerts": len(set(a["device_id"] for a in dlp_alerts)),
+                "alerts": sorted(dlp_alerts, key=lambda x: {'critical': 0, 'warning': 1, 'info': 2}.get(x['severity'], 3)),
+                "software_inventory": sw_inventory,
+                "total_software_devices": len(sw_inventory)
             })
             return
 

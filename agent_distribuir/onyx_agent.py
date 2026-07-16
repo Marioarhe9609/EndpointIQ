@@ -1,5 +1,5 @@
 """
-Onyx Agent v3.3.0
+Onyx Agent v3.4.0
 =================
 Monitoring agent for Windows. Sends metrics via HTTP (primary) or
 directly to BigQuery (fallback). Works offline with SQLite buffer.
@@ -10,7 +10,7 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
-# Onyx Agent - version 3.3.0
+# Onyx Agent - version 3.4.0
 # Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
@@ -824,6 +824,121 @@ def get_security_status():
     return result
 
 # ===========================================================================
+# DLP — Data Loss Prevention Monitoring (ISO 27001 A.8.12)
+# ===========================================================================
+def get_dlp_status():
+    """Detect potential data exfiltration vectors."""
+    result = {
+        "cloud_sync_apps": [],
+        "screen_capture_tools": [],
+        "remote_access_tools": [],
+        "usb_write_events": 0
+    }
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+
+        # Cloud sync apps (personal = risk)
+        cloud_apps = {
+            "Dropbox": ["dropbox"],
+            "Google Drive Personal": ["googledrivesync", "googledrivefs"],
+            "MEGA": ["megasync"],
+            "WeTransfer": ["wetransfer"],
+            "pCloud": ["pcloud"],
+            "Telegram Desktop": ["telegram"],
+            "WhatsApp Desktop": ["whatsapp"],
+        }
+        remote_apps = {
+            "TeamViewer": ["teamviewer"],
+            "AnyDesk": ["anydesk"],
+            "UltraVNC": ["ultravnc", "winvnc"],
+            "Chrome Remote Desktop": ["remoting_host"],
+        }
+        capture_apps = {
+            "OBS Studio": ["obs64", "obs32"],
+            "ShareX": ["sharex"],
+            "Lightshot": ["lightshot"],
+            "Snagit": ["snagit"],
+        }
+
+        try:
+            procs = {p.name().lower() for p in psutil.process_iter(['name'])}
+        except Exception:
+            procs = set()
+
+        for app_name, proc_names in cloud_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["cloud_sync_apps"].append(app_name)
+        for app_name, proc_names in remote_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["remote_access_tools"].append(app_name)
+        for app_name, proc_names in capture_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["screen_capture_tools"].append(app_name)
+
+        # USB write events from Windows Event Log (last hour)
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 '(Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-DriverFrameworks-UserMode/Operational";'
+                 'StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue | '
+                 'Where-Object {$_.Message -like "*USB*"}).Count'],
+                capture_output=True, text=True, timeout=10, creationflags=_NW
+            )
+            cnt = r.stdout.strip()
+            if cnt.isdigit():
+                result["usb_write_events"] = int(cnt)
+        except Exception:
+            pass
+
+        if result["cloud_sync_apps"]:
+            log.info("[DLP] Cloud sync detected: %s", ', '.join(result['cloud_sync_apps']))
+        if result["remote_access_tools"]:
+            log.warning("[DLP] Remote access tools: %s", ', '.join(result['remote_access_tools']))
+
+    except Exception as e:
+        log.debug("[DLP] Error: %s", e)
+    return result
+
+# ===========================================================================
+# Software Inventory (ISO 27001 A.8.9)
+# ===========================================================================
+def get_software_inventory():
+    """Get installed software list with versions."""
+    result = []
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+        r = _sub.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             'Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*,'
+             'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* '
+             '-ErrorAction SilentlyContinue | '
+             'Where-Object {$_.DisplayName -and $_.DisplayName.Trim() -ne ""} | '
+             'Select-Object DisplayName,DisplayVersion,Publisher,InstallDate | '
+             'Sort-Object DisplayName | '
+             'ConvertTo-Json -Compress'],
+            capture_output=True, text=True, timeout=15, creationflags=_NW
+        )
+        if r.stdout.strip():
+            sw = _j.loads(r.stdout.strip())
+            if isinstance(sw, dict): sw = [sw]
+            result = [{
+                "name": s.get("DisplayName", ""),
+                "version": s.get("DisplayVersion", ""),
+                "publisher": s.get("Publisher", ""),
+                "install_date": s.get("InstallDate", "")
+            } for s in sw[:100]]  # Limit to 100 entries
+            log.info("[SW] Found %d installed applications", len(result))
+    except Exception as e:
+        log.debug("[SW] Error: %s", e)
+    return result
+
+# ===========================================================================
 # Metrics Collection
 # ===========================================================================
 def collect_metrics():
@@ -1262,6 +1377,8 @@ def collect_metrics():
     # ── GPS Location ──────────────────────────────────────────────────────
     gps_data = get_gps_location()
     security_status = get_security_status()
+    dlp_status = get_dlp_status()
+    software_inventory = get_software_inventory()
 
     metrics_row = {
         "timestamp":          now,
@@ -1294,6 +1411,11 @@ def collect_metrics():
         "uac_enabled":           security_status.get("uac_enabled"),
         "windows_update_pending": security_status.get("windows_update_pending"),
         "last_update_installed": security_status.get("last_update_installed", ""),
+        "dlp_cloud_sync":        json.dumps(dlp_status.get("cloud_sync_apps", [])),
+        "dlp_remote_access":     json.dumps(dlp_status.get("remote_access_tools", [])),
+        "dlp_screen_capture":    json.dumps(dlp_status.get("screen_capture_tools", [])),
+        "dlp_usb_write_events":  dlp_status.get("usb_write_events", 0),
+        "software_inventory":    json.dumps(software_inventory[:50]),
     }
 
 
