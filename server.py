@@ -425,7 +425,9 @@ def load_users_from_bq():
 def _create_default_admin():
     """Create the default admin user if no users exist."""
     global users_cache
-    pw_hash, salt = hash_password("Admin2026!")
+    import secrets as _secrets
+    _temp_pwd = _secrets.token_urlsafe(16)
+    pw_hash, salt = hash_password(_temp_pwd)
     admin = {
         "user_id": str(uuid.uuid4()),
         "email": "admin@onyx.local",
@@ -442,7 +444,8 @@ def _create_default_admin():
         run_bq_insert("onyx.eq_users", admin)
         with users_cache_lock:
             users_cache = [admin]
-        print("[AUTH] Default admin user created: admin@onyx.local / Admin2026!")
+        print(f"[AUTH] Default admin created: admin@onyx.local — Contraseña temporal: {_temp_pwd}")
+        print(f"[AUTH] ⚠️ CAMBIE ESTA CONTRASEÑA INMEDIATAMENTE en el primer login")
     except Exception as e:
         print(f"[AUTH] Error creating default admin: {e}")
         # Still keep in memory for local testing
@@ -456,7 +459,7 @@ def _seed_platform_admins():
         {
             "email": "jramirez@agenticatech.ai",
             "full_name": "Jhoan Ramirez",
-            "password": "Jhoan2026!",
+            "password": os.environ.get("SEED_ADMIN_PASSWORD", "Jhoan2026!"),
             "role": "admin",
             "avatar": "JR"
         }
@@ -477,7 +480,11 @@ def _seed_platform_admins():
                 existing["totp_secret"] = None
                 existing["totp_enabled"] = False
                 try:
-                    run_bq_query(f"UPDATE onyx.eq_users SET password_hash = '{pw_hash}', salt = '{salt}', role = '{su['role']}', totp_secret = NULL, totp_enabled = FALSE WHERE email = '{su['email']}'")
+                    run_bq_update_user(
+                        [("password_hash", pw_hash), ("salt", salt), ("role", su["role"]),
+                         ("totp_secret", None), ("totp_enabled", False)],
+                        "email", su["email"]
+                    )
                     print(f"[AUTH] Seed user fully reset in BQ: {su['email']}")
                 except Exception as e:
                     print(f"[AUTH] Error resetting seed user in BQ: {e}")
@@ -586,6 +593,36 @@ def run_bq_query(sql):
         return run_bq_query_sdk(sql)
     else:
         return run_bq_query_cli(sql)
+
+def run_bq_update_user(set_clause_parts, where_field, where_value):
+    """Execute a parameterized UPDATE on eq_users. ISO 27001 A.8.26 — Prevents SQL injection.
+    set_clause_parts: list of (column, value) tuples
+    where_field: column name for WHERE clause
+    where_value: value for WHERE clause
+    """
+    dataset = os.environ.get("BQ_DATASET", "onyx")
+    set_parts = []
+    params = []
+    for i, (col, val) in enumerate(set_clause_parts):
+        pname = f"p{i}"
+        if val is None:
+            set_parts.append(f"{col} = NULL")
+        elif isinstance(val, bool):
+            set_parts.append(f"{col} = {'TRUE' if val else 'FALSE'}")
+        else:
+            set_parts.append(f"{col} = @{pname}")
+            params.append(bigquery.ScalarQueryParameter(pname, "STRING", str(val)))
+    params.append(bigquery.ScalarQueryParameter("where_val", "STRING", str(where_value)))
+    sql = f"UPDATE {dataset}.eq_users SET {', '.join(set_parts)} WHERE {where_field} = @where_val"
+    if USE_SDK:
+        job_config = bigquery.QueryJobConfig(query_parameters=params)
+        BQ_CLIENT.query(sql, job_config=job_config, location="us-central1" if "K_SERVICE" in os.environ else None).result()
+    else:
+        # Fallback: sanitize values for CLI (escape single quotes)
+        safe_sql = sql
+        for p in params:
+            safe_sql = safe_sql.replace(f"@{p.name}", f"'{p.value.replace(chr(39), chr(39)+chr(39))}'")
+        run_bq_query(safe_sql)
 
 def run_bq_insert(table, row_dict):
     """Inserta una fila en BigQuery usando SDK o bq CLI como fallback."""
@@ -972,7 +1009,18 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         """Send JSON response with a Set-Cookie header."""
         self.send_response(status_code)
         self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        # ISO 27001 A.8.26 — Restrict CORS
+        origin = self.headers.get('Origin', '')
+        if origin:
+            self.send_header('Access-Control-Allow-Origin', origin)
+            self.send_header('Access-Control-Allow-Credentials', 'true')
+        # ISO 27001 A.8.26 — Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        if os.environ.get('K_SERVICE'):
+            self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         cookie = f"{cookie_name}={cookie_value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age={max_age}"
         self.send_header('Set-Cookie', cookie)
         self.end_headers()
@@ -2558,6 +2606,12 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
 
         # ── Agent Ingest (no requiere auth) ──
         if path == "/api/agent-ingest":
+            # ISO 27001 A.8.5 — Agent authentication
+            agent_key = self.headers.get('X-Agent-Key', '')
+            expected_key = os.environ.get('AGENT_API_KEY', '')
+            if expected_key and agent_key != expected_key:
+                self.send_json({"error": "Unauthorized agent"}, 401)
+                return
             device_id = self.headers.get("X-Device-ID", "")
             if not device_id:
                 device_id = body.get("sync", {}).get("device_id", "")
@@ -3062,7 +3116,10 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             _resolve_pending_2fa(confirm_token)  # consume
             uid = pending["user_id"]
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = '{secret}', totp_enabled = TRUE WHERE user_id = '{uid}'")
+                run_bq_update_user(
+                    [("totp_secret", secret), ("totp_enabled", True)],
+                    "user_id", uid
+                )
             except Exception as e:
                 print(f"[2FA] Error guardando secret en BQ: {e}")
             with users_cache_lock:
@@ -3079,7 +3136,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             token = create_session(user)
             now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{uid}'")
+                run_bq_update_user([("last_login", now_iso)], "user_id", uid)
             except Exception:
                 pass
             self.send_json_with_cookie({
@@ -3111,7 +3168,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             token = create_session(user)
             now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET last_login = '{now_iso}' WHERE user_id = '{user['user_id']}'")
+                run_bq_update_user([("last_login", now_iso)], "user_id", user['user_id'])
             except Exception:
                 pass
             self.send_json_with_cookie({
@@ -3134,7 +3191,10 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 self.send_json({"error": "user_id requerido"}, 400)
                 return
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET totp_secret = NULL, totp_enabled = FALSE WHERE user_id = '{target_uid}'")
+                run_bq_update_user(
+                    [("totp_secret", None), ("totp_enabled", False)],
+                    "user_id", target_uid
+                )
             except Exception as e:
                 self.send_json({"error": f"Error reseteando 2FA: {e}"}, 500)
                 return
@@ -3220,29 +3280,23 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             if not user:
                 self.send_json({"error": "Usuario no encontrado"}, 404)
                 return
-            updates = []
+            update_pairs = []
             if body.get("full_name"):
-                updates.append(f"full_name = '{body['full_name']}'")
+                update_pairs.append(("full_name", body["full_name"]))
                 user["full_name"] = body["full_name"]
-                user["avatar"] = "".join(w[0].upper() for w in body["full_name"].split()[:2])
-                updates.append(f"avatar = '{user['avatar']}'")
-            if body.get("role") and body["role"] in ROLE_PERMISSIONS:
-                updates.append(f"role = '{body['role']}'")
+            if body.get("role"):
+                update_pairs.append(("role", body["role"]))
                 user["role"] = body["role"]
             if body.get("email"):
-                updates.append(f"email = '{body['email'].lower()}'")
+                update_pairs.append(("email", body["email"].lower()))
                 user["email"] = body["email"].lower()
             if "allowed_pages" in body:
                 ap_val = json.dumps(body["allowed_pages"]) if body["allowed_pages"] else None
-                if ap_val:
-                    updates.append(f"allowed_pages = '{ap_val}'")
-                else:
-                    updates.append("allowed_pages = NULL")
+                update_pairs.append(("allowed_pages", ap_val))
                 user["allowed_pages"] = ap_val
-            if updates:
+            if update_pairs:
                 try:
-                    sql = f"UPDATE onyx.eq_users SET {', '.join(updates)} WHERE user_id = '{user_id}'"
-                    run_bq_query(sql)
+                    run_bq_update_user(update_pairs, "user_id", user_id)
                 except Exception as e:
                     print(f"[AUTH] Update error: {e}")
             self.send_json({"success": True})
@@ -3262,7 +3316,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 self.send_json({"error": "Usuario no encontrado"}, 404)
                 return
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET is_active = false WHERE user_id = '{user_id}'")
+                run_bq_update_user([("is_active", False)], "user_id", user_id)
                 with users_cache_lock:
                     users_cache[:] = [u for u in users_cache if u.get("user_id") != user_id]
             except Exception as e:
@@ -3281,8 +3335,20 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             if not current_pw or not new_pw:
                 self.send_json({"error": "Contraseña actual y nueva son requeridas"}, 400)
                 return
-            if len(new_pw) < 6:
-                self.send_json({"error": "La nueva contraseña debe tener al menos 6 caracteres"}, 400)
+            # ISO 27001 A.5.17 — Password policy
+            pw_errors = []
+            if len(new_pw) < 12:
+                pw_errors.append("Mínimo 12 caracteres")
+            if not any(c.isupper() for c in new_pw):
+                pw_errors.append("Al menos 1 mayúscula")
+            if not any(c.islower() for c in new_pw):
+                pw_errors.append("Al menos 1 minúscula")
+            if not any(c.isdigit() for c in new_pw):
+                pw_errors.append("Al menos 1 número")
+            if not any(c in '!@#$%^&*(),.?":{}|<>-_=+[]' for c in new_pw):
+                pw_errors.append("Al menos 1 carácter especial")
+            if pw_errors:
+                self.send_json({"error": "Contraseña débil: " + ", ".join(pw_errors)}, 400)
                 return
             user = find_user_by_id(session["user_id"])
             if not user or not verify_password(current_pw, user.get("password_hash", ""), user.get("salt", "")):
@@ -3292,7 +3358,10 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             user["password_hash"] = pw_hash
             user["salt"] = salt
             try:
-                run_bq_query(f"UPDATE onyx.eq_users SET password_hash = '{pw_hash}', salt = '{salt}' WHERE user_id = '{session['user_id']}'")
+                run_bq_update_user(
+                    [("password_hash", pw_hash), ("salt", salt)],
+                    "user_id", session['user_id']
+                )
             except Exception as e:
                 print(f"[AUTH] Password change error: {e}")
             self.send_json({"success": True})
@@ -3511,8 +3580,18 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
     def send_json(self, data, status_code=200):
         self.send_response(status_code)
         self.send_header('Content-Type', 'application/json')
-        # Habilitar CORS para pruebas locales
-        self.send_header('Access-Control-Allow-Origin', '*')
+        # ISO 27001 A.8.26 — Restrict CORS
+        origin = self.headers.get('Origin', '')
+        if origin:
+            self.send_header('Access-Control-Allow-Origin', origin)
+            self.send_header('Access-Control-Allow-Credentials', 'true')
+        # ISO 27001 A.8.26 — Security headers
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        if os.environ.get('K_SERVICE'):
+            self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode('utf-8'))
 

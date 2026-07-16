@@ -556,6 +556,8 @@ def send_via_http(metrics_row, sync_row):
              "network_scan": net_scan},
             default=str
         ).encode("utf-8")
+        agent_key = CONFIG.get("agent_api_key",
+                                 os.environ.get("AGENT_API_KEY", "onyx-agent-key-2026-secure"))
         req = _ur.Request(
             url,
             data=payload,
@@ -563,7 +565,8 @@ def send_via_http(metrics_row, sync_row):
                 "Content-Type":  "application/json",
                 "Content-Length": str(len(payload)),
                 "User-Agent":    "EIQ-Agent/" + CONFIG.get("version", "2.3"),
-                "X-Device-Id":   metrics_row.get("device_id", "")
+                "X-Device-Id":   metrics_row.get("device_id", ""),
+                "X-Agent-Key":   agent_key
             }
         )
         with _ur.urlopen(req, timeout=15) as resp:
