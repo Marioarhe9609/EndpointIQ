@@ -711,6 +711,119 @@ try {
     return result
 
 # ===========================================================================
+# Endpoint Security Status — ISO 27001 A.8.7, A.8.8, A.8.9, A.8.24
+# ===========================================================================
+def get_security_status():
+    """Collect endpoint security posture for ISO 27001 compliance scoring."""
+    result = {
+        "antivirus_name": "",
+        "antivirus_enabled": None,
+        "antivirus_updated": None,
+        "firewall_enabled": None,
+        "bitlocker_enabled": None,
+        "uac_enabled": None,
+        "windows_update_pending": None,
+        "last_update_installed": ""
+    }
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+
+        # ── Antivirus (SecurityCenter2 WMI) ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | '
+                 'Select-Object displayName,productState | ConvertTo-Json -Compress'],
+                capture_output=True, text=True, timeout=10, creationflags=_NW
+            )
+            if r.stdout.strip():
+                av = _j.loads(r.stdout.strip())
+                if isinstance(av, dict): av = [av]
+                if av:
+                    primary = av[0]
+                    result["antivirus_name"] = primary.get("displayName", "")
+                    ps = primary.get("productState", 0)
+                    # productState bitmask: bits 12-8 = enabled, bits 4-0 = updated
+                    result["antivirus_enabled"] = bool((ps >> 12) & 0x1)
+                    result["antivirus_updated"] = not bool((ps >> 4) & 0x1)
+                    log.info("[SEC] Antivirus: %s (enabled=%s, updated=%s)",
+                             result['antivirus_name'], result['antivirus_enabled'], result['antivirus_updated'])
+        except Exception as e:
+            log.debug("[SEC] Antivirus check error: %s", e)
+
+        # ── Firewall ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'Get-NetFirewallProfile | Select-Object Name,Enabled | ConvertTo-Json -Compress'],
+                capture_output=True, text=True, timeout=8, creationflags=_NW
+            )
+            if r.stdout.strip():
+                fw = _j.loads(r.stdout.strip())
+                if isinstance(fw, dict): fw = [fw]
+                result["firewall_enabled"] = all(p.get("Enabled", False) for p in fw)
+                log.info("[SEC] Firewall: %s", result['firewall_enabled'])
+        except Exception as e:
+            log.debug("[SEC] Firewall check error: %s", e)
+
+        # ── BitLocker ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 '(Get-BitLockerVolume -MountPoint C: -ErrorAction SilentlyContinue).ProtectionStatus'],
+                capture_output=True, text=True, timeout=8, creationflags=_NW
+            )
+            out = r.stdout.strip().lower()
+            if 'on' in out or out == '1':
+                result["bitlocker_enabled"] = True
+            elif 'off' in out or out == '0':
+                result["bitlocker_enabled"] = False
+            log.info("[SEC] BitLocker: %s", result['bitlocker_enabled'])
+        except Exception as e:
+            log.debug("[SEC] BitLocker check error: %s", e)
+
+        # ── UAC ──
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                r'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System')
+            val, _ = winreg.QueryValueEx(key, 'EnableLUA')
+            result["uac_enabled"] = bool(val)
+            winreg.CloseKey(key)
+            log.info("[SEC] UAC: %s", result['uac_enabled'])
+        except Exception as e:
+            log.debug("[SEC] UAC check error: %s", e)
+
+        # ── Windows Update ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'try { $s = New-Object -ComObject Microsoft.Update.Session; '
+                 '$u = $s.CreateUpdateSearcher(); '
+                 '$r = $u.Search("IsInstalled=0 AND IsHidden=0"); '
+                 '@{pending=$r.Updates.Count; '
+                 'last_installed=(Get-HotFix | Sort-Object InstalledOn -Descending | '
+                 'Select-Object -First 1).InstalledOn.ToString("yyyy-MM-dd")} '
+                 '| ConvertTo-Json -Compress } catch { @{pending=-1;last_installed=""} | ConvertTo-Json -Compress }'],
+                capture_output=True, text=True, timeout=30, creationflags=_NW
+            )
+            if r.stdout.strip():
+                wu = _j.loads(r.stdout.strip())
+                result["windows_update_pending"] = wu.get("pending", -1)
+                result["last_update_installed"] = wu.get("last_installed", "")
+                log.info("[SEC] Windows Update: %d pending, last=%s",
+                         result['windows_update_pending'], result['last_update_installed'])
+        except Exception as e:
+            log.debug("[SEC] Windows Update check error: %s", e)
+
+    except Exception as e:
+        log.debug("[SEC] Security status error: %s", e)
+    return result
+
+# ===========================================================================
 # Metrics Collection
 # ===========================================================================
 def collect_metrics():
@@ -1148,6 +1261,7 @@ def collect_metrics():
 
     # ── GPS Location ──────────────────────────────────────────────────────
     gps_data = get_gps_location()
+    security_status = get_security_status()
 
     metrics_row = {
         "timestamp":          now,
@@ -1172,6 +1286,14 @@ def collect_metrics():
         "gps_longitude":      gps_data.get("longitude"),
         "gps_accuracy":       gps_data.get("accuracy"),
         "location_enabled":   gps_data.get("location_enabled"),
+        "antivirus_name":        security_status.get("antivirus_name", ""),
+        "antivirus_enabled":     security_status.get("antivirus_enabled"),
+        "antivirus_updated":     security_status.get("antivirus_updated"),
+        "firewall_enabled":      security_status.get("firewall_enabled"),
+        "bitlocker_enabled":     security_status.get("bitlocker_enabled"),
+        "uac_enabled":           security_status.get("uac_enabled"),
+        "windows_update_pending": security_status.get("windows_update_pending"),
+        "last_update_installed": security_status.get("last_update_installed", ""),
     }
 
 

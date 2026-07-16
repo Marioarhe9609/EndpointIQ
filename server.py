@@ -229,8 +229,8 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion"},
-    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento"},
+    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
 
@@ -673,6 +673,68 @@ def run_bq_insert(table, row_dict):
                     os.remove(temp_file)
                 except Exception:
                     pass
+
+
+def calculate_compliance_score(device_data):
+    """ISO 27001 — Calculate per-device compliance score (0-100)."""
+    score = 100
+    deductions = []
+    metrics = device_data.get("latest_metrics", {})
+
+    # A.8.7 Antivirus
+    av_enabled = metrics.get("antivirus_enabled")
+    if av_enabled is False:
+        score -= 25
+        deductions.append({"control": "A.8.7", "item": "Antivirus deshabilitado", "points": -25})
+    elif av_enabled is None:
+        score -= 10
+        deductions.append({"control": "A.8.7", "item": "Estado antivirus desconocido", "points": -10})
+
+    av_updated = metrics.get("antivirus_updated")
+    if av_updated is False:
+        score -= 10
+        deductions.append({"control": "A.8.7", "item": "Antivirus desactualizado", "points": -10})
+
+    # A.8.20 Firewall
+    fw = metrics.get("firewall_enabled")
+    if fw is False:
+        score -= 20
+        deductions.append({"control": "A.8.20", "item": "Firewall deshabilitado", "points": -20})
+    elif fw is None:
+        score -= 5
+        deductions.append({"control": "A.8.20", "item": "Estado firewall desconocido", "points": -5})
+
+    # A.8.24 BitLocker
+    bl = metrics.get("bitlocker_enabled")
+    if bl is False:
+        score -= 15
+        deductions.append({"control": "A.8.24", "item": "Disco sin cifrar (BitLocker)", "points": -15})
+    elif bl is None:
+        score -= 5
+        deductions.append({"control": "A.8.24", "item": "Estado cifrado desconocido", "points": -5})
+
+    # A.8.8 Windows Update
+    pending = metrics.get("windows_update_pending")
+    if pending is not None and pending > 5:
+        score -= 15
+        deductions.append({"control": "A.8.8", "item": f"{pending} actualizaciones pendientes", "points": -15})
+    elif pending is not None and pending > 0:
+        score -= 5
+        deductions.append({"control": "A.8.8", "item": f"{pending} actualizaciones pendientes", "points": -5})
+
+    # UAC
+    uac = metrics.get("uac_enabled")
+    if uac is False:
+        score -= 10
+        deductions.append({"control": "A.8.2", "item": "UAC deshabilitado", "points": -10})
+
+    # Location disabled
+    loc = metrics.get("location_enabled")
+    if loc is False:
+        score -= 5
+        deductions.append({"control": "A.8.1", "item": "Ubicación deshabilitada", "points": -5})
+
+    return max(0, score), deductions
 
 
 def load_local_backups():
@@ -2474,6 +2536,55 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 self.send_json({"audit_log": rows})
             except Exception as e:
                 self.send_json({"audit_log": [], "error": str(e)})
+            return
+
+        # ── ISO 27001: Compliance Dashboard ──
+        elif path == "/api/compliance":
+            session = self.require_auth()
+            if not session:
+                return
+            devices = []
+            with cache_lock:
+                # Build a lookup: device_id -> latest metrics row
+                metrics_by_dev = {}
+                for m in cache.get("latest_metrics", []):
+                    d_id = m.get("device_id")
+                    if d_id:
+                        metrics_by_dev[d_id] = m
+                # Iterate fleet from sync_status (list of dicts)
+                for info in cache.get("sync_status", []):
+                    d_id = info.get("device_id", "")
+                    if not d_id:
+                        continue
+                    latest = metrics_by_dev.get(d_id, {})
+                    score, deductions = calculate_compliance_score({"latest_metrics": latest})
+                    devices.append({
+                        "device_id": d_id,
+                        "hostname": info.get("hostname", d_id),
+                        "status": info.get("status", "offline"),
+                        "last_sync": info.get("last_sync", ""),
+                        "score": score,
+                        "deductions": deductions,
+                        "antivirus_name": latest.get("antivirus_name", ""),
+                        "antivirus_enabled": latest.get("antivirus_enabled"),
+                        "antivirus_updated": latest.get("antivirus_updated"),
+                        "firewall_enabled": latest.get("firewall_enabled"),
+                        "bitlocker_enabled": latest.get("bitlocker_enabled"),
+                        "uac_enabled": latest.get("uac_enabled"),
+                        "windows_update_pending": latest.get("windows_update_pending"),
+                        "last_update_installed": latest.get("last_update_installed", "")
+                    })
+            total = len(devices)
+            avg_score = sum(d["score"] for d in devices) / total if total else 0
+            compliant = sum(1 for d in devices if d["score"] >= 80)
+            critical = sum(1 for d in devices if d["score"] < 50)
+            self.send_json({
+                "global_score": round(avg_score, 1),
+                "total_devices": total,
+                "compliant_devices": compliant,
+                "critical_devices": critical,
+                "devices": sorted(devices, key=lambda x: x["score"])
+            })
             return
 
         elif path == "/api/installer-download":

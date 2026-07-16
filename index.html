@@ -914,6 +914,10 @@
       <span class="nav-icon">📋</span>
       <span class="nav-label">Auditoría</span>
     </a>
+            <a href="#" class="nav-item" data-view="cumplimiento" data-requires="cumplimiento" onclick="showView('cumplimiento')">
+              <span class="nav-icon">🛡️</span>
+              <span class="nav-label">Cumplimiento</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2414,6 +2418,74 @@
           </div>
         </div>
 
+        <!-- ═══════ CUMPLIMIENTO ISO 27001 ═══════ -->
+        <section id="view-cumplimiento" class="view" style="display:none">
+          <div class="view-header">
+            <h1 class="view-title">🛡️ Cumplimiento ISO 27001</h1>
+            <p class="view-subtitle">Score de seguridad por dispositivo — Controles A.8.7, A.8.8, A.8.20, A.8.24</p>
+          </div>
+
+          <!-- Global KPIs -->
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(108,159,255,0.12);color:#6C9FFF">🎯</div>
+              <div class="kpi-info">
+                <div class="kpi-value" id="compGlobalScore">--</div>
+                <div class="kpi-label">Score Global</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(16,185,129,0.12);color:#10B981">✅</div>
+              <div class="kpi-info">
+                <div class="kpi-value" id="compCompliant">0</div>
+                <div class="kpi-label">Dispositivos Conformes</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(239,68,68,0.12);color:#EF4444">⚠️</div>
+              <div class="kpi-info">
+                <div class="kpi-value" id="compCritical">0</div>
+                <div class="kpi-label">Dispositivos Críticos</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(167,139,250,0.12);color:#A78BFA">💻</div>
+              <div class="kpi-info">
+                <div class="kpi-value" id="compTotal">0</div>
+                <div class="kpi-label">Total Dispositivos</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Table -->
+          <div class="glass-card">
+            <div class="card-header">
+              <span>📊</span>
+              <span class="card-title">Score por Dispositivo</span>
+              <button onclick="loadCompliance()" style="margin-left:auto;background:linear-gradient(135deg,#6C9FFF,#A78BFA);color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table class="data-table" style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--bg3)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Dispositivo</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Score</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Antivirus</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Firewall</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">BitLocker</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">UAC</th>
+                    <th style="padding:10px 14px;text-align:center;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Updates</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Hallazgos</th>
+                  </tr>
+                </thead>
+                <tbody id="compTableBody">
+                  <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">Cargando datos de cumplimiento...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2435,7 +2507,8 @@ const titles = {
   agentes:       'Agentes Inteligentes IA',
   kpibuilder:    'KPI Builder Asistido por IA',
   usuarios:      'Gestión de Usuarios',
-  auditoria:     'Auditoría ISO 27001'
+  auditoria:     'Auditoría ISO 27001',
+  cumplimiento:  'Cumplimiento ISO 27001'
 };
 
 // ── Navegación de Vistas ──
@@ -2471,7 +2544,7 @@ function showView(id) {
     fetchUsers();
   } else if (id === 'auditoria') {
     loadAuditLog();
-  }
+  } else if (id === 'cumplimiento') { loadCompliance(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -4970,11 +5043,12 @@ const PAGE_DEFINITIONS = [
   {id: 'agentes',        icon: '🤖', label: 'Agentes IA'},
   {id: 'informes',       icon: '📈', label: 'Informes'},
   {id: 'usuarios',       icon: '👥', label: 'Gestión Usuarios'},
-  {id: 'auditoria',      icon: '📋', label: 'Auditoría'}
+  {id: 'auditoria',      icon: '📋', label: 'Auditoría'},
+  {id: 'cumplimiento',   icon: '🛡️', label: 'Cumplimiento'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -5747,6 +5821,70 @@ function exportAuditCSV() {
       a.href = URL.createObjectURL(blob);
       a.download = 'audit_log_' + new Date().toISOString().slice(0,10) + '.csv';
       a.click();
+    });
+}
+
+// ═══════ CUMPLIMIENTO ISO 27001 ═══════
+function loadCompliance() {
+  fetch('/api/compliance', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('compGlobalScore').textContent = (data.global_score || 0) + '/100';
+      document.getElementById('compGlobalScore').style.color = data.global_score >= 80 ? '#10B981' : data.global_score >= 50 ? '#FBBF24' : '#EF4444';
+      document.getElementById('compCompliant').textContent = data.compliant_devices || 0;
+      document.getElementById('compCritical').textContent = data.critical_devices || 0;
+      document.getElementById('compTotal').textContent = data.total_devices || 0;
+      
+      const tbody = document.getElementById('compTableBody');
+      const devices = data.devices || [];
+      if (!devices.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No hay dispositivos</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = devices.map(d => {
+        const scoreColor = d.score >= 80 ? '#10B981' : d.score >= 50 ? '#FBBF24' : '#EF4444';
+        const scoreBg = d.score >= 80 ? 'rgba(16,185,129,0.12)' : d.score >= 50 ? 'rgba(251,191,36,0.12)' : 'rgba(239,68,68,0.12)';
+        const scoreEmoji = d.score >= 80 ? '🟢' : d.score >= 50 ? '🟡' : '🔴';
+        
+        const badge = (val, labelTrue, labelFalse) => {
+          if (val === true) return '<span style="color:#10B981;font-weight:600">✅</span>';
+          if (val === false) return '<span style="color:#EF4444;font-weight:600">❌</span>';
+          return '<span style="color:var(--text3)">❓</span>';
+        };
+        
+        const findings = (d.deductions || []).map(ded => 
+          `<span style="display:inline-block;background:rgba(239,68,68,0.08);color:#EF4444;padding:2px 6px;border-radius:4px;font-size:10px;margin:1px">${ded.item} (${ded.points})</span>`
+        ).join(' ');
+        
+        const updates = d.windows_update_pending;
+        const updBadge = updates === null || updates === undefined ? '<span style="color:var(--text3)">❓</span>' :
+          updates === 0 ? '<span style="color:#10B981;font-weight:600">✅ 0</span>' :
+          updates <= 5 ? `<span style="color:#FBBF24;font-weight:600">⚠️ ${updates}</span>` :
+          `<span style="color:#EF4444;font-weight:600">❌ ${updates}</span>`;
+        
+        return `<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">
+          <td style="padding:10px 14px">
+            <div style="font-weight:600;color:var(--text1)">${d.hostname || d.device_id}</div>
+            <div style="font-size:11px;color:var(--text3)">${d.status === 'online' ? '🟢 Online' : '🔴 Offline'}</div>
+          </td>
+          <td style="padding:10px 14px;text-align:center">
+            <div style="display:inline-flex;align-items:center;gap:6px;background:${scoreBg};color:${scoreColor};padding:4px 12px;border-radius:8px;font-weight:700;font-size:16px">
+              ${scoreEmoji} ${d.score}
+            </div>
+          </td>
+          <td style="padding:10px 14px;text-align:center">${badge(d.antivirus_enabled)}<div style="font-size:10px;color:var(--text3)">${d.antivirus_name || ''}</div></td>
+          <td style="padding:10px 14px;text-align:center">${badge(d.firewall_enabled)}</td>
+          <td style="padding:10px 14px;text-align:center">${badge(d.bitlocker_enabled)}</td>
+          <td style="padding:10px 14px;text-align:center">${badge(d.uac_enabled)}</td>
+          <td style="padding:10px 14px;text-align:center">${updBadge}</td>
+          <td style="padding:10px 14px;max-width:250px">${findings || '<span style="color:#10B981;font-size:11px">✅ Sin hallazgos</span>'}</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(err => {
+      console.error('[COMPLIANCE] Error:', err);
+      document.getElementById('compTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#EF4444">Error cargando datos</td></tr>';
     });
 }
 </script>
