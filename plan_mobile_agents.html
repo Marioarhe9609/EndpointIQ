@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Implementación — Onyx Mobile Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg1:#040d21;--bg2:#0a1628;--bg3:#111d35;--bg4:#162040;
+  --text1:#F1F5F9;--text2:#CBD5E1;--text3:#64748B;
+  --accent:#6C9FFF;--green:#10B981;--red:#EF4444;--yellow:#FBBF24;--purple:#A78BFA;--cyan:#06B6D4;--orange:#F97316;
+  --glass:rgba(108,159,255,0.06);--border:rgba(108,159,255,0.12);
+  --radius:14px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg1);color:var(--text1);
+  line-height:1.7;min-height:100vh;overflow-x:hidden;
+}
+/* Animated background */
+body::before{
+  content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+  background:radial-gradient(ellipse at 20% 50%,rgba(108,159,255,0.04) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 20%,rgba(16,185,129,0.03) 0%,transparent 50%),
+             radial-gradient(ellipse at 50% 80%,rgba(167,139,250,0.03) 0%,transparent 50%);
+  z-index:0;pointer-events:none;
+}
+
+/* ─── Navigation ─── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(4,13,33,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:0 32px;
+}
+.nav-inner{
+  max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:18px;color:var(--text1)}
+.nav-logo span{background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:6px}
+.nav-links a{
+  color:var(--text3);text-decoration:none;font-size:13px;font-weight:500;
+  padding:6px 14px;border-radius:8px;transition:all .2s;
+}
+.nav-links a:hover{color:var(--text1);background:var(--glass)}
+
+/* ─── Container ─── */
+.container{max-width:1200px;margin:0 auto;padding:96px 32px 64px;position:relative;z-index:1}
+
+/* ─── Hero ─── */
+.hero{text-align:center;padding:48px 0 64px;position:relative}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--glass);border:1px solid var(--border);border-radius:100px;
+  padding:8px 20px;font-size:12px;color:var(--accent);font-weight:600;
+  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px;
+  animation:fadeInDown .6s ease-out;
+}
+.hero h1{
+  font-size:clamp(32px,5vw,52px);font-weight:800;line-height:1.15;margin-bottom:16px;
+  background:linear-gradient(135deg,#F1F5F9 0%,#6C9FFF 50%,#A78BFA 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:fadeInUp .6s ease-out .1s both;
+}
+.hero p{font-size:18px;color:var(--text3);max-width:650px;margin:0 auto 32px;animation:fadeInUp .6s ease-out .2s both}
+.hero-stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;
+  max-width:700px;margin:0 auto;animation:fadeInUp .6s ease-out .3s both;
+}
+.hero-stat{
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:20px;
+  text-align:center;transition:transform .2s,border-color .2s;
+}
+.hero-stat:hover{transform:translateY(-2px);border-color:rgba(108,159,255,0.3)}
+.hero-stat .val{font-size:28px;font-weight:800;color:var(--accent)}
+.hero-stat .lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* ─── Section ─── */
+.section{margin-bottom:56px;animation:fadeInUp .5s ease-out both}
+.section-header{
+  display:flex;align-items:center;gap:14px;margin-bottom:24px;
+  padding-bottom:16px;border-bottom:1px solid var(--border);
+}
+.section-icon{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.section-title{font-size:22px;font-weight:700;color:var(--text1)}
+.section-subtitle{font-size:13px;color:var(--text3);margin-top:2px}
+
+/* ─── Cards ─── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;margin-bottom:16px;transition:all .25s;
+}
+.card:hover{border-color:rgba(108,159,255,0.25);box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.card-body{font-size:14px;color:var(--text2);line-height:1.8}
+
+/* ─── Grid ─── */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+
+/* ─── Tables ─── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--bg3)}
+th{padding:12px 16px;text-align:left;font-weight:600;color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:1.2px;border-bottom:1px solid var(--border)}
+td{padding:10px 16px;border-bottom:1px solid rgba(108,159,255,0.06);color:var(--text2)}
+tr:hover td{background:var(--glass)}
+.badge{
+  display:inline-flex;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;
+}
+.badge-green{background:rgba(16,185,129,0.12);color:#10B981}
+.badge-yellow{background:rgba(251,191,36,0.12);color:#FBBF24}
+.badge-red{background:rgba(239,68,68,0.12);color:#EF4444}
+.badge-blue{background:rgba(108,159,255,0.12);color:#6C9FFF}
+.badge-purple{background:rgba(167,139,250,0.12);color:#A78BFA}
+
+/* ─── Timeline ─── */
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:12px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--accent),var(--purple),var(--green))}
+.timeline-item{position:relative;margin-bottom:32px}
+.timeline-dot{
+  position:absolute;left:-28px;top:6px;width:16px;height:16px;border-radius:50%;
+  border:3px solid var(--bg1);z-index:1;
+}
+.timeline-item:nth-child(1) .timeline-dot{background:var(--accent)}
+.timeline-item:nth-child(2) .timeline-dot{background:var(--purple)}
+.timeline-item:nth-child(3) .timeline-dot{background:var(--green)}
+.timeline-item:nth-child(4) .timeline-dot{background:var(--orange)}
+.timeline-phase{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:4px}
+.timeline-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.timeline-desc{font-size:14px;color:var(--text2);line-height:1.8}
+.timeline-tasks{list-style:none;margin-top:12px}
+.timeline-tasks li{
+  padding:6px 0;font-size:13px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;
+}
+.timeline-tasks li::before{content:'○';color:var(--text3);font-size:11px;margin-top:3px}
+
+/* ─── Comparison ─── */
+.compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.compare-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;text-align:center;position:relative;overflow:hidden;transition:all .3s;
+}
+.compare-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.compare-card.recommended{border-color:rgba(16,185,129,0.4)}
+.compare-card.recommended::after{
+  content:'⭐ RECOMENDADA';position:absolute;top:12px;right:-30px;
+  background:linear-gradient(135deg,var(--green),#059669);color:#fff;
+  font-size:9px;font-weight:700;padding:4px 40px;transform:rotate(45deg);
+  letter-spacing:1px;
+}
+.compare-icon{font-size:40px;margin-bottom:12px}
+.compare-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.compare-sub{font-size:12px;color:var(--text3);margin-bottom:16px}
+.compare-list{list-style:none;text-align:left;font-size:13px}
+.compare-list li{padding:6px 0;border-bottom:1px solid rgba(108,159,255,0.06);color:var(--text2);display:flex;gap:8px}
+.compare-list .pro::before{content:'✅';font-size:12px}
+.compare-list .con::before{content:'⚠️';font-size:12px}
+
+/* ─── Architecture ─── */
+.arch-flow{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  flex-wrap:wrap;padding:32px 16px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;
+}
+.arch-node{
+  background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+  padding:16px 20px;text-align:center;min-width:120px;transition:all .2s;
+}
+.arch-node:hover{border-color:var(--accent);transform:scale(1.05)}
+.arch-node .icon{font-size:28px;margin-bottom:6px}
+.arch-node .name{font-size:12px;font-weight:600;color:var(--text1)}
+.arch-node .sub{font-size:10px;color:var(--text3);margin-top:2px}
+.arch-arrow{color:var(--accent);font-size:24px;animation:pulse 2s ease-in-out infinite}
+
+/* ─── Alert boxes ─── */
+.alert{
+  border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;
+  display:flex;gap:12px;align-items:flex-start;line-height:1.7;
+}
+.alert-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.alert-info{background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);color:var(--cyan)}
+.alert-warn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);color:var(--yellow)}
+.alert-danger{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:var(--red)}
+.alert-success{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:var(--green)}
+
+/* ─── Questions ─── */
+.question{
+  background:var(--bg2);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius);
+  padding:20px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;
+}
+.q-num{
+  width:28px;height:28px;border-radius:50%;background:rgba(251,191,36,0.12);
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  font-weight:700;color:var(--yellow);flex-shrink:0;
+}
+.q-text{font-size:14px;color:var(--text2)}
+.q-text strong{color:var(--yellow)}
+
+/* ─── Code ─── */
+.code-block{
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--cyan);overflow-x:auto;margin:12px 0;line-height:1.8;white-space:pre;
+}
+
+/* ─── Footer ─── */
+.footer{
+  text-align:center;padding:32px;margin-top:48px;
+  border-top:1px solid var(--border);color:var(--text3);font-size:12px;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── Responsive ─── */
+@media(max-width:768px){
+  .container{padding:80px 16px 32px}
+  .compare-grid{grid-template-columns:1fr}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .arch-flow{flex-direction:column}
+  .arch-arrow{transform:rotate(90deg)}
+}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:all .6s ease-out}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* Print */
+@media print{
+  body{background:#fff;color:#111}
+  .nav{display:none}
+  .card,.compare-card,.table-wrap{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">📱 <span>Onyx Mobile</span> — Plan</div>
+    <div class="nav-links">
+      <a href="#situacion">Situación</a>
+      <a href="#opciones">Opciones</a>
+      <a href="#recomendacion">Recomendación</a>
+      <a href="#fases">Fases</a>
+      <a href="#comparativa">Comparativa</a>
+      <a href="#preguntas">Preguntas</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">📋 Plan de Implementación</div>
+  <h1>Onyx Mobile Agents</h1>
+  <p>Extensión del monitoreo EndpointIQ a celulares y tablets — Android e iOS</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="val">10-14</div><div class="lbl">Semanas estimadas</div></div>
+    <div class="hero-stat"><div class="val" style="color:#10B981">3</div><div class="lbl">Fases del proyecto</div></div>
+    <div class="hero-stat"><div class="val" style="color:#A78BFA">16+</div><div class="lbl">Métricas móviles</div></div>
+    <div class="hero-stat"><div class="val" style="color:#FBBF24">0</div><div class="lbl">Cambios en servidor</div></div>
+  </div>
+</section>
+
+<!-- Situación Actual -->
+<section class="section reveal" id="situacion">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(108,159,255,0.12)">📊</div>
+    <div>
+      <div class="section-title">Situación Actual</div>
+      <div class="section-subtitle">Viabilidad de cada métrica Windows en dispositivos móviles</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Métrica</th><th>Método Windows</th><th>Android</th><th>iOS</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CPU, RAM, Disco</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">psutil</td><td><span class="badge badge-green">✅ Viable</span></td><td><span class="badge badge-yellow">⚠️ Limitado</span></td></tr>
+        <tr><td><strong>Batería</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">psutil.sensors_battery()</td><td><span class="badge badge-green">✅ Viable</span></td><td><span class="badge badge-green">✅ Viable</span></td></tr>
+        <tr><td><strong>Procesos / Apps activas</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">psutil.process_iter()</td><td><span class="badge badge-green">✅ UsageStats</span></td><td><span class="badge badge-red">❌ Sandbox</span></td></tr>
+        <tr><td><strong>Tiempo inactivo</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">GetLastInputInfo</td><td><span class="badge badge-yellow">⚠️ Parcial</span></td><td><span class="badge badge-yellow">⚠️ Parcial</span></td></tr>
+        <tr><td><strong>USB conectados</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">Get-PnpDevice</td><td><span class="badge badge-red">❌ N/A</span></td><td><span class="badge badge-red">❌ N/A</span></td></tr>
+        <tr><td><strong>Historial navegador</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">SQLite Chrome/Edge</td><td><span class="badge badge-red">❌ Sandbox</span></td><td><span class="badge badge-red">❌ Sandbox</span></td></tr>
+        <tr><td><strong>GPS</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">Windows Location</td><td><span class="badge badge-green">✅ Nativo ~5m</span></td><td><span class="badge badge-green">✅ Nativo ~5m</span></td></tr>
+        <tr><td><strong>VPN detection</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">ipconfig /all</td><td><span class="badge badge-green">✅ APIs nativas</span></td><td><span class="badge badge-green">✅ APIs nativas</span></td></tr>
+        <tr><td><strong>Red WiFi/Datos</strong></td><td style="font-family:'JetBrains Mono';font-size:12px;color:var(--cyan)">netsh wlan show</td><td><span class="badge badge-green">✅ Completo</span></td><td><span class="badge badge-green">✅ Completo</span></td></tr>
+        <tr><td><strong>📱 Apps instaladas</strong></td><td style="color:var(--text3)">N/A</td><td><span class="badge badge-green">✅ PackageManager</span></td><td><span class="badge badge-red">❌ Sandbox</span></td></tr>
+        <tr><td><strong>📱 Señal celular</strong></td><td style="color:var(--text3)">N/A</td><td><span class="badge badge-green">✅ TelephonyManager</span></td><td><span class="badge badge-green">✅ CoreTelephony</span></td></tr>
+        <tr><td><strong>📱 Bluetooth</strong></td><td style="color:var(--text3)">N/A</td><td><span class="badge badge-green">✅ BluetoothAdapter</span></td><td><span class="badge badge-yellow">⚠️ Limitado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Opciones -->
+<section class="section reveal" id="opciones">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(167,139,250,0.12)">🔀</div>
+    <div>
+      <div class="section-title">Opciones de Implementación</div>
+      <div class="section-subtitle">Tres enfoques posibles con sus pros y contras</div>
+    </div>
+  </div>
+
+  <div class="compare-grid">
+    <!-- Option A -->
+    <div class="compare-card recommended">
+      <div class="compare-icon">📱</div>
+      <div class="compare-title">App Nativa</div>
+      <div class="compare-sub">Kotlin (Android) + Swift (iOS)</div>
+      <ul class="compare-list">
+        <li class="pro">Acceso total a APIs del sistema</li>
+        <li class="pro">Mejor performance en background</li>
+        <li class="pro">GPS preciso (~5 metros)</li>
+        <li class="pro">Foreground Service continuo</li>
+        <li class="con">Dos codebases separados</li>
+        <li class="con">Mayor tiempo de desarrollo</li>
+      </ul>
+    </div>
+    <!-- Option B -->
+    <div class="compare-card">
+      <div class="compare-icon">🔄</div>
+      <div class="compare-title">Cross-Platform</div>
+      <div class="compare-sub">Flutter / React Native</div>
+      <ul class="compare-list">
+        <li class="pro">Un solo código para ambas plataformas</li>
+        <li class="pro">Desarrollo más rápido</li>
+        <li class="pro">Menor costo mantenimiento</li>
+        <li class="con">Menos acceso a APIs nativas</li>
+        <li class="con">Performance inferior en background</li>
+        <li class="con">No recomendado para servicios 24/7</li>
+      </ul>
+    </div>
+    <!-- Option C -->
+    <div class="compare-card">
+      <div class="compare-icon">🏢</div>
+      <div class="compare-title">MDM Enterprise</div>
+      <div class="compare-sub">Intune / Google Endpoint / Jamf</div>
+      <ul class="compare-list">
+        <li class="pro">Acceso total al dispositivo</li>
+        <li class="pro">Funciona en Android + iOS</li>
+        <li class="pro">Políticas de seguridad empresariales</li>
+        <li class="con">Costo $3-12 USD/mes por dispositivo</li>
+        <li class="con">Curva de aprendizaje alta</li>
+        <li class="con">Menos personalizable</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" style="margin-top:16px">
+    <div class="alert-icon">🍎</div>
+    <div><strong>iOS es muy restrictivo.</strong> Apple no permite que apps de terceros accedan a CPU, RAM, procesos activos, ni historial de navegación. Para monitoreo empresarial en iOS se <strong>requiere un perfil MDM</strong> (Mobile Device Management).</div>
+  </div>
+</section>
+
+<!-- Recomendación -->
+<section class="section reveal" id="recomendacion">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(16,185,129,0.12)">🏆</div>
+    <div>
+      <div class="section-title">Recomendación: Enfoque Híbrido</div>
+      <div class="section-subtitle">Empezar con Android nativo → Expandir con MDM → iOS</div>
+    </div>
+  </div>
+
+  <div class="alert alert-success">
+    <div class="alert-icon">💡</div>
+    <div><strong>Empezar con Android nativo</strong> (mayor cuota de mercado empresarial, más permisos disponibles) y luego expandir a iOS con MDM. El servidor actual <strong>NO necesita cambios</strong> — el endpoint <code>/api/agent-ingest</code> ya acepta los datos que enviaría una app móvil.</div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="arch-flow">
+    <div class="arch-node"><div class="icon">📱</div><div class="name">App Android</div><div class="sub">Kotlin</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color:rgba(16,185,129,0.3)"><div class="icon">☁️</div><div class="name">Cloud Run</div><div class="sub">/api/agent-ingest</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node"><div class="icon">🗄️</div><div class="name">BigQuery</div><div class="sub">onyx dataset</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color:rgba(108,159,255,0.3)"><div class="icon">📊</div><div class="name">Dashboard</div><div class="sub">EndpointIQ</div></div>
+  </div>
+  <div class="arch-flow" style="margin-top:8px">
+    <div class="arch-node"><div class="icon">🍎</div><div class="name">App iOS</div><div class="sub">Swift + MDM</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color:rgba(16,185,129,0.3)"><div class="icon">☁️</div><div class="name">Cloud Run</div><div class="sub">/api/agent-ingest</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node"><div class="icon">🗄️</div><div class="name">BigQuery</div><div class="sub">onyx dataset</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color:rgba(108,159,255,0.3)"><div class="icon">📊</div><div class="name">Dashboard</div><div class="sub">EndpointIQ</div></div>
+  </div>
+</section>
+
+<!-- Fases -->
+<section class="section reveal" id="fases">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(251,191,36,0.12)">📅</div>
+    <div>
+      <div class="section-title">Fases de Implementación</div>
+      <div class="section-subtitle">Roadmap completo con tareas detalladas</div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <!-- Phase 1 -->
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-phase">Fase 1 — 2-3 Semanas</div>
+      <div class="timeline-title">📱 App Android Nativa (Kotlin)</div>
+      <div class="timeline-desc">Desarrollo de la app base con todas las métricas core y servicio en segundo plano.</div>
+      <ul class="timeline-tasks">
+        <li>Crear proyecto Android (Kotlin, minSDK 26 / Android 8.0+)</li>
+        <li>MetricsCollector — CPU, RAM, Disco, Batería</li>
+        <li>LocationTracker — GPS con FusedLocationProvider (~5m precisión)</li>
+        <li>AppUsageTracker — UsageStatsManager (apps más usadas)</li>
+        <li>NetworkMonitor — WiFi, VPN, señal celular, tipo de red</li>
+        <li>HttpSender — POST a /api/agent-ingest (mismo formato que Windows)</li>
+        <li>OfflineBuffer — SQLite (Room) para datos sin conexión</li>
+        <li>Foreground Service para ejecución continua 24/7</li>
+        <li>Auto-start al encender el dispositivo</li>
+        <li>Setup por código QR (escanear para configurar servidor)</li>
+        <li>UI mínima: estado del agente, último envío, toggle on/off</li>
+        <li>Testing en 3+ dispositivos Android</li>
+      </ul>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-phase">Fase 2 — 3-4 Semanas</div>
+      <div class="timeline-title">🏢 Android Enterprise / MDM</div>
+      <div class="timeline-desc">Integración empresarial para despliegue masivo y control de políticas.</div>
+      <ul class="timeline-tasks">
+        <li>Device Admin para políticas empresariales</li>
+        <li>Managed Configurations para despliegue masivo</li>
+        <li>Zero-touch enrollment (configuración automática)</li>
+        <li>Integración con Google Endpoint Management</li>
+        <li>Restricciones: bloquear desinstalación, forzar GPS activo</li>
+        <li>Distribución via Google Play Managed (sin Play Store público)</li>
+        <li>Kiosk mode para tablets de uso fijo (opcional)</li>
+      </ul>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-phase">Fase 3 — 4-6 Semanas</div>
+      <div class="timeline-title">🍎 Soporte iOS (con MDM)</div>
+      <div class="timeline-desc">App iOS complementaria con perfil MDM para métricas que Apple restringe.</div>
+      <ul class="timeline-tasks">
+        <li>Crear proyecto Xcode (Swift, iOS 16+)</li>
+        <li>Implementar métricas permitidas (batería, red, GPS)</li>
+        <li>Background App Refresh handler (mínimo 15 min)</li>
+        <li>Integración con Apple MDM (Apple Business Manager)</li>
+        <li>Perfil MDM para Screen Time y restricciones</li>
+        <li>Distribución via Apple Business Manager</li>
+        <li>Cuenta Apple Developer Enterprise ($99/año)</li>
+      </ul>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-phase">Fase 4 — 1 Semana</div>
+      <div class="timeline-title">📊 Dashboard — Filtros Móviles</div>
+      <div class="timeline-desc">Agregar filtros y vistas para dispositivos móviles en el dashboard.</div>
+      <ul class="timeline-tasks">
+        <li>Filtro por tipo: Desktop | Celulares | Tablets</li>
+        <li>KPIs específicos: batería, señal, screen time</li>
+        <li>Mapa: iconos diferentes para móvil vs desktop</li>
+        <li>Vista "Apps más usadas" (reemplaza Top Procesos)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Métricas Android -->
+<section class="section reveal" id="metricas">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(6,182,212,0.12)">📈</div>
+    <div>
+      <div class="section-title">Métricas Recolectables en Android</div>
+      <div class="section-subtitle">APIs nativas disponibles para cada métrica</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Métrica</th><th>API Android</th><th>Equivalente Windows</th><th>Intervalo</th></tr></thead>
+      <tbody>
+        <tr><td>📊 CPU usage</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">/proc/stat · ActivityManager</td><td>psutil.cpu_percent()</td><td>5 min</td></tr>
+        <tr><td>🧠 RAM usage</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">ActivityManager.MemoryInfo</td><td>psutil.virtual_memory()</td><td>5 min</td></tr>
+        <tr><td>💾 Disco libre</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">StatFs</td><td>psutil.disk_usage()</td><td>30 min</td></tr>
+        <tr><td>🔋 Batería</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">BatteryManager</td><td>psutil.sensors_battery()</td><td>5 min</td></tr>
+        <tr><td>📍 GPS preciso</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">FusedLocationProviderClient</td><td>GeoCoordinateWatcher</td><td>5 min</td></tr>
+        <tr><td>📲 Apps en uso</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">UsageStatsManager</td><td>psutil.process_iter()</td><td>5 min</td></tr>
+        <tr><td>⏱️ Screen time</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">UsageStatsManager</td><td>GetLastInputInfo</td><td>30 min</td></tr>
+        <tr><td>📶 Red WiFi/Datos</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">ConnectivityManager</td><td>ipconfig /all</td><td>5 min</td></tr>
+        <tr><td>🔒 VPN activa</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">NET_CAPABILITY_NOT_VPN</td><td>Adaptadores de red</td><td>5 min</td></tr>
+        <tr><td>📡 SSID WiFi</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">WifiManager</td><td>netsh wlan show</td><td>5 min</td></tr>
+        <tr><td>🎧 Bluetooth</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">BluetoothAdapter</td><td>PowerShell BT</td><td>15 min</td></tr>
+        <tr><td>📶 Señal celular</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">TelephonyManager</td><td>N/A</td><td>5 min</td></tr>
+        <tr><td>📦 Apps instaladas</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">PackageManager</td><td>N/A</td><td>1 hora</td></tr>
+        <tr><td>🔔 Notificaciones</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">NotificationListenerService</td><td>N/A</td><td>Tiempo real</td></tr>
+        <tr><td>🌡️ Temp. batería</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">BatteryManager.EXTRA_TEMPERATURE</td><td>N/A</td><td>15 min</td></tr>
+        <tr><td>🆔 IMEI/Serial</td><td style="font-family:'JetBrains Mono';font-size:11px;color:var(--cyan)">TelephonyManager</td><td>Hostname</td><td>Startup</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Estructura del proyecto -->
+<section class="section reveal">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(249,115,22,0.12)">🏗️</div>
+    <div>
+      <div class="section-title">Estructura del Proyecto Android</div>
+      <div class="section-subtitle">Arquitectura modular para fácil mantenimiento</div>
+    </div>
+  </div>
+
+  <div class="code-block">onyx-mobile-agent/
+├── app/src/main/java/com/agentica/onyx/
+│   ├── OnyxAgent.kt              ← Servicio principal (Foreground Service)
+│   ├── MetricsCollector.kt       ← CPU, RAM, Disco, Batería
+│   ├── LocationTracker.kt        ← GPS en tiempo real (~5m)
+│   ├── NetworkMonitor.kt         ← WiFi, VPN, señal celular
+│   ├── AppUsageTracker.kt        ← Uso de aplicaciones (top apps)
+│   ├── BatteryMonitor.kt         ← Batería detallada + temperatura
+│   ├── HttpSender.kt             ← HTTP POST a Cloud Run
+│   ├── OfflineBuffer.kt          ← Room DB (buffer sin conexión)
+│   ├── QrConfigReader.kt         ← Setup por QR code
+│   └── DeviceAdmin.kt            ← Políticas empresariales
+├── app/src/main/res/
+│   ├── layout/activity_main.xml  ← UI mínima del agente
+│   └── drawable/                 ← Iconos y assets
+├── app/src/main/AndroidManifest.xml
+└── build.gradle.kts</div>
+
+  <div class="alert alert-info">
+    <div class="alert-icon">🔄</div>
+    <div><strong>Flujo idéntico al agente Windows:</strong> <code>App Android → HTTP POST /api/agent-ingest → Cloud Run → BigQuery → Dashboard</code>. Los mismos campos se envían con la misma estructura JSON.</div>
+  </div>
+</section>
+
+<!-- Comparativa -->
+<section class="section reveal" id="comparativa">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(239,68,68,0.12)">⚖️</div>
+    <div>
+      <div class="section-title">Comparativa: Agente Windows vs Móvil</div>
+      <div class="section-subtitle">Diferencias clave entre plataformas</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>💻 Windows</th><th>📱 Android</th><th>🍎 iOS</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Lenguaje</strong></td><td>Python</td><td>Kotlin</td><td>Swift</td></tr>
+        <tr><td><strong>Tamaño</strong></td><td>~55 KB script</td><td>~5 MB APK</td><td>~10 MB IPA</td></tr>
+        <tr><td><strong>Instalación</strong></td><td>BAT + Task Scheduler</td><td>APK / Play Store</td><td>App Store / MDM</td></tr>
+        <tr><td><strong>Background</strong></td><td>Tarea programada</td><td>Foreground Service</td><td>Background Refresh</td></tr>
+        <tr><td><strong>Intervalo</strong></td><td>5 min (configurable)</td><td>5 min (configurable)</td><td>15 min (mínimo iOS)</td></tr>
+        <tr><td><strong>GPS precisión</strong></td><td>~100m (WiFi)</td><td><span class="badge badge-green">~5m (GPS nativo)</span></td><td><span class="badge badge-green">~5m (GPS nativo)</span></td></tr>
+        <tr><td><strong>Auto-update</strong></td><td>Sí (desde servidor)</td><td>Play Store / APK</td><td>App Store / MDM</td></tr>
+        <tr><td><strong>Offline buffer</strong></td><td>SQLite</td><td>SQLite (Room)</td><td>Core Data</td></tr>
+        <tr><td><strong>Acceso al SO</strong></td><td><span class="badge badge-green">Total</span></td><td><span class="badge badge-green">Amplio</span></td><td><span class="badge badge-red">Limitado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Estimación -->
+<section class="section reveal">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(16,185,129,0.12)">💰</div>
+    <div>
+      <div class="section-title">Estimación de Tiempo y Recursos</div>
+      <div class="section-subtitle">Costos y tiempos por fase</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fase</th><th>Duración</th><th>Recurso</th><th>Costo</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Fase 1:</strong> App Android básica</td><td><span class="badge badge-blue">2-3 semanas</span></td><td>1 dev Android/Kotlin</td><td>—</td></tr>
+        <tr><td><strong>Fase 2:</strong> Android Enterprise</td><td><span class="badge badge-purple">3-4 semanas</span></td><td>1 dev Android + MDM</td><td>Gratis con Workspace</td></tr>
+        <tr><td><strong>Fase 3:</strong> iOS MDM</td><td><span class="badge badge-yellow">4-6 semanas</span></td><td>1 dev iOS/Swift</td><td>Apple Dev: $99/año</td></tr>
+        <tr><td><strong>Fase 4:</strong> Dashboard filtros</td><td><span class="badge badge-green">1 semana</span></td><td>1 dev fullstack</td><td>—</td></tr>
+        <tr style="background:var(--glass)"><td><strong>TOTAL</strong></td><td><span class="badge badge-green" style="font-size:13px;padding:5px 14px">10-14 semanas</span></td><td colspan="2" style="color:var(--text1);font-weight:600">Costo infraestructura: ~$99/año (solo si incluye iOS)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Permisos Android -->
+<section class="section reveal">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(108,159,255,0.12)">🔐</div>
+    <div>
+      <div class="section-title">Permisos Requeridos (Android)</div>
+      <div class="section-subtitle">AndroidManifest.xml — permisos necesarios para cada funcionalidad</div>
+    </div>
+  </div>
+
+  <div class="code-block">&lt;!-- Esenciales --&gt;
+&lt;uses-permission android:name="android.permission.INTERNET" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /&gt;
+&lt;uses-permission android:name="android.permission.FOREGROUND_SERVICE" /&gt;
+&lt;uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" /&gt;
+
+&lt;!-- Métricas extendidas --&gt;
+&lt;uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH" /&gt;
+&lt;uses-permission android:name="android.permission.READ_PHONE_STATE" /&gt;
+
+&lt;!-- Device Admin (empresarial) --&gt;
+&lt;uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" /&gt;</div>
+</section>
+
+<!-- Nuevos Dashboard Indicators -->
+<section class="section reveal">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(167,139,250,0.12)">📊</div>
+    <div>
+      <div class="section-title">Nuevos Indicadores para el Dashboard</div>
+      <div class="section-subtitle">Métricas exclusivas de dispositivos móviles</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card"><div class="card-title">📱 Tipo de dispositivo</div><div class="card-body">Celular / Tablet / Desktop / Laptop — Filtro global en todas las vistas</div></div>
+    <div class="card"><div class="card-title">📶 Señal celular</div><div class="card-body">Nivel de señal móvil en dBm con indicador visual de calidad</div></div>
+    <div class="card"><div class="card-title">📡 Tipo de red</div><div class="card-body">WiFi / 4G / 5G / Sin conexión — Con historial de cambios</div></div>
+    <div class="card"><div class="card-title">🔋 Batería detallada</div><div class="card-body">Temperatura, ciclos de carga, estimación de vida útil</div></div>
+    <div class="card"><div class="card-title">📲 Apps más usadas</div><div class="card-body">Reemplaza "Top Procesos" para móviles con tiempo por app</div></div>
+    <div class="card"><div class="card-title">⏱️ Screen Time</div><div class="card-body">Tiempo de pantalla por categoría (productivo / recreativo)</div></div>
+  </div>
+</section>
+
+<!-- Preguntas -->
+<section class="section reveal" id="preguntas">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(251,191,36,0.12)">❓</div>
+    <div>
+      <div class="section-title">Decisiones Pendientes</div>
+      <div class="section-subtitle">Necesitamos definir estos puntos antes de iniciar</div>
+    </div>
+  </div>
+
+  <div class="question"><div class="q-num">1</div><div class="q-text"><strong>¿Qué dispositivos?</strong> — ¿Solo Android? ¿También iOS? ¿Tablets específicas?</div></div>
+  <div class="question"><div class="q-num">2</div><div class="q-text"><strong>¿Cuántos dispositivos?</strong> — Esto afecta si necesitamos MDM o solo APK directo</div></div>
+  <div class="question"><div class="q-num">3</div><div class="q-text"><strong>¿Play Store o APK directo?</strong> — Play Store requiere revisión de Google; APK es inmediato</div></div>
+  <div class="question"><div class="q-num">4</div><div class="q-text"><strong>¿Qué métricas son prioritarias?</strong> — GPS, apps usadas, batería, ¿todas?</div></div>
+  <div class="question"><div class="q-num">5</div><div class="q-text"><strong>¿Monitoreo de llamadas/SMS?</strong> — Requiere permisos sensibles y aprobación especial de Google</div></div>
+  <div class="question"><div class="q-num">6</div><div class="q-text"><strong>¿Kiosk mode para tablets?</strong> — ¿Las tablets son de uso fijo (ej: recepción, bodega)?</div></div>
+  <div class="question"><div class="q-num">7</div><div class="q-text"><strong>¿Tienen Google Workspace?</strong> — Simplifica MDM con Google Endpoint Management</div></div>
+  <div class="question"><div class="q-num">8</div><div class="q-text"><strong>¿Presupuesto para Apple Developer?</strong> — $99/año necesario para distribuir en iOS</div></div>
+</section>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p>📱 Onyx Mobile Agents — Plan de Implementación v1.0</p>
+  <p style="margin-top:4px">Generado por <strong style="color:var(--accent)">Agentica Technologies</strong> · Julio 2026</p>
+</div>
+
+<!-- Scroll reveal -->
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Smooth scroll for nav links
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
