@@ -1,5 +1,5 @@
 """
-Onyx Agent v3.0.0
+Onyx Agent v3.3.0
 =================
 Monitoring agent for Windows. Sends metrics via HTTP (primary) or
 directly to BigQuery (fallback). Works offline with SQLite buffer.
@@ -10,7 +10,7 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
-# Onyx Agent - version 3.2.0
+# Onyx Agent - version 3.3.0
 # Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
