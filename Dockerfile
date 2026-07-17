@@ -3,7 +3,7 @@ FROM python:3.11-slim AS builder
 WORKDIR /app
 
 # Instalar SDK de BigQuery para Python en la etapa de compilación
-RUN pip install --no-cache-dir google-cloud-bigquery pyotp qrcode[pil]
+RUN pip install --no-cache-dir google-cloud-bigquery pyotp qrcode[pil] ldap3
 
 FROM python:3.11-slim AS runner
 

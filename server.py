@@ -35,7 +35,257 @@ except Exception as e:
     USE_SDK = False
     print(f"[INFO] SDK de BigQuery no disponible o sin credenciales ({e}). Usando fallback.")
 
+import logging
+log = logging.getLogger("onyx")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
+
 PORT = int(os.environ.get("PORT", 8080))
+
+# ═══════════ Active Directory Configuration ═══════════
+AD_ENABLED = os.environ.get("AD_ENABLED", "false").lower() == "true"
+AD_LDAP_URL = os.environ.get("AD_LDAP_URL", "ldap://10.128.0.2:389")
+AD_BASE_DN = os.environ.get("AD_BASE_DN", "DC=onyx,DC=local")
+AD_BIND_USER = os.environ.get("AD_BIND_USER", "CN=svc-onyx-ldap,OU=ServiceAccounts,DC=onyx,DC=local")
+AD_BIND_PASSWORD = os.environ.get("AD_BIND_PASSWORD", "")
+AD_USER_FILTER = os.environ.get("AD_USER_FILTER", "(&(objectClass=person)(mail=*))")
+AD_GROUP_MAP = {
+    os.environ.get("AD_GROUP_ADMIN", "CN=ONYX-Admins,OU=Grupos,DC=onyx,DC=local"): "admin",
+    os.environ.get("AD_GROUP_ANALYST", "CN=ONYX-Analysts,OU=Grupos,DC=onyx,DC=local"): "analyst",
+    os.environ.get("AD_GROUP_VIEWER", "CN=ONYX-Viewers,OU=Grupos,DC=onyx,DC=local"): "viewer",
+}
+AD_SYNC_INTERVAL = int(os.environ.get("AD_SYNC_INTERVAL", "300"))
+
+
+# ═══════════ Active Directory LDAP Functions ═══════════
+def _ldap_escape(value):
+    """Escape special characters to prevent LDAP injection (RFC 4515)."""
+    if not value:
+        return value
+    escaped = value.replace('\\', '\\5c')
+    for char, esc in [('*', '\\2a'), ('(', '\\28'), (')', '\\29'),
+                      ('\x00', '\\00')]:
+        escaped = escaped.replace(char, esc)
+    return escaped
+
+
+def ad_connect():
+    """Create an LDAP connection to Active Directory."""
+    if not AD_ENABLED:
+        return None
+    try:
+        from ldap3 import Server, Connection, ALL, Tls
+        import ssl
+        # WARNING: CERT_NONE is for self-signed certs in test environments only.
+        # In production, use ssl.CERT_REQUIRED with a proper CA bundle.
+        tls_config = Tls(validate=ssl.CERT_NONE)
+        server = Server(AD_LDAP_URL, get_info=ALL, tls=tls_config, connect_timeout=5)
+        conn = Connection(server, user=AD_BIND_USER, password=AD_BIND_PASSWORD, auto_bind=True, receive_timeout=10)
+        return conn
+    except Exception as e:
+        log.error("[AD] Connection failed: %s", e)
+        return None
+
+
+def ad_authenticate(email, password):
+    """Authenticate a user against Active Directory via LDAP bind.
+    Returns dict with user info if successful, None if failed."""
+    if not AD_ENABLED:
+        return None
+    try:
+        from ldap3 import Server, Connection, ALL, SUBTREE, Tls
+        import ssl
+        # First, find the user DN by email using service account
+        conn = ad_connect()
+        if not conn:
+            return None
+        safe_email = _ldap_escape(email)
+        conn.search(
+            search_base=AD_BASE_DN,
+            search_filter=f"(&(objectClass=person)(mail={safe_email}))",
+            search_scope=SUBTREE,
+            attributes=['distinguishedName', 'cn', 'mail', 'givenName', 'sn',
+                        'department', 'title', 'memberOf', 'sAMAccountName',
+                        'userAccountControl']
+        )
+        if not conn.entries:
+            conn.unbind()
+            return None
+        user_entry = conn.entries[0]
+        user_dn = str(user_entry.distinguishedName)
+        conn.unbind()
+
+        # Now try to bind as the user to verify password
+        tls_config = Tls(validate=ssl.CERT_NONE)
+        server = Server(AD_LDAP_URL, get_info=ALL, tls=tls_config, connect_timeout=5)
+        user_conn = Connection(server, user=user_dn, password=password, auto_bind=True, receive_timeout=10)
+        user_conn.unbind()
+
+        # Authentication successful — extract user data
+        groups = [str(g) for g in user_entry.memberOf] if hasattr(user_entry, 'memberOf') and user_entry.memberOf else []
+        role = "viewer"  # default
+        for group_dn, mapped_role in AD_GROUP_MAP.items():
+            if any(group_dn.lower() in g.lower() for g in groups):
+                if mapped_role == "admin":
+                    role = "admin"
+                    break
+                elif mapped_role == "analyst" and role != "admin":
+                    role = "analyst"
+
+        given = str(user_entry.givenName) if hasattr(user_entry, 'givenName') and user_entry.givenName else ""
+        surname = str(user_entry.sn) if hasattr(user_entry, 'sn') and user_entry.sn else ""
+        full_name = f"{given} {surname}".strip() or str(user_entry.cn)
+        dept = str(user_entry.department) if hasattr(user_entry, 'department') and user_entry.department else ""
+        title_val = str(user_entry.title) if hasattr(user_entry, 'title') and user_entry.title else ""
+
+        return {
+            "dn": user_dn,
+            "email": str(user_entry.mail).lower(),
+            "full_name": full_name,
+            "role": role,
+            "department": dept,
+            "title": title_val,
+            "groups": groups,
+            "sam_account": str(user_entry.sAMAccountName) if hasattr(user_entry, 'sAMAccountName') else "",
+            "auth_source": "ad"
+        }
+    except Exception as e:
+        log.warning("[AD] Auth failed for %s: %s", email, e)
+        return None
+
+
+def ad_sync_users():
+    """Sync all users from AD to BigQuery eq_users.
+    Creates new users, updates existing, deactivates removed."""
+    if not AD_ENABLED:
+        return {"synced": 0, "created": 0, "updated": 0, "error": "AD not enabled"}
+    try:
+        from ldap3 import SUBTREE
+        conn = ad_connect()
+        if not conn:
+            return {"synced": 0, "error": "Connection failed"}
+        conn.search(
+            search_base=AD_BASE_DN,
+            search_filter=AD_USER_FILTER,
+            search_scope=SUBTREE,
+            attributes=['cn', 'mail', 'givenName', 'sn', 'department',
+                        'title', 'memberOf', 'sAMAccountName',
+                        'userAccountControl', 'distinguishedName',
+                        'whenCreated']
+        )
+        ad_users = conn.entries
+        conn.unbind()
+
+        created = 0
+        updated = 0
+        ad_emails = set()
+
+        for entry in ad_users:
+            email = str(entry.mail).lower() if hasattr(entry, 'mail') and entry.mail else None
+            if not email or email == '[]':
+                continue
+            ad_emails.add(email)
+
+            # Determine role from groups
+            groups = [str(g) for g in entry.memberOf] if hasattr(entry, 'memberOf') and entry.memberOf else []
+            role = "viewer"
+            for group_dn, mapped_role in AD_GROUP_MAP.items():
+                if any(group_dn.lower() in g.lower() for g in groups):
+                    if mapped_role == "admin":
+                        role = "admin"
+                        break
+                    elif mapped_role == "analyst" and role != "admin":
+                        role = "analyst"
+
+            given = str(entry.givenName) if hasattr(entry, 'givenName') and entry.givenName else ""
+            surname = str(entry.sn) if hasattr(entry, 'sn') and entry.sn else ""
+            full_name = f"{given} {surname}".strip() or str(entry.cn)
+            dept = str(entry.department) if hasattr(entry, 'department') and entry.department else ""
+
+            # Check if user already exists
+            existing = find_user_by_email(email)
+            if existing:
+                # Update role and name if changed — only for AD-sourced users
+                if existing.get("auth_source") == "ad":
+                    needs_update = []
+                    if existing.get("role") != role:
+                        needs_update.append(("role", role))
+                    if existing.get("full_name") != full_name:
+                        needs_update.append(("full_name", full_name))
+                    if needs_update:
+                        try:
+                            run_bq_update_user(needs_update, "user_id", existing["user_id"])
+                            existing["role"] = role
+                            existing["full_name"] = full_name
+                            updated += 1
+                        except Exception:
+                            pass
+            else:
+                # Create new user from AD
+                import secrets
+                salt = secrets.token_hex(16)
+                random_pw = secrets.token_urlsafe(32)
+                pw_hash = hash_password(random_pw, salt)
+                avatar = (given[:1] + surname[:1]).upper() if given and surname else full_name[:2].upper()
+                new_user = {
+                    "user_id": str(uuid.uuid4()),
+                    "email": email,
+                    "password_hash": pw_hash[0],
+                    "salt": salt,
+                    "full_name": full_name,
+                    "role": role,
+                    "avatar": avatar,
+                    "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "last_login": None,
+                    "is_active": True,
+                    "totp_secret": None,
+                    "totp_enabled": False,
+                    "allowed_pages": None,
+                    "auth_source": "ad",
+                    "ad_dn": str(entry.distinguishedName),
+                    "department": dept
+                }
+                try:
+                    run_bq_insert("onyx.eq_users", new_user)
+                    with users_cache_lock:
+                        users_cache.append(new_user)
+                    created += 1
+                    log.info("[AD-SYNC] Created user: %s (%s) -> %s", email, full_name, role)
+                except Exception as e:
+                    log.error("[AD-SYNC] Failed to create %s: %s", email, e)
+
+        log.info("[AD-SYNC] Complete: %d created, %d updated, %d total AD users",
+                 created, updated, len(ad_emails))
+        return {"synced": len(ad_emails), "created": created, "updated": updated}
+    except Exception as e:
+        log.error("[AD-SYNC] Error: %s", e)
+        return {"synced": 0, "error": str(e)}
+
+
+def ad_get_ou_structure():
+    """Get organizational unit structure from AD."""
+    if not AD_ENABLED:
+        return []
+    try:
+        from ldap3 import SUBTREE
+        conn = ad_connect()
+        if not conn:
+            return []
+        conn.search(
+            search_base=AD_BASE_DN,
+            search_filter="(objectClass=organizationalUnit)",
+            search_scope=SUBTREE,
+            attributes=['ou', 'description', 'distinguishedName']
+        )
+        ous = [{
+            "name": str(e.ou) if hasattr(e, 'ou') else "",
+            "description": str(e.description) if hasattr(e, 'description') and e.description else "",
+            "dn": str(e.distinguishedName)
+        } for e in conn.entries]
+        conn.unbind()
+        return ous
+    except Exception as e:
+        log.error("[AD] OU query failed: %s", e)
+        return []
 
 # IP Geolocation cache  {ip: {lat, lon, country, city, isp, cached_at}}
 _geo_cache = {}
@@ -229,7 +479,7 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso", "incidentes", "capacitacion"},
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso", "incidentes", "capacitacion", "ad"},
     "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso", "incidentes", "capacitacion"},
     "viewer": {"dashboard", "equipo", "productividad"}
 }
@@ -1032,6 +1282,21 @@ try:
     _seed_platform_admins()
     # Iniciar auto-refresh cada 60 segundos
     threading.Thread(target=auto_refresh_loop, daemon=True).start()
+    # AD periodic sync thread
+    def _ad_sync_loop():
+        import time
+        while True:
+            time.sleep(AD_SYNC_INTERVAL)
+            if AD_ENABLED:
+                try:
+                    result = ad_sync_users()
+                    log.info("[AD-SYNC-THREAD] %s", result)
+                except Exception as e:
+                    log.error("[AD-SYNC-THREAD] Error: %s", e)
+
+    if AD_ENABLED:
+        threading.Thread(target=_ad_sync_loop, daemon=True, name="ad-sync").start()
+        log.info("[AD] Sync thread started (interval: %ds)", AD_SYNC_INTERVAL)
 except Exception as e:
     print(f"Advertencia al cargar caché inicial: {e}")
 
@@ -2860,6 +3125,82 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             })
             return
 
+            # ── Active Directory ──
+        elif path == "/api/ad/status":
+            session = self.require_auth()
+            if not session or session.get("role") != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            status = {"enabled": AD_ENABLED, "url": AD_LDAP_URL, "base_dn": AD_BASE_DN, "connected": False, "users_count": 0}
+            if AD_ENABLED:
+                conn = ad_connect()
+                if conn:
+                    status["connected"] = True
+                    from ldap3 import SUBTREE
+                    conn.search(AD_BASE_DN, AD_USER_FILTER, SUBTREE, attributes=['mail'])
+                    status["users_count"] = len(conn.entries)
+                    conn.unbind()
+                # Count local AD users
+                with users_cache_lock:
+                    status["synced_users"] = sum(1 for u in users_cache if u.get("auth_source") == "ad")
+                    status["local_users"] = sum(1 for u in users_cache if u.get("auth_source") != "ad")
+            self.send_json(status)
+            return
+
+        elif path == "/api/ad/users":
+            session = self.require_auth()
+            if not session or session.get("role") != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            if not AD_ENABLED:
+                self.send_json({"error": "AD not enabled"}, 400)
+                return
+            try:
+                from ldap3 import SUBTREE
+                conn = ad_connect()
+                if not conn:
+                    self.send_json({"error": "Cannot connect to AD"}, 500)
+                    return
+                conn.search(AD_BASE_DN, AD_USER_FILTER, SUBTREE,
+                            attributes=['cn','mail','givenName','sn','department','memberOf','sAMAccountName','distinguishedName'])
+                users = []
+                for e in conn.entries:
+                    mail = str(e.mail) if hasattr(e, 'mail') and e.mail else None
+                    if not mail or mail == '[]':
+                        continue
+                    groups = [str(g) for g in e.memberOf] if hasattr(e, 'memberOf') and e.memberOf else []
+                    role = "viewer"
+                    for gdn, mrole in AD_GROUP_MAP.items():
+                        if any(gdn.lower() in g.lower() for g in groups):
+                            if mrole == "admin": role = "admin"; break
+                            elif mrole == "analyst" and role != "admin": role = "analyst"
+                    dn = str(e.distinguishedName)
+                    ou = ""
+                    for part in dn.split(","):
+                        if part.strip().startswith("OU=") and part.strip() != "OU=Usuarios":
+                            ou = part.strip().replace("OU=", "")
+                            break
+                    users.append({
+                        "cn": str(e.cn), "email": mail.lower(),
+                        "department": str(e.department) if hasattr(e, 'department') and e.department else "",
+                        "role": role, "ou": ou, "dn": dn,
+                        "synced": find_user_by_email(mail.lower()) is not None
+                    })
+                conn.unbind()
+                self.send_json({"users": users, "total": len(users)})
+            except Exception as ex:
+                self.send_json({"error": str(ex)}, 500)
+            return
+
+        elif path == "/api/ad/ous":
+            session = self.require_auth()
+            if not session or session.get("role") != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            ous = ad_get_ou_structure()
+            self.send_json({"ous": ous, "total": len(ous)})
+            return
+
         elif path == "/api/installer-download":
             # Serve Onyx Agent installer as a ZIP — admin only
             session = self.get_current_session()
@@ -3471,17 +3812,62 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 self.send_json({"error": f"Cuenta bloqueada por {LOCKOUT_MINUTES} min tras demasiados intentos fallidos"}, 429)
                 return
 
-            user = find_user_by_email(email)
-            if not user or not user.get("is_active", True):
-                _record_failed_login(email)
-                audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
-                self.send_json({"error": "Credenciales incorrectas"}, 401)
-                return
-            if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
-                _record_failed_login(email)
-                audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
-                self.send_json({"error": "Credenciales incorrectas"}, 401)
-                return
+            # --- Active Directory authentication (hybrid) ---
+            ad_user_info = None
+            if AD_ENABLED:
+                ad_user_info = ad_authenticate(email, password)
+                if ad_user_info:
+                    log.info("[AD] User %s authenticated via Active Directory", email)
+                    # Find or create local user record
+                    user = find_user_by_email(email)
+                    if not user:
+                        # Auto-create local user from AD data
+                        import secrets as _sec
+                        _salt = _sec.token_hex(16)
+                        _avatar = (ad_user_info['full_name'][:2]).upper()
+                        user = {
+                            "user_id": str(uuid.uuid4()),
+                            "email": email,
+                            "password_hash": hash_password(_sec.token_urlsafe(32), _salt)[0],
+                            "salt": _salt,
+                            "full_name": ad_user_info['full_name'],
+                            "role": ad_user_info['role'],
+                            "avatar": _avatar,
+                            "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            "last_login": None,
+                            "is_active": True,
+                            "totp_secret": None,
+                            "totp_enabled": False,
+                            "allowed_pages": None,
+                            "auth_source": "ad",
+                            "department": ad_user_info.get('department', '')
+                        }
+                        try:
+                            run_bq_insert("onyx.eq_users", user)
+                            with users_cache_lock:
+                                users_cache.append(user)
+                            log.info("[AD] Auto-created user %s from AD", email)
+                        except Exception as e:
+                            log.error("[AD] Failed to auto-create %s: %s", email, e)
+                    else:
+                        # Update role from AD groups
+                        if user.get("auth_source") == "ad" and user.get("role") != ad_user_info['role']:
+                            user["role"] = ad_user_info['role']
+                    # Skip local password check — AD already verified
+
+            if not ad_user_info:
+                # Local authentication path
+                user = find_user_by_email(email)
+                if not user or not user.get("is_active", True):
+                    _record_failed_login(email)
+                    audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
+                    self.send_json({"error": "Credenciales incorrectas"}, 401)
+                    return
+                if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
+                    _record_failed_login(email)
+                    audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
+                    self.send_json({"error": "Credenciales incorrectas"}, 401)
+                    return
 
             _clear_login_attempts(email)
 
@@ -4029,6 +4415,16 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 self.send_json({"ok": True})
             except Exception as e:
                 self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/ad/sync":
+            session = self.require_auth()
+            if not session or session.get("role") != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            result = ad_sync_users()
+            audit_log("AD_SYNC", session["email"], self.client_address[0], "AD", "sync", result)
+            self.send_json(result)
             return
 
         else:

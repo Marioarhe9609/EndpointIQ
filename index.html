@@ -938,6 +938,10 @@
               <span class="nav-icon">🎓</span>
               <span class="nav-label">Capacitación</span>
             </a>
+            <a href="#" class="nav-item" data-view="ad" data-requires="ad" onclick="showView('ad')">
+              <span class="nav-icon">🏢</span>
+              <span class="nav-label">Active Directory</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -2695,6 +2699,61 @@
           </div>
         </div>
 
+        <div class="view" id="view-ad">
+          <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0;font-family:var(--font-disp);color:var(--text)">🏢 Active Directory</h2>
+              <p style="color:var(--text3);font-size:13px;margin-top:4px">Integración con directorio corporativo — Sincronización LDAP</p>
+            </div>
+            <button onclick="adSync()" class="btn btn-primary">🔄 Sincronizar Ahora</button>
+          </div>
+
+          <div class="kpi-grid" style="margin-bottom:24px">
+            <div class="kpi-card" id="adStatusCard"><div class="kpi-label">Estado</div><div class="kpi-value" id="adStatus">⏳</div><div class="kpi-delta" id="adStatusText">Verificando...</div><div class="kpi-icon-bg">🔌</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Usuarios AD</div><div class="kpi-value" id="adUsersTotal">0</div><div class="kpi-delta">En el directorio</div><div class="kpi-icon-bg">👥</div></div>
+            <div class="kpi-card green"><div class="kpi-label">Sincronizados</div><div class="kpi-value" id="adUsersSynced">0</div><div class="kpi-delta">En ONYX</div><div class="kpi-icon-bg">✅</div></div>
+            <div class="kpi-card amber"><div class="kpi-label">Usuarios Locales</div><div class="kpi-value" id="adUsersLocal">0</div><div class="kpi-delta">Sin AD</div><div class="kpi-icon-bg">🔑</div></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div class="card">
+              <div class="card-header"><span>⚙️</span><span class="card-title">Configuración LDAP</span></div>
+              <div class="card-body" id="adConfigBody" style="padding:16px">
+                <p style="color:var(--text3)">Cargando...</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span>🏢</span><span class="card-title">Estructura Organizacional</span></div>
+              <div class="card-body" id="adOUBody" style="padding:16px">
+                <p style="color:var(--text3)">Cargando...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>👥</span><span class="card-title">Usuarios del Directorio Activo</span>
+              <button onclick="loadADUsers()" class="btn btn-primary" style="margin-left:auto">🔄 Refrescar</button>
+            </div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Nombre</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Email</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Departamento</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">OU</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Rol ONYX</th>
+                    <th style="padding:10px 14px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:1px">Sincronizado</th>
+                  </tr>
+                </thead>
+                <tbody id="adUsersTableBody">
+                  <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Cargando usuarios AD...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2722,7 +2781,8 @@ const titles = {
   politicas: 'Políticas de Seguridad',
   'informes-iso': 'Informe ISO 27001',
   incidentes: 'Gestión de Incidentes',
-  capacitacion: 'Capacitación en Seguridad'
+  capacitacion: 'Capacitación en Seguridad',
+  ad: 'Active Directory'
 };
 
 // ── Navegación de Vistas ──
@@ -2764,6 +2824,7 @@ function showView(id) {
             else if (id === 'informes-iso') { loadISOReport(); }
             else if (id === 'incidentes') { loadIncidents(); }
             else if (id === 'capacitacion') { loadTraining(); }
+            else if (id === 'ad') { loadADStatus(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -5227,10 +5288,13 @@ async function fetchUsers() {
       const pagesColor = pageCount === totalPages ? '#34D399' : pageCount > 5 ? '#6C9FFF' : '#FBBF24';
       
       const row = document.createElement('tr');
+      const authBadge = u.auth_source === 'ad'
+        ? '<span style="background:rgba(108,159,255,0.12);color:#6C9FFF;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:6px">🏢 AD</span>'
+        : '<span style="background:rgba(251,191,36,0.12);color:#FBBF24;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:6px">🔑 Local</span>';
       row.innerHTML = `
         <td><div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,${roleColor}22,${roleColor}44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${roleColor}">${u.avatar||'??'}</div>
-          <strong>${u.full_name}</strong>
+          <strong>${u.full_name}</strong>${authBadge}
         </div></td>
         <td class="mono" style="font-size:12px">${u.email}</td>
         <td><span style="padding:4px 10px;border-radius:6px;background:${roleColor}18;color:${roleColor};font-size:11px;font-weight:600">${roleIcons[u.role]||''} ${u.role_label}</span></td>
@@ -5289,11 +5353,12 @@ const PAGE_DEFINITIONS = [
   {id: 'politicas', icon: '📜', label: 'Políticas'},
   {id: 'informes-iso', icon: '📊', label: 'Informe ISO'},
   {id: 'incidentes', icon: '🚨', label: 'Incidentes'},
-  {id: 'capacitacion', icon: '🎓', label: 'Capacitación'}
+  {id: 'capacitacion', icon: '🎓', label: 'Capacitación'},
+  {id: 'ad', icon: '🏢', label: 'Active Directory'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso','incidentes','capacitacion'],
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso','incidentes','capacitacion','ad'],
   analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
   viewer:  ['dashboard','equipo','productividad']
 };
@@ -6513,6 +6578,114 @@ function completeTraining(moduleId) {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({module_id: moduleId, score: 100})
   }).then(r => r.json()).then(data => { if (data.ok) loadTraining(); });
+}
+
+// ═══════ ACTIVE DIRECTORY ═══════
+function loadADStatus() {
+  fetch('/api/ad/status', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      const card = document.getElementById('adStatusCard');
+      if (data.connected) {
+        document.getElementById('adStatus').textContent = '🟢';
+        document.getElementById('adStatusText').textContent = 'Conectado';
+        card.className = 'kpi-card green';
+      } else if (data.enabled) {
+        document.getElementById('adStatus').textContent = '🔴';
+        document.getElementById('adStatusText').textContent = 'Desconectado';
+        card.className = 'kpi-card red';
+      } else {
+        document.getElementById('adStatus').textContent = '⏸️';
+        document.getElementById('adStatusText').textContent = 'Deshabilitado';
+        card.className = 'kpi-card gray';
+      }
+      document.getElementById('adUsersTotal').textContent = data.users_count || 0;
+      document.getElementById('adUsersSynced').textContent = data.synced_users || 0;
+      document.getElementById('adUsersLocal').textContent = data.local_users || 0;
+      
+      document.getElementById('adConfigBody').innerHTML = `
+        <div style="display:grid;gap:12px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text3);font-size:13px">Habilitado</span>
+            <span style="color:var(--text);font-weight:500">${data.enabled ? '✅ Sí' : '❌ No'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text3);font-size:13px">Servidor LDAP</span>
+            <span style="color:var(--text);font-weight:500;font-family:var(--font-mono,monospace);font-size:12px">${data.url || 'N/A'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--text3);font-size:13px">Base DN</span>
+            <span style="color:var(--text);font-weight:500;font-family:var(--font-mono,monospace);font-size:12px">${data.base_dn || 'N/A'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0">
+            <span style="color:var(--text3);font-size:13px">Conexión</span>
+            <span style="color:${data.connected ? '#10B981' : '#EF4444'};font-weight:600">${data.connected ? '🟢 Activa' : '🔴 Sin conexión'}</span>
+          </div>
+        </div>`;
+      
+      // Load OUs
+      fetch('/api/ad/ous', {credentials: 'include'})
+        .then(r => r.json())
+        .then(ouData => {
+          const ous = ouData.ous || [];
+          if (!ous.length) {
+            document.getElementById('adOUBody').innerHTML = '<p style="color:var(--text3);text-align:center">Sin datos de estructura</p>';
+            return;
+          }
+          document.getElementById('adOUBody').innerHTML = ous.map(ou => 
+            '<div style="padding:8px 12px;margin-bottom:6px;background:var(--surface2);border-radius:8px;display:flex;justify-content:space-between;align-items:center">' +
+            '<span style="color:var(--text);font-weight:500;font-size:13px">📂 ' + (ou.name || 'N/A') + '</span>' +
+            '<span style="color:var(--text3);font-size:11px">' + (ou.description || '') + '</span>' +
+            '</div>'
+          ).join('');
+        }).catch(() => {});
+      
+      // Load users
+      loadADUsers();
+    }).catch(err => {
+      console.error('[AD]', err);
+      document.getElementById('adStatus').textContent = '❌';
+      document.getElementById('adStatusText').textContent = 'Error';
+    });
+}
+
+function loadADUsers() {
+  fetch('/api/ad/users', {credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('adUsersTableBody');
+      const users = data.users || [];
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Sin usuarios en AD (o AD deshabilitado)</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => {
+        const roleColors = {admin: {bg:'rgba(239,68,68,0.12)',color:'#EF4444'}, analyst: {bg:'rgba(108,159,255,0.12)',color:'#6C9FFF'}, viewer: {bg:'rgba(107,114,128,0.12)',color:'#6B7280'}};
+        const rc = roleColors[u.role] || roleColors.viewer;
+        const syncBadge = u.synced 
+          ? '<span style="background:rgba(16,185,129,0.12);color:#10B981;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✅ Sí</span>'
+          : '<span style="background:rgba(251,191,36,0.12);color:#FBBF24;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⏳ Pendiente</span>';
+        return '<tr style="border-bottom:1px solid rgba(108,159,255,0.06)">' +
+          '<td style="padding:10px 14px;color:var(--text);font-weight:500">' + u.cn + '</td>' +
+          '<td style="padding:10px 14px;color:var(--text2)">' + u.email + '</td>' +
+          '<td style="padding:10px 14px;color:var(--text2)">' + (u.department || '-') + '</td>' +
+          '<td style="padding:10px 14px;color:var(--text3)">' + (u.ou || '-') + '</td>' +
+          '<td style="padding:10px 14px"><span style="background:' + rc.bg + ';color:' + rc.color + ';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">' + u.role + '</span></td>' +
+          '<td style="padding:10px 14px">' + syncBadge + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(err => console.error('[AD Users]', err));
+}
+
+function adSync() {
+  if (!confirm('¿Sincronizar usuarios desde Active Directory?')) return;
+  fetch('/api/ad/sync', {method: 'POST', credentials: 'include'})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert('Error: ' + data.error); return; }
+      alert('✅ Sincronización completada\n\nCreados: ' + (data.created || 0) + '\nActualizados: ' + (data.updated || 0) + '\nTotal AD: ' + (data.synced || 0));
+      loadADStatus();
+    }).catch(err => alert('Error de conexión'));
 }
 </script>
 <!-- CHATBOT FLOTANTE GLOBAL -->
