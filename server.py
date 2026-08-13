@@ -709,7 +709,7 @@ def _seed_platform_admins():
         {
             "email": "jramirez@agenticatech.ai",
             "full_name": "Jhoan Ramirez",
-            "password": os.environ.get("SEED_ADMIN_PASSWORD", "Jhoan2026!"),
+            "password": os.environ.get("SEED_ADMIN_PASSWORD", ""),
             "role": "admin",
             "avatar": "JR"
         }
