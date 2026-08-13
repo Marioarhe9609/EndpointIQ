@@ -3305,7 +3305,7 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 zip_data = zip_buffer.getvalue()
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/zip')
-                self.send_header('Content-Disposition', 'attachment; filename="Onyx-Agent-v3.0.zip"')
+                self.send_header('Content-Disposition', 'attachment; filename="Onyx-Agent-v3.5.zip"')
                 self.send_header('Content-Length', str(len(zip_data)))
                 self.end_headers()
                 self.wfile.write(zip_data)

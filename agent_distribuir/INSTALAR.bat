@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-title Onyx Agent - Instalador v3.0
+title Onyx Agent - Instalador v3.5
 
 :: ============================================
 :: AUTO-ELEVACION como Administrador via VBS
@@ -26,7 +26,7 @@ color 0B
 echo.
 echo   +==========================================================+
 echo   ^|                                                          ^|
-echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.0      ^|
+echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.5      ^|
 echo   ^|                    By Agentica                           ^|
 echo   ^|                                                          ^|
 echo   +==========================================================+
@@ -178,7 +178,7 @@ echo.
 set "CONFIG=%INSTALL_DIR%\onyx_config.json"
 
 :: Escribir config via Python para garantizar UTF-8 sin BOM y valores correctos
-"%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':300,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.0.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
+"%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':300,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.5.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
 if %errorlevel%==0 (
     echo         [OK] Config escrita: dataset=onyx, sin BOM
     echo         [OK] Servidor: onyx-server-631753912632.us-central1.run.app
@@ -268,7 +268,7 @@ echo   ^|    - Puertos USB
 echo   ^|    - Visor de Sucesos
 echo   +==========================================================+
 echo   ^|  Servidor: onyx-server-631753912632.us-central1.run.app
-echo   ^|  Onyx v3.0 - By Agentica
+echo   ^|  Onyx v3.5 - By Agentica
 echo   +==========================================================+
 echo.
 
