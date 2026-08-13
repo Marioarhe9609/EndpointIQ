@@ -4427,6 +4427,393 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             self.send_json(result)
             return
 
+        # ══════════════════════════════════════════════════════════════
+        # ██  INVENTORY & DEVICE ASSIGNMENT MODULE                    ██
+        # ══════════════════════════════════════════════════════════════
+
+        elif path == "/api/inventory":
+            session = self.require_auth()
+            if not session:
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+
+            if self.command == "GET":
+                # List all inventory items with agent status
+                try:
+                    inv_rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_inventory ORDER BY created_at DESC")
+                    items = [dict(r) for r in inv_rows] if inv_rows else []
+
+                    # Cross-reference with eq_sync_status for agent detection
+                    sync_rows = run_bq_query(f"""
+                        SELECT device_id, MAX(last_sync) as last_sync, MAX(status) as status
+                        FROM {dataset}.eq_sync_status
+                        GROUP BY device_id
+                    """)
+                    agent_map = {}
+                    if sync_rows:
+                        for sr in sync_rows:
+                            sr = dict(sr)
+                            agent_map[sr.get("device_id", "")] = sr
+
+                    # Get users for dropdown
+                    user_rows = run_bq_query(f"SELECT email, full_name, department FROM {dataset}.eq_users WHERE is_active = true")
+                    users = [dict(u) for u in user_rows] if user_rows else []
+
+                    # Get unlinked agent device_ids (for linking dropdown)
+                    linked_ids = {it.get("device_id") for it in items if it.get("device_id")}
+                    unlinked_agents = [did for did in agent_map if did and did not in linked_ids]
+
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    for item in items:
+                        did = item.get("device_id", "")
+                        if did and did in agent_map:
+                            agent = agent_map[did]
+                            item["has_agent"] = True
+                            last_sync = agent.get("last_sync")
+                            if last_sync:
+                                if hasattr(last_sync, 'isoformat'):
+                                    item["agent_last_seen"] = last_sync.isoformat()
+                                    diff = (now - last_sync.replace(tzinfo=datetime.timezone.utc) if last_sync.tzinfo is None else now - last_sync)
+                                    item["agent_online"] = diff.total_seconds() < 600
+                                else:
+                                    item["agent_last_seen"] = str(last_sync)
+                                    item["agent_online"] = False
+                            else:
+                                item["agent_online"] = False
+                        else:
+                            item["has_agent"] = bool(did)
+                            item["agent_online"] = False
+                            item["agent_last_seen"] = None
+                        # Serialize timestamps
+                        for tf in ["purchase_date", "warranty_until", "created_at", "updated_at", "agent_last_seen"]:
+                            v = item.get(tf)
+                            if v and hasattr(v, 'isoformat'):
+                                item[tf] = v.isoformat()
+
+                    # KPIs
+                    total = len(items)
+                    stock = sum(1 for i in items if i.get("status") == "stock")
+                    assigned = sum(1 for i in items if i.get("status") == "assigned")
+                    maintenance = sum(1 for i in items if i.get("status") == "maintenance")
+                    retired = sum(1 for i in items if i.get("status") == "retired")
+                    with_agent = sum(1 for i in items if i.get("has_agent"))
+
+                    self.send_json({
+                        "items": items,
+                        "users": users,
+                        "unlinked_agents": unlinked_agents,
+                        "kpis": {
+                            "total": total, "stock": stock, "assigned": assigned,
+                            "maintenance": maintenance, "retired": retired, "with_agent": with_agent
+                        }
+                    })
+                except Exception as e:
+                    print(f"[INVENTORY] Error listing: {e}")
+                    self.send_json({"items": [], "users": [], "unlinked_agents": [], "kpis": {}})
+                return
+
+        elif path == "/api/inventory" and self.command == "POST":
+            # Register new device (enters as "stock")
+            session = self.require_auth()
+            if not session or session.get("role") not in ("admin", "analyst"):
+                self.send_json({"error": "Sin permisos"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            import uuid
+            inv_id = str(uuid.uuid4())
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            row = {
+                "inventory_id": inv_id,
+                "device_tag": body.get("device_tag", ""),
+                "device_id": body.get("device_id", "") or None,
+                "brand": body.get("brand", ""),
+                "model": body.get("model", ""),
+                "serial_number": body.get("serial_number", ""),
+                "device_type": body.get("device_type", "Laptop"),
+                "os": body.get("os", ""),
+                "purchase_date": body.get("purchase_date") or None,
+                "warranty_until": body.get("warranty_until") or None,
+                "status": "stock",
+                "current_assignee_email": None,
+                "current_assignee_name": None,
+                "department": None,
+                "notes": body.get("notes", ""),
+                "has_agent": bool(body.get("device_id")),
+                "agent_last_seen": None,
+                "created_by": session["email"],
+                "created_at": now_iso,
+                "updated_at": now_iso
+            }
+            try:
+                run_bq_insert(f"{dataset}.eq_device_inventory", row)
+                # Log in assignments history
+                run_bq_insert(f"{dataset}.eq_device_assignments", {
+                    "assignment_id": str(uuid.uuid4()),
+                    "inventory_id": inv_id,
+                    "device_tag": body.get("device_tag", ""),
+                    "action": "registered",
+                    "from_user_email": None, "from_user_name": None,
+                    "to_user_email": None, "to_user_name": None,
+                    "department": None,
+                    "notes": f"Equipo registrado en inventario: {body.get('brand','')} {body.get('model','')}",
+                    "performed_by": session["email"],
+                    "created_at": now_iso
+                })
+                audit_log("INVENTORY_REGISTER", session["email"], self.client_address[0], "inventory", inv_id, {"device_tag": body.get("device_tag")})
+                self.send_json({"ok": True, "inventory_id": inv_id})
+            except Exception as e:
+                print(f"[INVENTORY] Register error: {e}")
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/inventory/update":
+            # Edit device info
+            session = self.require_auth()
+            if not session or session.get("role") not in ("admin", "analyst"):
+                self.send_json({"error": "Sin permisos"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            inv_id = body.get("inventory_id")
+            if not inv_id:
+                self.send_json({"error": "inventory_id required"}, 400)
+                return
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            updates = []
+            for field in ["device_tag", "device_id", "brand", "model", "serial_number", "device_type", "os", "purchase_date", "warranty_until", "notes"]:
+                if field in body:
+                    val = body[field]
+                    if val is None or val == "":
+                        updates.append(f"{field} = NULL")
+                    else:
+                        safe = str(val).replace("'", "\\'")
+                        updates.append(f"{field} = '{safe}'")
+            if body.get("device_id"):
+                updates.append("has_agent = TRUE")
+            updates.append(f"updated_at = '{now_iso}'")
+            try:
+                safe_id = inv_id.replace("'", "\\'")
+                run_bq_query(f"UPDATE {dataset}.eq_device_inventory SET {', '.join(updates)} WHERE inventory_id = '{safe_id}'")
+                self.send_json({"ok": True})
+            except Exception as e:
+                print(f"[INVENTORY] Update error: {e}")
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/inventory/assign":
+            session = self.require_auth()
+            if not session or session.get("role") not in ("admin", "analyst"):
+                self.send_json({"error": "Sin permisos"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            import uuid
+            inv_id = body.get("inventory_id")
+            to_email = body.get("to_user_email", "")
+            to_name = body.get("to_user_name", "")
+            dept = body.get("department", "")
+            notes = body.get("notes", "")
+            if not inv_id or not to_email:
+                self.send_json({"error": "inventory_id and to_user_email required"}, 400)
+                return
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            safe_id = inv_id.replace("'", "\\'")
+            try:
+                # Get current state
+                rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_inventory WHERE inventory_id = '{safe_id}'")
+                device = dict(rows[0]) if rows else None
+                if not device:
+                    self.send_json({"error": "Equipo no encontrado"}, 404)
+                    return
+                prev_email = device.get("current_assignee_email")
+                prev_name = device.get("current_assignee_name")
+                action = "reassigned" if device.get("status") == "assigned" and prev_email else "assigned"
+
+                # Update inventory
+                safe_email = to_email.replace("'", "\\'")
+                safe_name = to_name.replace("'", "\\'")
+                safe_dept = dept.replace("'", "\\'")
+                run_bq_query(f"""UPDATE {dataset}.eq_device_inventory
+                    SET status = 'assigned', current_assignee_email = '{safe_email}',
+                        current_assignee_name = '{safe_name}', department = '{safe_dept}',
+                        updated_at = '{now_iso}'
+                    WHERE inventory_id = '{safe_id}'""")
+
+                # Log assignment
+                run_bq_insert(f"{dataset}.eq_device_assignments", {
+                    "assignment_id": str(uuid.uuid4()),
+                    "inventory_id": inv_id,
+                    "device_tag": device.get("device_tag", ""),
+                    "action": action,
+                    "from_user_email": prev_email, "from_user_name": prev_name,
+                    "to_user_email": to_email, "to_user_name": to_name,
+                    "department": dept,
+                    "notes": notes,
+                    "performed_by": session["email"],
+                    "created_at": now_iso
+                })
+                audit_log("INVENTORY_ASSIGN", session["email"], self.client_address[0], "inventory", inv_id, {"to": to_email, "action": action})
+                self.send_json({"ok": True, "action": action})
+            except Exception as e:
+                print(f"[INVENTORY] Assign error: {e}")
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/inventory/return":
+            session = self.require_auth()
+            if not session or session.get("role") not in ("admin", "analyst"):
+                self.send_json({"error": "Sin permisos"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            import uuid
+            inv_id = body.get("inventory_id")
+            notes = body.get("notes", "")
+            if not inv_id:
+                self.send_json({"error": "inventory_id required"}, 400)
+                return
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            safe_id = inv_id.replace("'", "\\'")
+            try:
+                rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_inventory WHERE inventory_id = '{safe_id}'")
+                device = dict(rows[0]) if rows else None
+                if not device:
+                    self.send_json({"error": "Equipo no encontrado"}, 404)
+                    return
+
+                run_bq_query(f"""UPDATE {dataset}.eq_device_inventory
+                    SET status = 'stock', current_assignee_email = NULL,
+                        current_assignee_name = NULL, department = NULL,
+                        updated_at = '{now_iso}'
+                    WHERE inventory_id = '{safe_id}'""")
+
+                run_bq_insert(f"{dataset}.eq_device_assignments", {
+                    "assignment_id": str(uuid.uuid4()),
+                    "inventory_id": inv_id,
+                    "device_tag": device.get("device_tag", ""),
+                    "action": "returned",
+                    "from_user_email": device.get("current_assignee_email"),
+                    "from_user_name": device.get("current_assignee_name"),
+                    "to_user_email": None, "to_user_name": None,
+                    "department": device.get("department"),
+                    "notes": notes,
+                    "performed_by": session["email"],
+                    "created_at": now_iso
+                })
+                audit_log("INVENTORY_RETURN", session["email"], self.client_address[0], "inventory", inv_id, {"from": device.get("current_assignee_email")})
+                self.send_json({"ok": True})
+            except Exception as e:
+                print(f"[INVENTORY] Return error: {e}")
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/inventory/maintenance":
+            session = self.require_auth()
+            if not session or session.get("role") not in ("admin", "analyst"):
+                self.send_json({"error": "Sin permisos"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            import uuid
+            inv_id = body.get("inventory_id")
+            notes = body.get("notes", "")
+            if not inv_id:
+                self.send_json({"error": "inventory_id required"}, 400)
+                return
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            safe_id = inv_id.replace("'", "\\'")
+            try:
+                rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_inventory WHERE inventory_id = '{safe_id}'")
+                device = dict(rows[0]) if rows else None
+                if not device:
+                    self.send_json({"error": "Equipo no encontrado"}, 404)
+                    return
+
+                run_bq_query(f"""UPDATE {dataset}.eq_device_inventory
+                    SET status = 'maintenance', updated_at = '{now_iso}'
+                    WHERE inventory_id = '{safe_id}'""")
+
+                run_bq_insert(f"{dataset}.eq_device_assignments", {
+                    "assignment_id": str(uuid.uuid4()),
+                    "inventory_id": inv_id,
+                    "device_tag": device.get("device_tag", ""),
+                    "action": "maintenance",
+                    "from_user_email": device.get("current_assignee_email"),
+                    "from_user_name": device.get("current_assignee_name"),
+                    "to_user_email": None, "to_user_name": None,
+                    "department": device.get("department"),
+                    "notes": notes,
+                    "performed_by": session["email"],
+                    "created_at": now_iso
+                })
+                self.send_json({"ok": True})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/inventory/history":
+            session = self.require_auth()
+            if not session:
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            inv_id = params.get("id", [""])[0]
+            try:
+                if inv_id:
+                    safe_id = inv_id.replace("'", "\\'")
+                    rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_assignments WHERE inventory_id = '{safe_id}' ORDER BY created_at DESC")
+                else:
+                    rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_assignments ORDER BY created_at DESC LIMIT 100")
+                history = []
+                if rows:
+                    for r in rows:
+                        h = dict(r)
+                        for tf in ["created_at"]:
+                            v = h.get(tf)
+                            if v and hasattr(v, 'isoformat'):
+                                h[tf] = v.isoformat()
+                        history.append(h)
+                self.send_json({"history": history})
+            except Exception as e:
+                print(f"[INVENTORY] History error: {e}")
+                self.send_json({"history": []})
+            return
+
+        elif path == "/api/inventory/delete":
+            session = self.require_auth()
+            if not session or session.get("role") != "admin":
+                self.send_json({"error": "Solo administradores"}, 403)
+                return
+            dataset = os.environ.get("BQ_DATASET", "onyx")
+            import uuid
+            inv_id = body.get("inventory_id") or params.get("id", [""])[0]
+            if not inv_id:
+                self.send_json({"error": "inventory_id required"}, 400)
+                return
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            safe_id = inv_id.replace("'", "\\'")
+            try:
+                rows = run_bq_query(f"SELECT * FROM {dataset}.eq_device_inventory WHERE inventory_id = '{safe_id}'")
+                device = dict(rows[0]) if rows else None
+                if not device:
+                    self.send_json({"error": "Equipo no encontrado"}, 404)
+                    return
+                run_bq_query(f"""UPDATE {dataset}.eq_device_inventory
+                    SET status = 'retired', updated_at = '{now_iso}'
+                    WHERE inventory_id = '{safe_id}'""")
+                run_bq_insert(f"{dataset}.eq_device_assignments", {
+                    "assignment_id": str(uuid.uuid4()),
+                    "inventory_id": inv_id,
+                    "device_tag": device.get("device_tag", ""),
+                    "action": "retired",
+                    "from_user_email": device.get("current_assignee_email"),
+                    "from_user_name": device.get("current_assignee_name"),
+                    "to_user_email": None, "to_user_name": None,
+                    "department": device.get("department"),
+                    "notes": body.get("notes", "Equipo dado de baja"),
+                    "performed_by": session["email"],
+                    "created_at": now_iso
+                })
+                self.send_json({"ok": True})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
         else:
             self.send_json({"error": "Endpoint no encontrado"}, 404)
 

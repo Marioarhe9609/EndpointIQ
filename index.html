@@ -942,6 +942,10 @@
               <span class="nav-icon">🏢</span>
               <span class="nav-label">Active Directory</span>
             </a>
+            <a href="#" class="nav-item" data-view="inventario" data-requires="inventario" onclick="showView('inventario')">
+              <span class="nav-icon">📋</span>
+              <span class="nav-label">Inventario</span>
+            </a>
     <a class="nav-item" href="Onyx_Manual_Usuario.html" target="_blank"><span class="nav-icon">📖</span> Manual Usuario</a>
 
     <div class="sidebar-bottom">
@@ -7162,6 +7166,424 @@ window.updateGoogleMapMarkers = function(devices) {
   // Invalidate size in case container was hidden
   setTimeout(() => { leafletMapInstance.invalidateSize(); }, 100);
 };
+</script>
+
+<!-- ══════════════ INVENTORY VIEW ══════════════ -->
+<div id="view-inventario" class="view-section" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h2 style="font-family:var(--font-disp);font-size:22px;color:var(--text);margin:0">📋 Inventario de Equipos</h2>
+      <p style="color:var(--text2);font-size:13px;margin:4px 0 0">Control de asignación y gestión de máquinas</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="invShowRegister()" style="padding:8px 16px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">+ Registrar Equipo</button>
+      <button onclick="invExportCSV()" style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📥 Exportar</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div id="invKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px"></div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0">
+    <button class="inv-tab active" onclick="invSwitchTab('inventory',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--blue);color:var(--text);font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📦 Inventario</button>
+    <button class="inv-tab" onclick="invSwitchTab('byuser',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">👤 Por Usuario</button>
+    <button class="inv-tab" onclick="invSwitchTab('history',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📜 Historial</button>
+  </div>
+
+  <!-- Search + Filters -->
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <input type="text" id="invSearch" placeholder="🔍 Buscar equipo, usuario, serial..." oninput="invFilter()" style="flex:1;min-width:200px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
+    <select id="invFilterStatus" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
+      <option value="">Todos los estados</option>
+      <option value="stock">🏪 Stock</option>
+      <option value="assigned">✅ Asignado</option>
+      <option value="maintenance">🔧 Mantenimiento</option>
+      <option value="retired">🗑️ Retirado</option>
+    </select>
+    <select id="invFilterType" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
+      <option value="">Todos los tipos</option>
+      <option value="Laptop">💻 Laptop</option>
+      <option value="Desktop">🖥️ Desktop</option>
+      <option value="Servidor">🗄️ Servidor</option>
+      <option value="Tablet">📱 Tablet</option>
+      <option value="Otro">⚙️ Otro</option>
+    </select>
+  </div>
+
+  <!-- Tab Content -->
+  <div id="invTabInventory">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:var(--surface2)">
+          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Etiqueta</th>
+          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Marca/Modelo</th>
+          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Tipo</th>
+          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Serial</th>
+          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Asignado a</th>
+          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Agente</th>
+          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Estado</th>
+          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Acciones</th>
+        </tr></thead>
+        <tbody id="invTableBody"></tbody>
+      </table>
+      <div id="invEmpty" style="display:none;text-align:center;padding:40px;color:var(--text3)">
+        <div style="font-size:48px;margin-bottom:12px">📦</div>
+        <div style="font-size:15px;font-weight:600">No hay equipos registrados</div>
+        <div style="font-size:13px;margin-top:4px">Haz clic en "Registrar Equipo" para empezar</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="invTabByuser" style="display:none"></div>
+  <div id="invTabHistory" style="display:none"></div>
+</div>
+
+<!-- MODAL: Register Device -->
+<div id="invModalRegister" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto;padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0;font-family:var(--font-disp);font-size:18px;color:var(--text)" id="invModalTitle">📦 Registrar Nuevo Equipo</h3>
+      <button onclick="invCloseModal('invModalRegister')" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <input type="hidden" id="invEditId">
+    <div style="display:grid;gap:14px">
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Etiqueta *</label><input type="text" id="invTag" placeholder="PC-IT-001" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Tipo *</label><select id="invType" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)"><option>Laptop</option><option>Desktop</option><option>Servidor</option><option>Tablet</option><option>Otro</option></select></div>
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Marca *</label><input type="text" id="invBrand" placeholder="Dell, HP, Lenovo..." style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Modelo</label><input type="text" id="invModel" placeholder="Latitude 5520" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">N° Serie</label><input type="text" id="invSerial" placeholder="ABC123456" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      </div>
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Sistema Operativo</label><input type="text" id="invOS" placeholder="Windows 11 Pro" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Fecha Compra</label><input type="date" id="invPurchase" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Garantía hasta</label><input type="date" id="invWarranty" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      </div>
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Vincular Agente ONYX</label><select id="invAgent" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)"><option value="">— Sin agente —</option></select></div>
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Notas</label><textarea id="invNotes" rows="2" placeholder="Observaciones..." style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);resize:vertical;box-sizing:border-box"></textarea></div>
+      <button onclick="invSaveDevice()" style="padding:10px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:14px;font-family:var(--font-ui)">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Assign -->
+<div id="invModalAssign" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:420px;max-width:90vw;padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0;font-family:var(--font-disp);font-size:18px;color:var(--text)" id="invAssignTitle">👤 Asignar Equipo</h3>
+      <button onclick="invCloseModal('invModalAssign')" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <input type="hidden" id="invAssignId">
+    <div style="display:grid;gap:14px">
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Usuario *</label><select id="invAssignUser" style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)"><option value="">Seleccionar usuario...</option></select></div>
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Departamento</label><input type="text" id="invAssignDept" placeholder="IT, Admin, Ventas..." style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600">Notas</label><textarea id="invAssignNotes" rows="2" placeholder="Motivo de asignación..." style="width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui);resize:vertical;box-sizing:border-box"></textarea></div>
+      <button onclick="invDoAssign()" style="padding:10px;background:linear-gradient(135deg,var(--green),#059669);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:14px;font-family:var(--font-ui)">✅ Asignar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: History -->
+<div id="invModalHistory" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:560px;max-width:90vw;max-height:80vh;overflow-y:auto;padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="margin:0;font-family:var(--font-disp);font-size:18px;color:var(--text)">📜 Historial del Equipo</h3>
+      <button onclick="invCloseModal('invModalHistory')" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="invHistoryContent"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════ INVENTORY MODULE JS ══════════════
+let _invData = { items: [], users: [], unlinked_agents: [], kpis: {} };
+
+async function invLoad() {
+  try {
+    const r = await fetch('/api/inventory', { credentials: 'include' });
+    _invData = await r.json();
+    invRenderKPIs();
+    invRenderTable();
+  } catch(e) { console.error('Inventory load error:', e); }
+}
+
+function invRenderKPIs() {
+  const k = _invData.kpis || {};
+  const kpis = [
+    { label: 'Total Equipos', value: k.total||0, icon: '📦', color: 'var(--blue)' },
+    { label: 'En Stock', value: k.stock||0, icon: '🏪', color: 'var(--cyan)' },
+    { label: 'Asignados', value: k.assigned||0, icon: '👤', color: 'var(--green)' },
+    { label: 'Mantenimiento', value: k.maintenance||0, icon: '🔧', color: 'var(--amber)' },
+    { label: 'Con Agente', value: k.with_agent||0, icon: '🤖', color: 'var(--purple)' },
+    { label: 'Retirados', value: k.retired||0, icon: '🗑️', color: 'var(--red)' },
+  ];
+  document.getElementById('invKpis').innerHTML = kpis.map(kp => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:24px;margin-bottom:4px">${kp.icon}</div>
+      <div style="font-size:22px;font-weight:700;color:${kp.color};font-family:var(--font-disp)">${kp.value}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">${kp.label}</div>
+    </div>
+  `).join('');
+}
+
+function invRenderTable() {
+  const items = invGetFiltered();
+  const tbody = document.getElementById('invTableBody');
+  const empty = document.getElementById('invEmpty');
+  if (!items.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const statusMap = { stock: {l:'Stock',c:'var(--cyan)',i:'🏪'}, assigned: {l:'Asignado',c:'var(--green)',i:'✅'}, maintenance: {l:'Mant.',c:'var(--amber)',i:'🔧'}, retired: {l:'Retirado',c:'var(--red)',i:'🗑️'} };
+  tbody.innerHTML = items.map(it => {
+    const st = statusMap[it.status] || {l:it.status,c:'var(--text3)',i:'❓'};
+    const agentIcon = it.has_agent ? (it.agent_online ? '🟢' : '🟡') : '🔴';
+    const agentTip = it.has_agent ? (it.agent_online ? 'Online' : 'Offline') : 'Sin agente';
+    const user = it.current_assignee_name || it.current_assignee_email || '—';
+    const actions = [];
+    if (it.status === 'stock') actions.push(`<button onclick="invShowAssign('${it.inventory_id}')" title="Asignar" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--green)">👤</button>`);
+    if (it.status === 'assigned') {
+      actions.push(`<button onclick="invShowAssign('${it.inventory_id}')" title="Reasignar" style="background:rgba(108,159,255,0.1);border:1px solid rgba(108,159,255,0.3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--blue)">🔄</button>`);
+      actions.push(`<button onclick="invDoReturn('${it.inventory_id}')" title="Devolver a Stock" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--amber)">↩️</button>`);
+    }
+    if (it.status !== 'retired') actions.push(`<button onclick="invDoMaint('${it.inventory_id}')" title="Mantenimiento" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--amber)">🔧</button>`);
+    actions.push(`<button onclick="invShowHistory('${it.inventory_id}')" title="Historial" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--purple)">📜</button>`);
+    actions.push(`<button onclick="invShowEdit('${it.inventory_id}')" title="Editar" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--text2)">✏️</button>`);
+    return `<tr style="border-bottom:1px solid var(--border);transition:background 0.2s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <td style="padding:10px 14px;font-weight:600;color:var(--text)">${it.device_tag||'—'}</td>
+      <td style="padding:10px 14px;color:var(--text2)">${it.brand||''} ${it.model||''}</td>
+      <td style="padding:10px 14px;color:var(--text2)">${it.device_type||'—'}</td>
+      <td style="padding:10px 14px;color:var(--text3);font-family:var(--font-mono);font-size:11px">${it.serial_number||'—'}</td>
+      <td style="padding:10px 14px;color:var(--text)">${user}</td>
+      <td style="padding:10px 14px;text-align:center" title="${agentTip}">${agentIcon}</td>
+      <td style="padding:10px 14px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${st.c}22;color:${st.c}">${st.i} ${st.l}</span></td>
+      <td style="padding:10px 14px;text-align:center"><div style="display:flex;gap:4px;justify-content:center">${actions.join('')}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function invGetFiltered() {
+  const q = (document.getElementById('invSearch')?.value||'').toLowerCase();
+  const st = document.getElementById('invFilterStatus')?.value||'';
+  const tp = document.getElementById('invFilterType')?.value||'';
+  return (_invData.items||[]).filter(it => {
+    if (st && it.status !== st) return false;
+    if (tp && it.device_type !== tp) return false;
+    if (q) { const txt = [it.device_tag,it.brand,it.model,it.serial_number,it.current_assignee_name,it.current_assignee_email,it.device_id].join(' ').toLowerCase(); if (!txt.includes(q)) return false; }
+    return true;
+  });
+}
+function invFilter() { invRenderTable(); }
+
+function invSwitchTab(tab, btn) {
+  document.querySelectorAll('.inv-tab').forEach(b => { b.style.borderBottomColor='transparent'; b.style.color='var(--text2)'; b.style.fontWeight='500'; });
+  btn.style.borderBottomColor='var(--blue)'; btn.style.color='var(--text)'; btn.style.fontWeight='600';
+  document.getElementById('invTabInventory').style.display = tab==='inventory'?'block':'none';
+  document.getElementById('invTabByuser').style.display = tab==='byuser'?'block':'none';
+  document.getElementById('invTabHistory').style.display = tab==='history'?'block':'none';
+  if (tab==='byuser') invRenderByUser();
+  if (tab==='history') invRenderHistoryTab();
+}
+
+function invRenderByUser() {
+  const assigned = (_invData.items||[]).filter(i=>i.status==='assigned'&&i.current_assignee_email);
+  const byUser = {};
+  assigned.forEach(it => { const k = it.current_assignee_email; if(!byUser[k])byUser[k]={name:it.current_assignee_name||k,email:k,dept:it.department||'',items:[]}; byUser[k].items.push(it); });
+  const container = document.getElementById('invTabByuser');
+  if (!Object.keys(byUser).length) { container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:48px">👤</div><div style="margin-top:8px">No hay equipos asignados</div></div>'; return; }
+  container.innerHTML = Object.values(byUser).map(u => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">${(u.name||'?').substring(0,2).toUpperCase()}</div>
+        <div><div style="font-weight:600;color:var(--text)">${u.name}</div><div style="font-size:12px;color:var(--text2)">${u.email} — ${u.dept||'Sin depto'}</div></div>
+        <div style="margin-left:auto;padding:4px 12px;background:var(--blue)22;border-radius:20px;font-size:12px;color:var(--blue);font-weight:600">${u.items.length} equipo(s)</div>
+      </div>
+      ${u.items.map(it => `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-top:6px">
+        <span style="font-size:16px">${it.device_type==='Laptop'?'💻':it.device_type==='Desktop'?'🖥️':'🗄️'}</span>
+        <span style="font-weight:600;color:var(--text)">${it.device_tag}</span>
+        <span style="color:var(--text2);font-size:12px">${it.brand||''} ${it.model||''}</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--text3)">${it.has_agent?(it.agent_online?'🟢 Online':'🟡 Offline'):'🔴 Sin agente'}</span>
+      </div>`).join('')}
+    </div>
+  `).join('');
+}
+
+async function invRenderHistoryTab() {
+  const container = document.getElementById('invTabHistory');
+  container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Cargando historial...</div>';
+  try {
+    const r = await fetch('/api/inventory/history', { credentials:'include' });
+    const data = await r.json();
+    const history = data.history || [];
+    if (!history.length) { container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:48px">📜</div><div style="margin-top:8px">Sin movimientos registrados</div></div>'; return; }
+    const actionMap = { registered:{i:'📦',c:'var(--cyan)',l:'Registrado'}, assigned:{i:'🟢',c:'var(--green)',l:'Asignado'}, reassigned:{i:'🔄',c:'var(--blue)',l:'Reasignado'}, returned:{i:'↩️',c:'var(--amber)',l:'Devuelto a stock'}, maintenance:{i:'🔧',c:'var(--amber)',l:'Mantenimiento'}, retired:{i:'🗑️',c:'var(--red)',l:'Retirado'} };
+    container.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">${history.map(h => {
+      const a = actionMap[h.action]||{i:'❓',c:'var(--text3)',l:h.action};
+      const date = h.created_at ? new Date(h.created_at).toLocaleString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      let desc = `<strong>${h.device_tag}</strong> — ${a.l}`;
+      if (h.to_user_name || h.to_user_email) desc += ` a <strong>${h.to_user_name||h.to_user_email}</strong>`;
+      if (h.from_user_name || h.from_user_email) desc += ` (antes: ${h.from_user_name||h.from_user_email})`;
+      if (h.notes) desc += ` — <em style="color:var(--text3)">${h.notes}</em>`;
+      return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:18px;width:28px;text-align:center">${a.i}</div>
+        <div style="flex:1"><div style="font-size:13px;color:var(--text)">${desc}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${date} — por ${h.performed_by||'sistema'}</div></div>
+      </div>`;
+    }).join('')}</div>`;
+  } catch(e) { container.innerHTML = '<div style="color:var(--red);padding:20px">Error cargando historial</div>'; }
+}
+
+function invShowRegister() {
+  document.getElementById('invEditId').value = '';
+  document.getElementById('invModalTitle').textContent = '📦 Registrar Nuevo Equipo';
+  ['invTag','invBrand','invModel','invSerial','invOS','invNotes'].forEach(id => document.getElementById(id).value='');
+  ['invPurchase','invWarranty'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('invType').value = 'Laptop';
+  const agentSel = document.getElementById('invAgent');
+  agentSel.innerHTML = '<option value="">— Sin agente —</option>' + (_invData.unlinked_agents||[]).map(a=>`<option value="${a}">${a}</option>`).join('');
+  document.getElementById('invModalRegister').style.display = 'flex';
+}
+
+function invShowEdit(id) {
+  const it = (_invData.items||[]).find(i=>i.inventory_id===id);
+  if (!it) return;
+  document.getElementById('invEditId').value = id;
+  document.getElementById('invModalTitle').textContent = '✏️ Editar Equipo';
+  document.getElementById('invTag').value = it.device_tag||'';
+  document.getElementById('invType').value = it.device_type||'Laptop';
+  document.getElementById('invBrand').value = it.brand||'';
+  document.getElementById('invModel').value = it.model||'';
+  document.getElementById('invSerial').value = it.serial_number||'';
+  document.getElementById('invOS').value = it.os||'';
+  document.getElementById('invPurchase').value = it.purchase_date?it.purchase_date.substring(0,10):'';
+  document.getElementById('invWarranty').value = it.warranty_until?it.warranty_until.substring(0,10):'';
+  document.getElementById('invNotes').value = it.notes||'';
+  const agentSel = document.getElementById('invAgent');
+  const agents = [...(_invData.unlinked_agents||[])];
+  if (it.device_id && !agents.includes(it.device_id)) agents.unshift(it.device_id);
+  agentSel.innerHTML = '<option value="">— Sin agente —</option>' + agents.map(a=>`<option value="${a}"${a===it.device_id?' selected':''}>${a}</option>`).join('');
+  document.getElementById('invModalRegister').style.display = 'flex';
+}
+
+async function invSaveDevice() {
+  const editId = document.getElementById('invEditId').value;
+  const payload = {
+    device_tag: document.getElementById('invTag').value,
+    device_type: document.getElementById('invType').value,
+    brand: document.getElementById('invBrand').value,
+    model: document.getElementById('invModel').value,
+    serial_number: document.getElementById('invSerial').value,
+    os: document.getElementById('invOS').value,
+    purchase_date: document.getElementById('invPurchase').value || null,
+    warranty_until: document.getElementById('invWarranty').value || null,
+    device_id: document.getElementById('invAgent').value || null,
+    notes: document.getElementById('invNotes').value,
+  };
+  if (!payload.device_tag || !payload.brand) { alert('Etiqueta y Marca son obligatorios'); return; }
+  try {
+    const url = editId ? '/api/inventory/update' : '/api/inventory';
+    if (editId) payload.inventory_id = editId;
+    const r = await fetch(url, { method: editId?'PUT':'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (data.ok) { invCloseModal('invModalRegister'); invLoad(); } else { alert(data.error||'Error'); }
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+function invShowAssign(id) {
+  const it = (_invData.items||[]).find(i=>i.inventory_id===id);
+  if (!it) return;
+  document.getElementById('invAssignId').value = id;
+  document.getElementById('invAssignTitle').textContent = it.status==='assigned' ? `🔄 Reasignar: ${it.device_tag}` : `👤 Asignar: ${it.device_tag}`;
+  const userSel = document.getElementById('invAssignUser');
+  userSel.innerHTML = '<option value="">Seleccionar usuario...</option>' + (_invData.users||[]).map(u=>`<option value="${u.email}" data-name="${u.full_name||''}" data-dept="${u.department||''}">${u.full_name||u.email} (${u.email})</option>`).join('');
+  document.getElementById('invAssignDept').value = '';
+  document.getElementById('invAssignNotes').value = '';
+  userSel.onchange = function() { const opt = this.selectedOptions[0]; if(opt) document.getElementById('invAssignDept').value = opt.dataset.dept||''; };
+  document.getElementById('invModalAssign').style.display = 'flex';
+}
+
+async function invDoAssign() {
+  const id = document.getElementById('invAssignId').value;
+  const sel = document.getElementById('invAssignUser');
+  const email = sel.value;
+  if (!email) { alert('Seleccione un usuario'); return; }
+  const opt = sel.selectedOptions[0];
+  try {
+    const r = await fetch('/api/inventory/assign', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({
+      inventory_id: id, to_user_email: email, to_user_name: opt?.dataset.name||email, department: document.getElementById('invAssignDept').value, notes: document.getElementById('invAssignNotes').value
+    })});
+    const data = await r.json();
+    if (data.ok) { invCloseModal('invModalAssign'); invLoad(); } else { alert(data.error||'Error'); }
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function invDoReturn(id) {
+  if (!confirm('¿Devolver este equipo a Stock?')) return;
+  try {
+    const r = await fetch('/api/inventory/return', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({inventory_id:id,notes:'Devuelto a stock'})});
+    const data = await r.json();
+    if (data.ok) invLoad(); else alert(data.error||'Error');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function invDoMaint(id) {
+  const notes = prompt('Motivo del mantenimiento:');
+  if (notes === null) return;
+  try {
+    const r = await fetch('/api/inventory/maintenance', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({inventory_id:id,notes:notes})});
+    const data = await r.json();
+    if (data.ok) invLoad(); else alert(data.error||'Error');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function invShowHistory(id) {
+  document.getElementById('invModalHistory').style.display = 'flex';
+  document.getElementById('invHistoryContent').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Cargando...</div>';
+  try {
+    const r = await fetch(`/api/inventory/history?id=${id}`, { credentials:'include' });
+    const data = await r.json();
+    const hist = data.history || [];
+    if (!hist.length) { document.getElementById('invHistoryContent').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Sin historial</div>'; return; }
+    const actionMap = { registered:{i:'📦',l:'Registrado en inventario'}, assigned:{i:'🟢',l:'Asignado'}, reassigned:{i:'🔄',l:'Reasignado'}, returned:{i:'↩️',l:'Devuelto a stock'}, maintenance:{i:'🔧',l:'Mantenimiento'}, retired:{i:'🗑️',l:'Dado de baja'} };
+    document.getElementById('invHistoryContent').innerHTML = hist.map(h => {
+      const a = actionMap[h.action]||{i:'❓',l:h.action};
+      const date = h.created_at ? new Date(h.created_at).toLocaleString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      let detail = a.l;
+      if (h.to_user_name) detail += ` → ${h.to_user_name}`;
+      if (h.from_user_name) detail += ` (antes: ${h.from_user_name})`;
+      return `<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;flex-direction:column;align-items:center;width:28px"><span style="font-size:18px">${a.i}</span><div style="flex:1;width:2px;background:var(--border);margin-top:4px"></div></div>
+        <div style="flex:1"><div style="font-weight:600;color:var(--text);font-size:13px">${detail}</div>${h.notes?`<div style="font-size:12px;color:var(--text3);margin-top:2px">${h.notes}</div>`:''}
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${date} — por ${h.performed_by||'sistema'}</div></div>
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('invHistoryContent').innerHTML = '<div style="color:var(--red)">Error</div>'; }
+}
+
+function invCloseModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function invExportCSV() {
+  const items = _invData.items || [];
+  if (!items.length) { alert('No hay datos para exportar'); return; }
+  const headers = ['Etiqueta','Marca','Modelo','Tipo','Serial','S.O.','Estado','Asignado a','Email','Departamento','Agente','Fecha Compra'];
+  const rows = items.map(it => [it.device_tag,it.brand,it.model,it.device_type,it.serial_number,it.os,it.status,it.current_assignee_name||'',it.current_assignee_email||'',it.department||'',it.has_agent?'Sí':'No',it.purchase_date||'']);
+  const csv = [headers.join(','), ...rows.map(r=>r.map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `inventario_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+// Hook into showView
+const _origShowView = typeof showView === 'function' ? showView : null;
+if (typeof window._invHooked === 'undefined') {
+  window._invHooked = true;
+  const _realShow = window.showView;
+  window.showView = function(view) {
+    if (_realShow) _realShow(view);
+    const invView = document.getElementById('view-inventario');
+    if (invView) invView.style.display = view === 'inventario' ? 'block' : 'none';
+    if (view === 'inventario') invLoad();
+  };
+}
 </script>
 <style>
   /* Leaflet popup dark theme for Onyx */
