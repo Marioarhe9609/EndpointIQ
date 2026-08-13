@@ -479,9 +479,9 @@ _usb_device_cache = {}
 _usb_device_cache_lock = threading.Lock()
 
 ROLE_PERMISSIONS = {
-    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso", "incidentes", "capacitacion", "ad"},
-    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso", "incidentes", "capacitacion"},
-    "viewer": {"dashboard", "equipo", "productividad"}
+    "admin": {"dashboard", "equipo", "productividad", "seguridad", "kpibuilder", "mesa", "agentes", "usuarios", "configuracion", "informes", "export", "auditoria", "gestion", "cumplimiento", "dlp", "politicas", "informes-iso", "incidentes", "capacitacion", "ad", "inventario"},
+    "analyst": {"dashboard", "equipo", "productividad", "seguridad", "mesa", "agentes", "informes", "export", "cumplimiento", "dlp", "informes-iso", "incidentes", "capacitacion", "inventario"},
+    "viewer": {"dashboard", "equipo", "productividad", "inventario"}
 }
 
 ROLE_LABELS = {"admin": "Administrador", "analyst": "Analista", "viewer": "Visor"}
@@ -1405,7 +1405,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "role_label": ROLE_LABELS.get(session["role"], session["role"]),
                 "full_name": session["full_name"],
                 "avatar": session["avatar"],
-                "permissions": session.get("allowed_pages") or list(ROLE_PERMISSIONS.get(session["role"], set()))
+                "permissions": list(set(session.get("allowed_pages") or []) | ROLE_PERMISSIONS.get(session["role"], set()))
             })
             return
         
