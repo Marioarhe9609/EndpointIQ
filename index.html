@@ -5358,13 +5358,14 @@ const PAGE_DEFINITIONS = [
   {id: 'informes-iso', icon: '📊', label: 'Informe ISO'},
   {id: 'incidentes', icon: '🚨', label: 'Incidentes'},
   {id: 'capacitacion', icon: '🎓', label: 'Capacitación'},
-  {id: 'ad', icon: '🏢', label: 'Active Directory'}
+  {id: 'ad', icon: '🏢', label: 'Active Directory'},
+  {id: 'inventario', icon: '📋', label: 'Inventario'}
 ];
 
 const ROLE_PAGE_DEFAULTS = {
-  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso','incidentes','capacitacion','ad'],
-  analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes'],
-  viewer:  ['dashboard','equipo','productividad']
+  admin:   ['dashboard','equipo','productividad','seguridad','kpibuilder','mesa','agentes','informes','usuarios','auditoria','cumplimiento','dlp','politicas','informes-iso','incidentes','capacitacion','ad','inventario'],
+  analyst: ['dashboard','equipo','productividad','seguridad','mesa','agentes','informes','inventario'],
+  viewer:  ['dashboard','equipo','productividad','inventario']
 };
 
 function renderPageToggles(enabledPages) {
