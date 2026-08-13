@@ -2911,16 +2911,7 @@ function fetchDevices() {
   fetch('/api/devices')
     .then(res => res.json())
     .then(data => {
-      // Derive online/offline from timestamp: if last sync > 4h ago → Offline
-      const now = new Date();
-      const OFFLINE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
-      data.forEach(d => {
-        const ts = d.timestamp || d.last_sync || null;
-        if (ts) {
-          const diff = now - new Date(ts);
-          if (diff > OFFLINE_THRESHOLD_MS) d.status = 'Offline';
-        }
-      });
+      // Status is already calculated by the server based on last_sync
       fleetDevices = data;
       updateDashboardKPIs();
       generateFleetHeatmap();

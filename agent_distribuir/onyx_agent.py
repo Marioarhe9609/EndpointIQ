@@ -137,6 +137,20 @@ def check_for_updates():
         server_hash    = version_data.get("hash", "")
         server_version = version_data.get("version", "unknown")
 
+        # Apply recommended interval from server if different
+        recommended_interval = version_data.get("recommended_interval")
+        if recommended_interval and recommended_interval != CONFIG.get("interval_seconds"):
+            try:
+                CONFIG["interval_seconds"] = recommended_interval
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                cfg["interval_seconds"] = recommended_interval
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    json.dump(cfg, f, indent=4)
+                log.info("[CONFIG] Interval updated to %ds from server", recommended_interval)
+            except Exception as cfg_err:
+                log.debug("[CONFIG] Could not update interval: %s", cfg_err)
+
         # Proteccion contra downgrade: no actualizar si version del servidor es menor
         def _ver_tuple(v):
             try: return tuple(int(x) for x in str(v).split("."))

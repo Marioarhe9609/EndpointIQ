@@ -1551,10 +1551,10 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                             if ls.tzinfo is None:
                                 ls = ls.replace(tzinfo=datetime.timezone.utc)
                             diff_min = (now - ls).total_seconds() / 60
-                            if diff_min > 10:
+                            if diff_min > 15:
                                 dev["status"] = "Offline"
                                 dev["calculated_status"] = "offline"
-                            elif diff_min > 5:
+                            elif diff_min > 8:
                                 dev["status"] = "Alerta"
                                 dev["calculated_status"] = "warn"
                             else:
@@ -2725,7 +2725,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "updater_hash": updater_hash,
                 "updater_url": "/api/updater-download",
                 "launcher_url": "/api/launcher-download",
-                "creds_hash": ""
+                "creds_hash": "",
+                "recommended_interval": 60
             })
 
         elif path == "/api/agent-download":
