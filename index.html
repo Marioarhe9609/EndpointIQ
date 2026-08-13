@@ -2759,6 +2759,48 @@
           </div>
         </div>
 
+        <!-- ═══ INVENTORY VIEW ═══ -->
+        <div class="view" id="view-inventario">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-family:var(--font-disp);font-size:22px;color:var(--text);margin:0">📋 Inventario de Equipos</h2>
+              <p style="color:var(--text2);font-size:13px;margin:4px 0 0">Control de asignación y gestión de máquinas</p>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button onclick="invShowRegister()" style="padding:8px 16px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">+ Registrar Equipo</button>
+              <button onclick="invExportCSV()" style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📥 Exportar</button>
+            </div>
+          </div>
+          <div id="invKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px"></div>
+          <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0">
+            <button class="inv-tab active" onclick="invSwitchTab('inventory',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--blue);color:var(--text);font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📦 Inventario</button>
+            <button class="inv-tab" onclick="invSwitchTab('byuser',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">👤 Por Usuario</button>
+            <button class="inv-tab" onclick="invSwitchTab('history',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📜 Historial</button>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <input type="text" id="invSearch" placeholder="🔍 Buscar equipo, usuario, serial..." oninput="invFilter()" style="flex:1;min-width:200px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
+            <select id="invFilterStatus" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)"><option value="">Todos los estados</option><option value="stock">🏪 Stock</option><option value="assigned">✅ Asignado</option><option value="maintenance">🔧 Mantenimiento</option><option value="retired">🗑️ Retirado</option></select>
+            <select id="invFilterType" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)"><option value="">Todos los tipos</option><option value="Laptop">💻 Laptop</option><option value="Desktop">🖥️ Desktop</option><option value="Servidor">🗄️ Servidor</option><option value="Tablet">📱 Tablet</option><option value="Otro">⚙️ Otro</option></select>
+          </div>
+          <div id="invTabInventory">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+              <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--surface2)">
+                <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Etiqueta</th>
+                <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Marca/Modelo</th>
+                <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Tipo</th>
+                <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Serial</th>
+                <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Asignado a</th>
+                <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Agente</th>
+                <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Estado</th>
+                <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Acciones</th>
+              </tr></thead><tbody id="invTableBody"></tbody></table>
+              <div id="invEmpty" style="display:none;text-align:center;padding:40px;color:var(--text3)"><div style="font-size:48px;margin-bottom:12px">📦</div><div style="font-size:15px;font-weight:600">No hay equipos registrados</div><div style="font-size:13px;margin-top:4px">Haz clic en "Registrar Equipo" para empezar</div></div>
+            </div>
+          </div>
+          <div id="invTabByuser" style="display:none"></div>
+          <div id="invTabHistory" style="display:none"></div>
+        </div>
+
     </div><!-- .content -->
   </div><!-- .main -->
 </div><!-- .app -->
@@ -2787,7 +2829,8 @@ const titles = {
   'informes-iso': 'Informe ISO 27001',
   incidentes: 'Gestión de Incidentes',
   capacitacion: 'Capacitación en Seguridad',
-  ad: 'Active Directory'
+  ad: 'Active Directory',
+  inventario: 'Inventario'
 };
 
 // ── Navegación de Vistas ──
@@ -2830,6 +2873,7 @@ function showView(id) {
             else if (id === 'incidentes') { loadIncidents(); }
             else if (id === 'capacitacion') { loadTraining(); }
             else if (id === 'ad') { loadADStatus(); }
+            else if (id === 'inventario') { invLoad(); }
 }
 
 // ── Sincronizar BigQuery ──
@@ -7170,76 +7214,6 @@ window.updateGoogleMapMarkers = function(devices) {
 };
 </script>
 
-<!-- ══════════════ INVENTORY VIEW ══════════════ -->
-<div id="view-inventario" class="view-section" style="display:none">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-    <div>
-      <h2 style="font-family:var(--font-disp);font-size:22px;color:var(--text);margin:0">📋 Inventario de Equipos</h2>
-      <p style="color:var(--text2);font-size:13px;margin:4px 0 0">Control de asignación y gestión de máquinas</p>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button onclick="invShowRegister()" style="padding:8px 16px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">+ Registrar Equipo</button>
-      <button onclick="invExportCSV()" style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📥 Exportar</button>
-    </div>
-  </div>
-
-  <!-- KPIs -->
-  <div id="invKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px"></div>
-
-  <!-- Tabs -->
-  <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0">
-    <button class="inv-tab active" onclick="invSwitchTab('inventory',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid var(--blue);color:var(--text);font-weight:600;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📦 Inventario</button>
-    <button class="inv-tab" onclick="invSwitchTab('byuser',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">👤 Por Usuario</button>
-    <button class="inv-tab" onclick="invSwitchTab('history',this)" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px;font-family:var(--font-ui)">📜 Historial</button>
-  </div>
-
-  <!-- Search + Filters -->
-  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-    <input type="text" id="invSearch" placeholder="🔍 Buscar equipo, usuario, serial..." oninput="invFilter()" style="flex:1;min-width:200px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
-    <select id="invFilterStatus" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
-      <option value="">Todos los estados</option>
-      <option value="stock">🏪 Stock</option>
-      <option value="assigned">✅ Asignado</option>
-      <option value="maintenance">🔧 Mantenimiento</option>
-      <option value="retired">🗑️ Retirado</option>
-    </select>
-    <select id="invFilterType" onchange="invFilter()" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font-ui)">
-      <option value="">Todos los tipos</option>
-      <option value="Laptop">💻 Laptop</option>
-      <option value="Desktop">🖥️ Desktop</option>
-      <option value="Servidor">🗄️ Servidor</option>
-      <option value="Tablet">📱 Tablet</option>
-      <option value="Otro">⚙️ Otro</option>
-    </select>
-  </div>
-
-  <!-- Tab Content -->
-  <div id="invTabInventory">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--surface2)">
-          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Etiqueta</th>
-          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Marca/Modelo</th>
-          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Tipo</th>
-          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Serial</th>
-          <th style="padding:12px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Asignado a</th>
-          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Agente</th>
-          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Estado</th>
-          <th style="padding:12px 14px;text-align:center;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase">Acciones</th>
-        </tr></thead>
-        <tbody id="invTableBody"></tbody>
-      </table>
-      <div id="invEmpty" style="display:none;text-align:center;padding:40px;color:var(--text3)">
-        <div style="font-size:48px;margin-bottom:12px">📦</div>
-        <div style="font-size:15px;font-weight:600">No hay equipos registrados</div>
-        <div style="font-size:13px;margin-top:4px">Haz clic en "Registrar Equipo" para empezar</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="invTabByuser" style="display:none"></div>
-  <div id="invTabHistory" style="display:none"></div>
-</div>
 
 <!-- MODAL: Register Device -->
 <div id="invModalRegister" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:none;align-items:center;justify-content:center">
@@ -7574,18 +7548,8 @@ function invExportCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `inventario_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
 
-// Hook into showView
-const _origShowView = typeof showView === 'function' ? showView : null;
-if (typeof window._invHooked === 'undefined') {
-  window._invHooked = true;
-  const _realShow = window.showView;
-  window.showView = function(view) {
-    if (_realShow) _realShow(view);
-    const invView = document.getElementById('view-inventario');
-    if (invView) invView.style.display = view === 'inventario' ? 'block' : 'none';
-    if (view === 'inventario') invLoad();
-  };
-}
+
+
 </script>
 <style>
   /* Leaflet popup dark theme for Onyx */
