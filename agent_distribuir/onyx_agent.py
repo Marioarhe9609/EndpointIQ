@@ -1,5 +1,5 @@
 """
-Onyx Agent v3.4.0
+Onyx Agent v3.5.0
 =================
 Monitoring agent for Windows. Sends metrics via HTTP (primary) or
 directly to BigQuery (fallback). Works offline with SQLite buffer.
@@ -77,9 +77,12 @@ def load_config():
 
 CONFIG = load_config()
 
-# Setup logging
+# Setup logging with rotation (max 5MB, keep 3 backups)
+from logging.handlers import RotatingFileHandler
 LOG_PATH = SCRIPT_DIR / CONFIG.get("log_file", "onyx_agent.log")
-log_handlers = [logging.FileHandler(LOG_PATH, encoding="utf-8")]
+HEARTBEAT_PATH = SCRIPT_DIR / "onyx_heartbeat.txt"
+
+log_handlers = [RotatingFileHandler(str(LOG_PATH), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")]
 if "--verbose" in sys.argv:
     log_handlers.append(logging.StreamHandler(sys.stdout))
 
@@ -89,6 +92,14 @@ logging.basicConfig(
     handlers=log_handlers
 )
 log = logging.getLogger("EIQ")
+
+def write_heartbeat():
+    """Write heartbeat file so watchdog can verify agent is alive."""
+    try:
+        with open(str(HEARTBEAT_PATH), "w") as f:
+            f.write(datetime.datetime.utcnow().isoformat())
+    except Exception:
+        pass
 
 # ===========================================================================
 # Generate stable Device ID
@@ -1516,24 +1527,39 @@ def run_once():
 def run_loop():
     interval           = CONFIG.get("interval_seconds", 300)
     consecutive_fails  = 0
+    max_restarts       = 10
+    restart_count      = 0
     log.info("[START] Onyx Agent v%s | Device: %s | Interval: %ds | Pub/Sub: %s",
              CONFIG.get("version", "?"), DEVICE_ID, interval,
              "enabled" if HAS_PUBSUB else "disabled (BQ fallback)")
     while True:
         try:
+            write_heartbeat()
             run_once()
             consecutive_fails = 0
+            restart_count = 0  # reset on success
         except Exception as e:
             consecutive_fails += 1
             log.error("[LOOP] Error #%d: %s", consecutive_fails, e, exc_info=True)
             if consecutive_fails >= 3:
                 log.warning("[LOOP] Resetting clients after 3 consecutive failures...")
-                get_bq_client(force_reset=True)
+                try:
+                    get_bq_client(force_reset=True)
+                except Exception:
+                    pass
                 global _pubsub_publisher
                 _pubsub_publisher = None
                 consecutive_fails = 0
-        log.info("[WAIT] Next collection in %ds...", interval)
-        time.sleep(interval)
+                restart_count += 1
+                if restart_count >= max_restarts:
+                    log.critical("[LOOP] %d restart cycles exhausted. Sleeping 10min then retrying...", max_restarts)
+                    time.sleep(600)
+                    restart_count = 0
+        try:
+            log.info("[WAIT] Next collection in %ds...", interval)
+            time.sleep(interval)
+        except Exception:
+            time.sleep(60)  # fallback sleep on any error
 
 # ===========================================================================
 # Entry Point
@@ -1544,12 +1570,25 @@ if __name__ == "__main__":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
     print("+------------------------------------------------+")
-    print("|  Onyx Agent v%-8s                          |" % CONFIG.get("version", "2.3.0"))
+    print("|  Onyx Agent v%-8s                          |" % CONFIG.get("version", "3.5.0"))
     print("|  Device:  %-37s |" % DEVICE_ID)
     print("|  Pub/Sub: %-37s |" % ("Enabled" if HAS_PUBSUB else "Disabled (BQ fallback)"))
     print("+------------------------------------------------+")
 
     if "--once" in sys.argv:
-        run_once()
+        try:
+            run_once()
+        except Exception as e:
+            log.critical("[FATAL] run_once crashed: %s", e, exc_info=True)
+            sys.exit(1)
     else:
-        run_loop()
+        # Global crash guard: if run_loop itself crashes, restart it
+        while True:
+            try:
+                run_loop()
+            except SystemExit:
+                break  # Allow clean exit for updates
+            except Exception as e:
+                log.critical("[FATAL] run_loop crashed: %s — restarting in 30s...", e, exc_info=True)
+                write_heartbeat()  # mark we're still alive
+                time.sleep(30)

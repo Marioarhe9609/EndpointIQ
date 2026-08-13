@@ -68,7 +68,34 @@ If objFSO.FileExists(strUpdater) Then
     objShell.Run strCmdUpdate, 0, True
 End If
 
-' PASO 2: Si el agente NO esta corriendo, lanzarlo en modo LOOP
+' PASO 2: Verificar si el agente ya esta corriendo Y si esta saludable
+If bAgentRunning Then
+    ' Check heartbeat file - if stale (>15 min old), agent is stuck
+    strHeartbeat = strScriptDir & "\onyx_heartbeat.txt"
+    bStale = False
+    If objFSO.FileExists(strHeartbeat) Then
+        Set objFile = objFSO.GetFile(strHeartbeat)
+        ' If heartbeat file is older than 15 minutes, agent is stuck
+        If DateDiff("n", objFile.DateLastModified, Now()) > 15 Then
+            bStale = True
+        End If
+        Set objFile = Nothing
+    Else
+        ' No heartbeat file means agent never wrote one - stale
+        bStale = True
+    End If
+    
+    If bStale Then
+        ' Kill the stuck agent process
+        Set colProcs2 = objWMI.ExecQuery("SELECT ProcessId FROM Win32_Process WHERE CommandLine LIKE '%onyx_agent%' AND NOT CommandLine LIKE '%onyx_updater%' AND NOT CommandLine LIKE '%onyx_launcher%'")
+        For Each objProc In colProcs2
+            objProc.Terminate()
+        Next
+        bAgentRunning = False
+    End If
+End If
+
+' PASO 3: Si el agente NO esta corriendo, lanzarlo en modo LOOP
 If Not bAgentRunning Then
     strAgent = strScriptDir & "\onyx_agent.py"
     strCmdAgent = """" & strPythonw & """ """ & strAgent & """"
