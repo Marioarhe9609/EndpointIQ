@@ -2367,9 +2367,25 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     current_city = geo.get("city", "Bogotá")
                     current_country = geo.get("country", "Colombia")
                     
+                    # Determine real online/offline status from sync_status
+                    dev_status = "offline"
+                    for ss in cache.get("sync_status", []):
+                        if ss.get("device_id") == d_id:
+                            ls = ss.get("last_sync", "")
+                            if ls:
+                                try:
+                                    ls_dt = datetime.datetime.fromisoformat(str(ls).replace("Z", "+00:00"))
+                                    if ls_dt.tzinfo is None:
+                                        ls_dt = ls_dt.replace(tzinfo=datetime.timezone.utc)
+                                    diff_min = (now - ls_dt).total_seconds() / 60
+                                    dev_status = "online" if diff_min < 15 else "offline"
+                                except:
+                                    dev_status = "offline"
+                            break
+                    
                     connection_map.append({
                         "device_id": d_id, "name": dev_name(d_id), "ip": ip,
-                        "status": "online" if latency >= 0 else "offline",
+                        "status": dev_status,
                         "lat": geo.get("lat", 4.6097), "lon": geo.get("lon", -74.0817),
                         "country": current_country,
                         "city": current_city,
