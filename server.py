@@ -1712,9 +1712,10 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 query = f"""
                     SELECT device_id, timestamp, top_processes, browser_history,
                            cpu_usage, ram_usage
-                    FROM `onyx.eq_metrics`
+                    FROM `onyx.eq_hardware_metrics`
                     WHERE DATE(timestamp) BETWEEN '{date_from}' AND '{date_to}'
                     ORDER BY timestamp DESC
+                    LIMIT 5000
                 """
                 rows = run_bq_query(query)
                 
@@ -1971,34 +1972,54 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                "wininit", "services", "lsass", "smss", "dwm", "fontdrvhost", "sihost",
                                "ctfmon", "securityhealthservice", "wmiprvse", "spoolsv"}
                 
-                # ── Filtrar solo datos de HOY ──
-                today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+                # ── Filtrar datos de las últimas 24 horas (no solo fecha UTC) ──
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
+                cutoff_24h = now_utc - datetime.timedelta(hours=24)
+                today_str = now_utc.strftime("%Y-%m-%d")
                 
-                # Filtrar latest_metrics que sean de hoy
+                # Usar ALL metrics (no solo latest) para capturar todos los dispositivos
                 today_metrics = []
-                for m in cache.get("latest_metrics", []):
+                for m in cache.get("all_metrics", []):
                     ts = m.get("timestamp", "")
-                    ts_str = str(ts)[:10] if ts else ""
-                    if ts_str == today_str:
-                        today_metrics.append(m)
-                
-                # Si no hay datos de hoy en latest_metrics, buscar en all_metrics
-                if not today_metrics:
-                    for m in cache.get("all_metrics", []):
-                        ts = m.get("timestamp", "")
-                        ts_str = str(ts)[:10] if ts else ""
-                        if ts_str == today_str:
+                    if not ts:
+                        continue
+                    try:
+                        ts_str = str(ts)
+                        ts_dt = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        if ts_dt.tzinfo is None:
+                            ts_dt = ts_dt.replace(tzinfo=datetime.timezone.utc)
+                        if ts_dt >= cutoff_24h:
+                            today_metrics.append(m)
+                    except:
+                        # Fallback: comparar por fecha string
+                        if str(ts)[:10] == today_str:
                             today_metrics.append(m)
                 
-                # Dedup por device_id (quedarse con la más reciente)
+                # También incluir latest_metrics si no están ya
+                seen_ids_ts = set()
+                for m in today_metrics:
+                    key = f"{m.get('device_id','')}-{str(m.get('timestamp',''))[:19]}"
+                    seen_ids_ts.add(key)
+                for m in cache.get("latest_metrics", []):
+                    key = f"{m.get('device_id','')}-{str(m.get('timestamp',''))[:19]}"
+                    if key not in seen_ids_ts:
+                        today_metrics.append(m)
+                
+                # Agrupar por device_id — usar la métrica más reciente de cada uno
                 seen_today = {}
                 for m in today_metrics:
                     d_id = m.get("device_id", "")
                     if d_id not in seen_today:
                         seen_today[d_id] = m
+                    else:
+                        # Quedarse con la más reciente
+                        existing_ts = str(seen_today[d_id].get("timestamp", ""))
+                        new_ts = str(m.get("timestamp", ""))
+                        if new_ts > existing_ts:
+                            seen_today[d_id] = m
                 today_metrics_dedup = list(seen_today.values())
                 
-                print(f"[PROD-TODAY] Fecha: {today_str}, Métricas de hoy: {len(today_metrics_dedup)} dispositivos")
+                print(f"[PROD-TODAY] Últimas 24h: {len(today_metrics)} métricas, {len(today_metrics_dedup)} dispositivos")
                 
                 # DEDUPLICAR sync_status por device_id (tomar solo el más reciente)
                 seen_devices = set()
