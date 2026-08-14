@@ -3286,6 +3286,40 @@ function updateDashboardNetwork() {
   // Use fleet size as device count (real monitored devices)
   const totalDevices = fleetDevices.length;
   
+  // Map SSIDs to devices for richer display
+  const ssidDevices = {};
+  const subnetDevices = {};
+  fleetDevices.forEach(dev => {
+    let ssid = null;
+    let devIp = dev.last_ip || '';
+    if (dev.network_info) {
+      try {
+        const net = typeof dev.network_info === 'string' ? JSON.parse(dev.network_info) : dev.network_info;
+        if (net.wifi_ssid) {
+          ssid = net.wifi_ssid.replace(/[\s\r\n]+/g, ' ').trim();
+          if (ssid.match(/^Red \d+\.\d+\.\d+\.x$/)) ssid = null;
+        }
+        if (net.interfaces && net.interfaces[0] && net.interfaces[0].ip) {
+          devIp = net.interfaces[0].ip;
+        }
+      } catch(e) {}
+    }
+    if (!ssid && dev.wifi_ssid) {
+      ssid = (dev.wifi_ssid + '').replace(/[\s\r\n]+/g, ' ').trim();
+      if (ssid.match(/^Red \d+\.\d+\.\d+\.x$/)) ssid = null;
+    }
+    if (ssid) {
+      if (!ssidDevices[ssid]) ssidDevices[ssid] = [];
+      const shortName = (dev.device_id || '').replace('eiq-', '').split('-').slice(0,2).join('-');
+      ssidDevices[ssid].push(shortName);
+    }
+    if (devIp) {
+      const subnet = devIp.split('.').slice(0,3).join('.') + '.0/24';
+      if (!subnetDevices[subnet]) subnetDevices[subnet] = [];
+      subnetDevices[subnet].push(dev.device_id);
+    }
+  });
+  
   const totalEl = document.getElementById('netStatTotal');
   const wifiEl = document.getElementById('netStatWifi');
   const devicesEl = document.getElementById('netStatDevices');
@@ -3297,10 +3331,21 @@ function updateDashboardNetwork() {
   
   if (ssidList) {
     ssidList.innerHTML = '';
-    // Show real SSIDs if available
-    if (ssids.size > 0) {
-      ssids.forEach(ssid => {
-        ssidList.innerHTML += `<span class="badge info" style="font-size:11px;padding:3px 10px">📡 ${ssid}</span>`;
+    // Show real SSIDs with device count
+    const ssidKeys = Object.keys(ssidDevices);
+    if (ssidKeys.length > 0) {
+      ssidKeys.forEach(ssid => {
+        const devList = ssidDevices[ssid];
+        const tooltip = devList.join(', ');
+        ssidList.innerHTML += `<span class="badge info" style="font-size:11px;padding:3px 10px;cursor:help" title="Equipos: ${tooltip}">📡 ${ssid} <span style="opacity:0.6;font-size:10px">(${devList.length})</span></span>`;
+      });
+    }
+    // Show subnets detected
+    const subnetKeys = Object.keys(subnetDevices);
+    if (subnetKeys.length > 0) {
+      subnetKeys.forEach(subnet => {
+        const count = subnetDevices[subnet].length;
+        ssidList.innerHTML += `<span class="badge" style="font-size:11px;padding:3px 10px;background:rgba(20,184,166,0.12);color:#2DD4BF;border-radius:999px">🌐 ${subnet} <span style="opacity:0.6;font-size:10px">(${count})</span></span>`;
       });
     }
     // Show interface types detected
@@ -3310,23 +3355,8 @@ function updateDashboardNetwork() {
       });
     }
     // Fallback if nothing real found
-    if (ssids.size === 0 && ifaceNames.size === 0) {
-      // Show device IPs as network identifiers
-      const ips = new Set();
-      fleetDevices.forEach(dev => {
-        const ip = dev.last_ip || dev.ip;
-        if (ip) {
-          const subnet = ip.split('.').slice(0,3).join('.') + '.0/24';
-          ips.add(subnet);
-        }
-      });
-      if (ips.size > 0) {
-        ips.forEach(subnet => {
-          ssidList.innerHTML += `<span class="badge" style="font-size:11px;padding:3px 10px;background:rgba(20,184,166,0.12);color:#2DD4BF;border-radius:999px">🌐 Subred ${subnet}</span>`;
-        });
-      } else {
-        ssidList.innerHTML = '<span style="font-size:11px;color:var(--text3)">Red detectada — esperando datos de interfaz del agente</span>';
-      }
+    if (ssidKeys.length === 0 && ifaceNames.size === 0 && subnetKeys.length === 0) {
+      ssidList.innerHTML = '<span style="font-size:11px;color:var(--text3)">Red detectada — esperando datos de interfaz del agente</span>';
     }
   }
 }
