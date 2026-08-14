@@ -1567,31 +1567,21 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     else:
                         dev["calculated_status"] = "unknown"
                         dev["minutes_since_sync"] = -1
-                # ── Generate network_info for dashboard if missing ──
-                import hashlib as _hl
-                all_ips = {d_id: dev.get("last_ip", "") for d_id, dev in devices_map.items()}
+                # ── Generate minimal network_info for dashboard if agent hasn't sent it ──
+                # Only uses REAL data (IP, device_type). No fake MACs, SSIDs, or connected_devices.
                 for d_id, dev in devices_map.items():
                     if not dev.get("network_info"):
-                        dev_ip = dev.get("last_ip", "192.168.0.1")
-                        latency_val = dev.get("network_latency_ms", 0) or 0
+                        dev_ip = dev.get("last_ip", "")
+                        if not dev_ip:
+                            continue
                         dev_type = dev.get("device_type", "Desktop")
-                        is_wifi = (dev_type == "Laptop") or (latency_val > 0 and latency_val < 80)
+                        latency_val = dev.get("network_latency_ms", 0) or 0
+                        is_wifi = (dev_type == "Laptop")
                         conn_type = "WiFi" if is_wifi else "Ethernet"
-                        mac_hash = _hl.md5(d_id.encode()).hexdigest()[:12]
-                        mac_addr = ":".join(mac_hash[i:i+2].upper() for i in range(0, 12, 2))
-                        dev_subnet = ".".join(dev_ip.split(".")[:3])
-                        wifi_ssid = f"Red {dev_subnet}.x" if is_wifi and len(dev_ip.split('.')) == 4 else None
-                        connected = [{"ip": dev_subnet + ".1", "mac": "00:1A:2B:3C:4D:5E", "type": "static", "hostname": "Gateway"}]
-                        for oid, oip in all_ips.items():
-                            if oid != d_id:
-                                omac = _hl.md5(oid.encode()).hexdigest()[:12]
-                                parts = oid.split("-")
-                                hostname = "-".join(parts[1:3]) if len(parts) >= 3 else oid
-                                connected.append({"ip": oip or "N/A", "mac": ":".join(omac[i:i+2].upper() for i in range(0, 12, 2)), "type": "dynamic", "hostname": hostname})
                         dev["network_info"] = json.dumps({
-                            "interfaces": [{"name": f"{'Wi-Fi' if is_wifi else 'Ethernet'}", "ip": dev_ip, "mac": mac_addr, "type": conn_type, "speed_mbps": 72 if is_wifi else 100, "bytes_sent": 0, "bytes_recv": 0}],
-                            "wifi_ssid": wifi_ssid,
-                            "connected_devices": connected
+                            "interfaces": [{"name": conn_type, "ip": dev_ip, "mac": "", "type": conn_type, "speed_mbps": None, "bytes_sent": 0, "bytes_recv": 0}],
+                            "wifi_ssid": None,
+                            "connected_devices": []
                         })
                 
                 self.send_json(list(devices_map.values()))
@@ -1627,87 +1617,20 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 
                 latest = dev_metrics[0] if dev_metrics else None
                 
-                # ── Fallback: Generate network_info if agent hasn't sent it ──
+                # ── Fallback: Generate minimal network_info if agent hasn't sent it ──
+                # Only uses REAL data. No fake MACs, SSIDs, or connected_devices.
                 if latest and not latest.get("network_info"):
-                    dev_ip = (status_row or {}).get("last_ip", "192.168.0.1")
-                    latency_val = latest.get("network_latency_ms", 0) or 0
-                    
-                    # Determine connection type from latency & device type
-                    dev_type = latest.get("device_type", "Desktop")
-                    is_wifi = (dev_type == "Laptop") or (latency_val > 0 and latency_val < 80)
-                    conn_type = "WiFi" if is_wifi else "Ethernet"
-                    
-                    # Generate a plausible MAC from device_id hash
-                    import hashlib
-                    mac_hash = hashlib.md5(device_id.encode()).hexdigest()[:12]
-                    mac_addr = ":".join(mac_hash[i:i+2].upper() for i in range(0, 12, 2))
-                    
-                    # Estimate bandwidth from metrics count (rough heuristic)
-                    metrics_count = len(dev_metrics)
-                    est_sent = metrics_count * 2048  # ~2KB per report sent
-                    est_recv = metrics_count * 512   # ~0.5KB responses
-                    
-                    # Detect WiFi SSID — use subnet as name
-                    dev_subnet = ".".join(dev_ip.split(".")[:3])
-                    wifi_ssid = f"Red {dev_subnet}.x" if is_wifi else None
-                    
-                    # Speed estimation
-                    speed = 100 if conn_type == "Ethernet" else 72  # Mbps
-                    
-                    # Build interfaces list
-                    interfaces = [{
-                        "name": f"{'Wi-Fi' if is_wifi else 'Ethernet'}",
-                        "ip": dev_ip,
-                        "mac": mac_addr,
-                        "type": conn_type,
-                        "speed_mbps": speed,
-                        "bytes_sent": est_sent * 1024,
-                        "bytes_recv": est_recv * 1024
-                    }]
-                    
-                    # Add loopback
-                    interfaces.append({
-                        "name": "Loopback (lo)",
-                        "ip": "127.0.0.1",
-                        "mac": "00:00:00:00:00:00",
-                        "type": "Loopback",
-                        "speed_mbps": None,
-                        "bytes_sent": 0,
-                        "bytes_recv": 0
-                    })
-                    
-                    # Build connected_devices from ALL fleet devices (red madre)
-                    connected_devices = []
-                    # Add gateway
-                    connected_devices.append({
-                        "ip": dev_subnet + ".1",
-                        "mac": "00:1A:2B:3C:4D:5E",
-                        "type": "static",
-                        "hostname": "Gateway"
-                    })
-                    # Add all other fleet devices
-                    for other in cache["sync_status"]:
-                        other_ip = other.get("last_ip", "")
-                        other_id = other.get("device_id", "")
-                        if other_id and other_id != device_id:
-                            other_mac = hashlib.md5(other_id.encode()).hexdigest()[:12]
-                            other_mac_fmt = ":".join(other_mac[i:i+2].upper() for i in range(0, 12, 2))
-                            # Extract short hostname from device_id (e.g. "eiq-desktop-vi5jds8-da2681" -> "desktop-vi5jds8")
-                            parts = other_id.split("-")
-                            hostname = "-".join(parts[1:3]) if len(parts) >= 3 else other_id
-                            connected_devices.append({
-                                "ip": other_ip or "N/A",
-                                "mac": other_mac_fmt,
-                                "type": "dynamic",
-                                "hostname": hostname
-                            })
-                    
-                    fallback_net = {
-                        "interfaces": interfaces,
-                        "wifi_ssid": wifi_ssid,
-                        "connected_devices": connected_devices
-                    }
-                    latest["network_info"] = json.dumps(fallback_net)
+                    dev_ip = (status_row or {}).get("last_ip", "")
+                    if dev_ip:
+                        dev_type = latest.get("device_type", "Desktop")
+                        is_wifi = (dev_type == "Laptop")
+                        conn_type = "WiFi" if is_wifi else "Ethernet"
+                        fallback_net = {
+                            "interfaces": [{"name": conn_type, "ip": dev_ip, "mac": "", "type": conn_type, "speed_mbps": None, "bytes_sent": 0, "bytes_recv": 0}],
+                            "wifi_ssid": None,
+                            "connected_devices": []
+                        }
+                        latest["network_info"] = json.dumps(fallback_net)
                 
                 # NOTE: No fake browser_history fallback — show real data only
                 

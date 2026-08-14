@@ -3243,36 +3243,38 @@ function updateFleetTable() {
 
 // ── Resumen de red del dashboard ──
 function updateDashboardNetwork() {
-  let totalConns = 0, wifiConns = 0, totalDevices = 0;
+  // Count real connected_devices from agent ARP scan (not fabricated)
+  let totalConns = fleetDevices.length; // fleet size = real connections
+  let wifiConns = 0;
+  let realDevicesFromARP = 0;
   const ssids = new Set();
   const ifaceNames = new Set();
   
   fleetDevices.forEach(dev => {
-    // Count each device as a connection
-    totalConns++;
-    
     if (dev.network_info) {
       try {
         const net = typeof dev.network_info === 'string' ? JSON.parse(dev.network_info) : dev.network_info;
         if (net.interfaces) {
           net.interfaces.forEach(i => {
             if (i.type === 'WiFi') wifiConns++;
-            if (i.name && i.name !== 'Loopback (lo)') ifaceNames.add(i.name);
+            if (i.name && i.name !== 'Loopback (lo)' && i.mac) ifaceNames.add(i.name);
           });
         }
-        // Collect real WiFi SSID
+        // Collect real WiFi SSID (only from agent, not fabricated)
         if (net.wifi_ssid) {
           const clean = net.wifi_ssid.replace(/[\s\r\n]+/g, ' ').trim();
-          // Skip fabricated SSIDs like "Red 192.168.x.x"
           if (clean && !clean.match(/^Red \d+\.\d+\.\d+\.x$/)) {
             ssids.add(clean);
           }
         }
-        if (net.connected_devices) totalDevices += net.connected_devices.length;
+        // Only count connected_devices if they have real MACs (from ARP)
+        if (net.connected_devices) {
+          const realDevs = net.connected_devices.filter(d => d.mac && d.mac.length > 5);
+          realDevicesFromARP += realDevs.length;
+        }
       } catch(e) {}
     }
     
-    // Also check for real wifi_ssid directly on device object (from agent v3.2+)
     if (dev.wifi_ssid) {
       const clean = (dev.wifi_ssid + '').replace(/[\s\r\n]+/g, ' ').trim();
       if (clean && !clean.match(/^Red \d+\.\d+\.\d+\.x$/)) {
@@ -3281,8 +3283,8 @@ function updateDashboardNetwork() {
     }
   });
   
-  // If no connected_devices reported, use fleet size as total
-  if (totalDevices === 0) totalDevices = fleetDevices.length;
+  // Use fleet size as device count (real monitored devices)
+  const totalDevices = fleetDevices.length;
   
   const totalEl = document.getElementById('netStatTotal');
   const wifiEl = document.getElementById('netStatWifi');
