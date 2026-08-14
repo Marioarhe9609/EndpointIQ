@@ -2834,6 +2834,17 @@
 </div><!-- .app -->
 
 <script>
+// ── Security Utility: XSS Sanitizer (ISO 27001 / OWASP A03) ──
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ── Estado Global ──
 let fleetDevices = [];
 let kpiDefinitions = [];

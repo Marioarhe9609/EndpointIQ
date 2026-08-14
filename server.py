@@ -1365,6 +1365,8 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         self.send_header('X-Frame-Options', 'DENY')
         self.send_header('X-XSS-Protection', '1; mode=block')
         self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;")
+        self.send_header('Permissions-Policy', "camera=(), microphone=(), geolocation=(self)")
         if os.environ.get('K_SERVICE'):
             self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         cookie = f"{cookie_name}={cookie_value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age={max_age}"
