@@ -1089,7 +1089,7 @@ def refresh_cache_from_bigquery():
     # 1. Obtener Sync Status de la Flota (deduplicado por device_id)
     try:
         sync_data = run_bq_query("""
-            SELECT device_id, last_ip, status, last_sync, timestamp
+            SELECT device_id, last_ip, status, last_sync, timestamp, gps_latitude, gps_longitude, location_enabled
             FROM (
                 SELECT *, ROW_NUMBER() OVER(PARTITION BY device_id ORDER BY timestamp DESC) as rn
                 FROM onyx.eq_sync_status
@@ -1107,7 +1107,8 @@ def refresh_cache_from_bigquery():
         latest_m = run_bq_query("""
             SELECT device_id, cpu_usage, ram_usage, disk_free_gb, network_latency_ms, 
                    cause_root, cause_process, device_type, battery_percent, battery_status, 
-                   timestamp, top_processes, browser_history, network_info, usb_ports, event_logs
+                   timestamp, top_processes, browser_history, network_info, usb_ports, event_logs,
+                   gps_latitude, gps_longitude, gps_accuracy, location_enabled
             FROM (
                 SELECT *, ROW_NUMBER() OVER(PARTITION BY device_id ORDER BY timestamp DESC) as rn
                 FROM onyx.eq_hardware_metrics
@@ -1121,7 +1122,7 @@ def refresh_cache_from_bigquery():
     
     # 3. Obtener todo el historial de métricas
     try:
-        all_m = run_bq_query("SELECT timestamp, device_id, cpu_usage, ram_usage, disk_free_gb, network_latency_ms, cause_root, cause_process, device_type, battery_percent, battery_status, top_processes, browser_history, network_info, usb_ports, event_logs FROM onyx.eq_hardware_metrics ORDER BY timestamp DESC LIMIT 200")
+        all_m = run_bq_query("SELECT timestamp, device_id, cpu_usage, ram_usage, disk_free_gb, network_latency_ms, cause_root, cause_process, device_type, battery_percent, battery_status, top_processes, browser_history, network_info, usb_ports, event_logs, gps_latitude, gps_longitude, gps_accuracy, location_enabled FROM onyx.eq_hardware_metrics ORDER BY timestamp DESC LIMIT 200")
         if all_m:
             with cache_lock:
                 cache["all_metrics"] = all_m
@@ -2375,19 +2376,45 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                "region": "", "isp": "GPS"}
                         geo_source = "GPS"
                     else:
-                        # 2. Check sync_status for geo_lat/geo_lon (GPS saved during ingest)
                         found_gps = False
-                        for ss in cache.get("sync_status", []):
-                            if ss.get("device_id") == d_id:
-                                if ss.get("geo_lat") and ss.get("geo_lon"):
-                                    geo = {"lat": ss["geo_lat"], "lon": ss["geo_lon"],
-                                           "city": ss.get("geo_city", "Bogotá"), "country": "Colombia",
-                                           "region": "", "isp": "GPS"}
-                                    geo_source = ss.get("geo_source", "GPS")
-                                    found_gps = True
-                                break
+                        # 2. Check GPS coords in the metric row itself (from BigQuery)
+                        m_lat = m.get("gps_latitude")
+                        m_lon = m.get("gps_longitude")
+                        if m_lat and m_lon:
+                            geo = {"lat": m_lat, "lon": m_lon,
+                                   "city": "Bogotá", "country": "Colombia",
+                                   "region": "", "isp": "GPS"}
+                            geo_source = "GPS"
+                            # Also populate GPS cache for future requests
+                            _device_gps_cache[d_id] = {"lat": m_lat, "lon": m_lon, "city": "Bogotá", "country": "Colombia", "ts": now}
+                            found_gps = True
+                        
+                        # 3. Check all_metrics for any row with GPS for this device
                         if not found_gps:
-                            # 3. Fallback to IP geolocation
+                            for am in cache.get("all_metrics", []):
+                                if am.get("device_id") == d_id and am.get("gps_latitude") and am.get("gps_longitude"):
+                                    geo = {"lat": am["gps_latitude"], "lon": am["gps_longitude"],
+                                           "city": "Bogotá", "country": "Colombia",
+                                           "region": "", "isp": "GPS"}
+                                    geo_source = "GPS"
+                                    _device_gps_cache[d_id] = {"lat": am["gps_latitude"], "lon": am["gps_longitude"], "city": "Bogotá", "country": "Colombia", "ts": now}
+                                    found_gps = True
+                                    break
+                        
+                        # 4. Check sync_status for geo_lat/geo_lon
+                        if not found_gps:
+                            for ss in cache.get("sync_status", []):
+                                if ss.get("device_id") == d_id:
+                                    if ss.get("geo_lat") and ss.get("geo_lon"):
+                                        geo = {"lat": ss["geo_lat"], "lon": ss["geo_lon"],
+                                               "city": ss.get("geo_city", "Bogotá"), "country": "Colombia",
+                                               "region": "", "isp": "GPS"}
+                                        geo_source = ss.get("geo_source", "GPS")
+                                        found_gps = True
+                                    break
+                        
+                        if not found_gps:
+                            # 5. Fallback to IP geolocation
                             geo = _geolocate_ip(ip)
                             geo_source = "IP"
                     current_city = geo.get("city", "Bogotá")
