@@ -2350,9 +2350,21 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         ip = hb["public_ip"]
                     elif m.get("public_ip") and m["public_ip"] not in ("N/A", ""):
                         ip = m["public_ip"]
-                    elif m.get("local_ip"):
-                        ip = m["local_ip"]
-                    net_info = m.get("network_info", "")
+                    
+                    # Extract public_ip from network_info JSON if still private/N/A
+                    net_info_raw = m.get("network_info", "")
+                    if net_info_raw and ip in ("N/A", "") or (ip and ip.startswith(("10.", "192.168.", "172."))):
+                        try:
+                            ni = json.loads(net_info_raw) if isinstance(net_info_raw, str) else net_info_raw
+                            pub = ni.get("public_ip", "")
+                            if pub and pub not in ("N/A", "127.0.0.1", ""):
+                                ip = pub
+                        except:
+                            pass
+                    
+                    # Last resort: local_ip
+                    if ip in ("N/A", ""):
+                        ip = m.get("local_ip", "N/A")
                     
                     # Connection map entry with geolocation (GPS prioritized)
                     if d_id in _device_gps_cache:
