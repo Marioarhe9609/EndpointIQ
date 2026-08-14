@@ -2367,6 +2367,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         ip = m.get("local_ip", "N/A")
                     
                     # Connection map entry with geolocation (GPS prioritized)
+                    # 1. Check GPS cache (from agent-ingest)
                     if d_id in _device_gps_cache:
                         gps = _device_gps_cache[d_id]
                         geo = {"lat": gps["lat"], "lon": gps["lon"], 
@@ -2374,8 +2375,21 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                                "region": "", "isp": "GPS"}
                         geo_source = "GPS"
                     else:
-                        geo = _geolocate_ip(ip)
-                        geo_source = "IP"
+                        # 2. Check sync_status for geo_lat/geo_lon (GPS saved during ingest)
+                        found_gps = False
+                        for ss in cache.get("sync_status", []):
+                            if ss.get("device_id") == d_id:
+                                if ss.get("geo_lat") and ss.get("geo_lon"):
+                                    geo = {"lat": ss["geo_lat"], "lon": ss["geo_lon"],
+                                           "city": ss.get("geo_city", "Bogotá"), "country": "Colombia",
+                                           "region": "", "isp": "GPS"}
+                                    geo_source = ss.get("geo_source", "GPS")
+                                    found_gps = True
+                                break
+                        if not found_gps:
+                            # 3. Fallback to IP geolocation
+                            geo = _geolocate_ip(ip)
+                            geo_source = "IP"
                     current_city = geo.get("city", "Bogotá")
                     current_country = geo.get("country", "Colombia")
                     
@@ -3574,32 +3588,40 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                         prev_state = _device_location_state.get(device_id)
                         if prev_state is not False:
                             # Estado nuevo o cambió de True a False
+                            dname = dev_name(device_id) if 'dev_name' in dir() else device_id
                             loc_event = {
                                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                                 "device_id": device_id,
+                                "device_name": dname,
                                 "event_type": "Ubicación Desactivada",
-                                "severity": "warning",
-                                "description": f"Los Servicios de Ubicación de Windows están DESACTIVADOS en {device_id}",
+                                "details": f"⚠️ Los Servicios de Ubicación de Windows fueron DESACTIVADOS en {dname}. No se puede rastrear la posición del equipo.",
+                                "severity": "Alta",
+                                "icon": "📍",
+                                "category": "ubicacion",
                                 "source": "GPS Monitor"
                             }
                             new_events.append(loc_event)
-                            print(f"[GPS] Servicios de Ubicación DESACTIVADOS en {device_id}")
+                            print(f"[GPS] ⚠️ Servicios de Ubicación DESACTIVADOS en {device_id}")
                         _device_location_state[device_id] = False
                     else:
                         # Ubicación activada — verificar si se reactivó
                         prev_state = _device_location_state.get(device_id)
                         if prev_state is False:
                             # Se reactivó después de estar desactivada
+                            dname = dev_name(device_id) if 'dev_name' in dir() else device_id
                             loc_event = {
                                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                                 "device_id": device_id,
+                                "device_name": dname,
                                 "event_type": "Ubicación Reactivada",
-                                "severity": "info",
-                                "description": f"Servicios de Ubicación reactivados en {device_id}",
+                                "details": f"✅ Servicios de Ubicación reactivados en {dname}. Rastreo GPS restaurado.",
+                                "severity": "Baja",
+                                "icon": "📍",
+                                "category": "ubicacion",
                                 "source": "GPS Monitor"
                             }
                             new_events.append(loc_event)
-                            print(f"[GPS] Servicios de Ubicación REACTIVADOS en {device_id}")
+                            print(f"[GPS] ✅ Servicios de Ubicación REACTIVADOS en {device_id}")
                         _device_location_state[device_id] = True
 
                     if new_events:
