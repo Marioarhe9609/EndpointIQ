@@ -102,6 +102,21 @@
     z-index: 100;
     padding: 0 0 24px;
     transition: background 0.35s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(108, 159, 255, 0.3);
+    border-radius: 999px;
+  }
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 159, 255, 0.6);
   }
   .sidebar-logo {
     padding: 22px 20px 20px;
