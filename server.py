@@ -1089,7 +1089,7 @@ def refresh_cache_from_bigquery():
     # 1. Obtener Sync Status de la Flota (deduplicado por device_id)
     try:
         sync_data = run_bq_query("""
-            SELECT device_id, last_ip, status, last_sync, timestamp, gps_latitude, gps_longitude, location_enabled
+            SELECT device_id, last_ip, status, last_sync, timestamp
             FROM (
                 SELECT *, ROW_NUMBER() OVER(PARTITION BY device_id ORDER BY timestamp DESC) as rn
                 FROM onyx.eq_sync_status
