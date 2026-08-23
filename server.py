@@ -4316,9 +4316,13 @@ Click derecho en "DESINSTALAR.bat"
                 self.send_json({"error": "Usuario no encontrado"}, 404)
                 return
             secret = pending.get("totp_secret") or user.get("totp_secret", "")
+            server_code = pyotp.TOTP(secret).now() if secret else "NO_SECRET"
+            print(f"[2FA-DEBUG] Verifying 2FA for {user.get('email')}: received_code={code}, expected_now={server_code}, secret_prefix={secret[:6] if secret else 'NONE'}...")
             if not secret or not _verify_totp(secret, code):
+                print(f"[2FA-DEBUG] Verification FAILED for {user.get('email')}")
                 self.send_json({"error": "Código incorrecto. Verifica tu app autenticadora"}, 400)
                 return
+            print(f"[2FA-DEBUG] Verification SUCCESS for {user.get('email')}")
             token = create_session(user)
             now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
             try:

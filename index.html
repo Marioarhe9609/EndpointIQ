@@ -891,10 +891,7 @@
         </div>
         <button type="submit" class="login-btn" id="totpVerifyBtn">🔓 Verificar</button>
       </form>
-      <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:8px;">
-        <button type="button" onclick="reconfigTotp()" style="background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;text-decoration:underline;">🔄 Reconfigurar app autenticadora / Escanear nuevo QR</button>
-        <button type="button" onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;">← Volver a ingresar contraseña</button>
-      </div>
+      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Volver</button>
     </div>
 
     <div class="login-footer">Onyx v1.0 · By Agentica · 2FA TOTP</div>
