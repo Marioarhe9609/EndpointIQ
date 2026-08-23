@@ -979,6 +979,12 @@
             <div class="kpi-delta"><span class="down">▲ +3</span> vs ayer</div>
             <div class="kpi-icon-bg">⚠️</div>
           </div>
+          <div class="kpi-card purple" id="kpiBitlockerCard" onclick="showView('equipo')" style="cursor:pointer">
+            <div class="kpi-label">Cifrado BitLocker</div>
+            <div class="kpi-value" id="kpiBitlockerPct">--%</div>
+            <div class="kpi-delta" id="kpiBitlockerSub">Calculando cumplimiento...</div>
+            <div class="kpi-icon-bg">🔒</div>
+          </div>
           <div class="kpi-card red">
             <div class="kpi-label">Tickets Abiertos</div>
             <div class="kpi-value">7</div>
@@ -1382,6 +1388,23 @@
           </div>
           <div class="rings-row" id="ringsRow">
             <!-- Se llena dinamicamente -->
+          </div>
+        </div>
+
+        <!-- CIFRADO DE DISCO (BitLocker) -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span>🛡️</span>
+            <span class="card-title">Cifrado de Disco (BitLocker)</span>
+            <div id="bitlockerHeaderBadge" style="margin-left:auto">
+              <span class="badge info">Verificando...</span>
+            </div>
+          </div>
+          <div class="card-body" id="diskEncryptionBody">
+            <div style="color:var(--text3);font-size:12.5px;text-align:center;padding:20px 0">
+              <div style="font-size:24px;margin-bottom:6px">🔒</div>
+              Seleccione un equipo para ver el estado de cifrado BitLocker
+            </div>
           </div>
         </div>
 
@@ -2436,6 +2459,25 @@ function updateDashboardKPIs() {
   totalCards[4].querySelector('.kpi-delta').textContent = `CPU ${avgCPU}% \u00b7 RAM ${avgRAM}%`;
   totalCards[4].querySelector('.kpi-icon-bg').textContent = '\u26a1';
   
+  // KPI BitLocker
+  const bitlockerPctEl = document.getElementById('kpiBitlockerPct');
+  const bitlockerSubEl = document.getElementById('kpiBitlockerSub');
+  if (bitlockerPctEl) {
+    let encryptedCount = 0;
+    fleetDevices.forEach(d => {
+      let enc = [];
+      try {
+        if (d.disk_encryption) enc = typeof d.disk_encryption === 'string' ? JSON.parse(d.disk_encryption) : d.disk_encryption;
+      } catch(e){}
+      if (enc && enc.some(v => v.protection_status === 1 || v.conversion_status === 'FullyEncrypted')) {
+        encryptedCount++;
+      }
+    });
+    const bitPct = total > 0 ? ((encryptedCount / total) * 100).toFixed(0) : 0;
+    bitlockerPctEl.textContent = `${bitPct}%`;
+    if (bitlockerSubEl) bitlockerSubEl.innerHTML = `<span class="${bitPct >= 80 ? 'up' : 'down'}">${encryptedCount}/${total}</span> equipos cifrados`;
+  }
+  
   // Actualizar grafica de metricas promedio
   updateMetricsChart();
   // Render fleet charts
@@ -2959,6 +3001,7 @@ function loadDeviceDetail(id) {
 
       renderRings(m);
       renderActivityInfo(m, data);
+      renderDiskEncryption(m);
       renderNetworkInfo(m);
       renderSubnetGraph(m);
       updateDiagnosticBox(m);
@@ -2966,6 +3009,78 @@ function loadDeviceDetail(id) {
       renderUsbPortsEquipo(data);
       renderEventViewer(data);
     });
+}
+
+function renderDiskEncryption(m) {
+  const container = document.getElementById('diskEncryptionBody');
+  const badgeHeader = document.getElementById('bitlockerHeaderBadge');
+  if (!container) return;
+
+  let encData = [];
+  try {
+    if (m.disk_encryption) {
+      encData = typeof m.disk_encryption === 'string' ? JSON.parse(m.disk_encryption) : m.disk_encryption;
+    }
+  } catch (e) {
+    encData = [];
+  }
+
+  if (!encData || encData.length === 0) {
+    if (badgeHeader) badgeHeader.innerHTML = '<span class="badge off">Sin Datos BitLocker</span>';
+    container.innerHTML = `
+      <div style="color:var(--text3);font-size:12.5px;text-align:center;padding:16px 0">
+        <div style="font-size:24px;margin-bottom:6px">ℹ️</div>
+        No hay telemetría de BitLocker registrada aún para este equipo.
+      </div>`;
+    return;
+  }
+
+  const isProtected = encData.some(v => v.protection_status === 1 || v.conversion_status === 'FullyEncrypted');
+  if (badgeHeader) {
+    badgeHeader.innerHTML = isProtected 
+      ? '<span class="badge ok">🔒 Cifrado y Protegido</span>'
+      : '<span class="badge crit">🔓 Desprotegido</span>';
+  }
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px">';
+  encData.forEach(v => {
+    const drive = v.drive_letter || 'C:';
+    const prot = v.protection_status === 1;
+    const conv = v.conversion_status || 'Unknown';
+    const pct = typeof v.encryption_percentage === 'number' ? v.encryption_percentage : (prot ? 100 : 0);
+    const method = v.encryption_method || 'XTS-AES';
+
+    const statusBadge = prot 
+      ? '<span class="badge ok" style="font-size:10px">🔒 Protegido</span>'
+      : (conv === 'EncryptionInProgress' 
+          ? '<span class="badge info" style="font-size:10px">⏳ Cifrando...</span>'
+          : '<span class="badge crit" style="font-size:10px">🔓 Sin Cifrar</span>');
+
+    html += `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:700;color:var(--text);font-size:14px;display:flex;align-items:center;gap:6px">
+            <span>💾</span> Unidad ${drive}
+          </div>
+          ${statusBadge}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);margin-top:2px">
+          <span>Algoritmo: <strong style="color:var(--cyan)">${method}</strong></span>
+          <span>Estado: <strong style="color:${prot ? 'var(--green)' : 'var(--amber)'}">${conv}</strong></span>
+        </div>
+        <div style="margin-top:4px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px">
+            <span>Progreso de Cifrado</span>
+            <span style="font-family:var(--font-mono);font-weight:700;color:var(--text)">${pct.toFixed(0)}%</span>
+          </div>
+          <div style="background:var(--surface3);height:6px;border-radius:99px;overflow:hidden">
+            <div style="background:${prot ? 'var(--green)' : 'var(--amber)'};width:${Math.max(0, Math.min(100, pct))}%;height:100%;border-radius:99px;transition:width 0.5s ease"></div>
+          </div>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function renderActivityInfo(m, data) {
@@ -4721,34 +4836,44 @@ async function downloadInstaller(btnElement) {
   let origText = '⬇️ Descargar Agente';
   if (btn) {
     origText = btn.textContent;
-    btn.textContent = '⏳ Descargando...';
+    btn.textContent = '⏳ Generando paquete...';
     btn.disabled = true;
   }
   try {
     const res = await fetch('/api/installer-download');
+    if (res.status === 401) {
+      alert('Sesión expirada o no autenticado. Por favor inicia sesión nuevamente.');
+      showLogin();
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+      return;
+    }
     if (res.status === 403) {
-      alert('Solo los administradores pueden descargar el instalador.');
-      if (btn) {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }
+      alert('Acceso restringido: Solo los administradores pueden descargar el instalador.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+      return;
+    }
+    if (res.status === 429) {
+      alert('Límite de descargas excedido. Por seguridad, espera unos minutos antes de reintentar.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
       return;
     }
     if (res.status === 404) {
-      alert('El instalador no está disponible en el servidor. Contacta al administrador del sistema.');
-      if (btn) {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }
+      alert('El instalador no está disponible en el servidor. Contacta al soporte técnico.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
       return;
     }
-    if (!res.ok) throw new Error('Error del servidor');
+    if (!res.ok) throw new Error('Error del servidor: ' + res.status);
+
+    const pkgSha256 = res.headers.get('X-Package-SHA256');
+    if (pkgSha256) {
+      console.log('[SECURITY] Paquete Onyx-Agent-v3.5.zip recibido. SHA-256:', pkgSha256);
+    }
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Onyx-Agent-v3.0.zip';
+    a.download = 'Onyx-Agent-v3.5.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -4761,9 +4886,9 @@ async function downloadInstaller(btnElement) {
     }
   } catch(e) {
     console.error('Download error:', e);
-    alert('Error al descargar el instalador.');
+    alert('Error al descargar el instalador del agente: ' + e.message);
     if (btn) {
-      btn.textContent = '⬇️ Descargar Agente';
+      btn.textContent = origText;
       btn.disabled = false;
     }
   }

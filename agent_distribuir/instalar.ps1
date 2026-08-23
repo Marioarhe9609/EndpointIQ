@@ -1,4 +1,4 @@
-# Onyx Agent Installer v3.0 - PowerShell Edition
+# Onyx Agent Installer v3.5 - PowerShell Edition
 # Alternativa al INSTALAR.bat para entornos donde el .bat no funciona correctamente.
 # Ejecutar con: powershell -ExecutionPolicy Bypass -File instalar.ps1
 
@@ -8,7 +8,7 @@ $SourceDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host ""
 Write-Host "  +=========================================================+" -ForegroundColor Cyan
-Write-Host "  |   ONYX - Agente de Monitoreo - Instalador v3.0         |" -ForegroundColor Cyan
+Write-Host "  |   ONYX - Agente de Monitoreo - Instalador v3.5         |" -ForegroundColor Cyan
 Write-Host "  |                    By Agentica                          |" -ForegroundColor Cyan
 Write-Host "  +=========================================================+" -ForegroundColor Cyan
 Write-Host ""
@@ -136,7 +136,7 @@ $jsonContent = [PSCustomObject]@{
     credentials_file    = "onyx_credentials.json"
     ping_target         = "8.8.8.8"
     log_file            = "onyx_agent.log"
-    version             = "3.0.0"
+    version             = "3.5.0"
     update_server       = "https://onyx-server-631753912632.us-central1.run.app"
 }
 # IMPORTANTE: Usar WriteAllText con UTF8 sin BOM (NO Set-Content -Encoding UTF8)

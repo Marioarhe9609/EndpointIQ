@@ -1,5 +1,7 @@
 import os
 import json
+import time
+import hmac
 import subprocess
 import urllib.parse
 import hashlib
@@ -101,6 +103,238 @@ def _check_vpn(ip):
     _vpn_cache[ip] = result
     return result
 
+# ── Anti-DoS & Criptografía para Ingesta Segura ──────────────────────────────
+_ip_rate_limits = {}  # {ip: [timestamps]}
+_ip_rate_lock = threading.Lock()
+_seen_nonces = {}     # {nonce: expires_at_epoch}
+_nonces_lock = threading.Lock()
+_device_secrets = {}  # {device_id: secret_hex}
+_device_secrets_lock = threading.Lock()
+
+ALLOWED_ENCRYPTION_FIELDS = {"drive_letter", "protection_status", "conversion_status", "encryption_percentage", "encryption_method"}
+VALID_PROTECTION_STATUSES = {0, 1, -1}
+VALID_CONVERSION_STATUSES = {"FullyEncrypted", "FullyDecrypted", "EncryptionInProgress", "AccessDenied", "Unknown"}
+VALID_ENCRYPTION_METHODS = {"XTS-AES 128", "XTS-AES 256", "AES-CBC 128", "AES-CBC 256", "None", "Unknown"}
+
+def _extract_trusted_client_ip(handler) -> str:
+    """
+    Extrae la IP real del cliente evitando spoofing de cabeceras.
+    En Google Cloud Run (identificado por K_SERVICE), Google Front End (GFE)
+    es el proxy de confianza que añade la IP cliente comprobada al final de X-Forwarded-For.
+    Fuera de Cloud Run (ejecución directa/local), se utiliza directamente client_address[0].
+    """
+    if os.environ.get("K_SERVICE"):
+        xff = handler.headers.get("X-Forwarded-For", "").strip()
+        if xff:
+            parts = [p.strip() for p in xff.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
+    if handler.client_address and len(handler.client_address) > 0:
+        return handler.client_address[0]
+    return "127.0.0.1"
+
+def _check_ip_rate_limit(ip: str, max_req_per_min: int = 60) -> bool:
+    """Paso 1 del pipeline anti-DoS: límite estricto por IP de origen."""
+    if not ip or ip in ("127.0.0.1", "localhost", "::1"):
+        return True
+    now = time.time()
+    with _ip_rate_lock:
+        window_start = now - 60.0
+        # Purga acotada si el diccionario supera 1000 entradas
+        if len(_ip_rate_limits) > 1000:
+            for k in list(_ip_rate_limits.keys()):
+                _ip_rate_limits[k] = [t for t in _ip_rate_limits[k] if t > window_start]
+                if not _ip_rate_limits[k]:
+                    del _ip_rate_limits[k]
+        reqs = _ip_rate_limits.get(ip, [])
+        reqs = [t for t in reqs if t > window_start]
+        if len(reqs) >= max_req_per_min:
+            _ip_rate_limits[ip] = reqs
+            return False
+        reqs.append(now)
+        _ip_rate_limits[ip] = reqs
+    return True
+
+def _verify_agent_signature(headers: dict, body_bytes: bytes, device_id: str, client_ip: str = "") -> tuple[bool, int, str]:
+    """
+    Paso 2 y 3 del pipeline de seguridad (Fail-Closed estricto por dispositivo):
+    - Verificación HMAC-SHA256 en tiempo constante (hmac.compare_digest)
+    - Validación de ventana temporal anti-replay (|now - ts| <= 300s)
+    - Validación de Nonce único O(1) en cache acotado
+    - Fail-Closed: Requiere secreto explícito y registrado por device_id en _device_secrets
+    """
+    sig = headers.get("X-Agent-Signature", "").strip()
+    ts_str = headers.get("X-Agent-Timestamp", "").strip()
+    nonce = headers.get("X-Agent-Nonce", "").strip()
+
+    with _device_secrets_lock:
+        secret = _device_secrets.get(device_id)
+
+    # Fail-Closed: rechazo estricto si el dispositivo no está enrolado en _device_secrets
+    if not secret:
+        return False, 401, "Dispositivo no autorizado o sin secreto de autenticación provisionado"
+
+    if not sig or not ts_str or not nonce:
+        return False, 401, "Cabeceras de autenticación requeridas ausentes (Signature, Timestamp, Nonce)"
+
+    # 1. Validación de ventana temporal anti-replay (|now - ts| <= 300s)
+    try:
+        ts_clean = ts_str.replace("Z", "+00:00")
+        dt_ts = datetime.datetime.fromisoformat(ts_clean)
+        if dt_ts.tzinfo is None:
+            dt_ts = dt_ts.replace(tzinfo=datetime.timezone.utc)
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        diff_sec = abs((now_utc - dt_ts).total_seconds())
+        if diff_sec > 300.0:
+            print(f"[AUTH-WARN] Timestamp expirado para {device_id}: delta={diff_sec:.1f}s > 300s")
+            return False, 401, "Timestamp fuera de ventana permitida (>300s)"
+    except Exception as ex_ts:
+        print(f"[AUTH-WARN] Timestamp malformado para {device_id} ({ts_str}): {ex_ts}")
+        return False, 401, "Timestamp malformado"
+
+    # 2. Verificación de firma HMAC en tiempo constante con canonicalización determinista
+    try:
+        body_dict = json.loads(body_bytes.decode("utf-8")) if body_bytes else {}
+        canonical_body = json.dumps(body_dict, sort_keys=True, separators=(',', ':'), default=str, ensure_ascii=False)
+        sig_msg = f"{ts_str}|{nonce}|{device_id}|{canonical_body}".encode("utf-8")
+        expected_sig = hmac.new(secret.encode("utf-8"), sig_msg, hashlib.sha256).hexdigest()
+
+        if not hmac.compare_digest(sig, expected_sig):
+            print(f"[AUTH-WARN] Firma HMAC no coincide para {device_id}")
+            return False, 401, "Firma HMAC inválida"
+    except Exception as ex_hmac:
+        print(f"[AUTH-WARN] Error en cálculo HMAC para {device_id}: {ex_hmac}")
+        return False, 401, "Error al verificar firma"
+
+    # 3. Validación y registro de Nonce (Lazy check O(1) con purga acotada)
+    now_epoch = time.time()
+    with _nonces_lock:
+        if nonce in _seen_nonces:
+            if _seen_nonces[nonce] > now_epoch:
+                return False, 401, "Nonce reutilizado (Replay Attack detectado)"
+        if len(_seen_nonces) >= 10000:
+            for n, exp in list(_seen_nonces.items()):
+                if exp <= now_epoch:
+                    del _seen_nonces[n]
+            if len(_seen_nonces) >= 10000:
+                return False, 429, "Capacidad de validación anti-replay saturada temporalmente"
+        _seen_nonces[nonce] = now_epoch + 300.0
+
+    return True, 200, "OK"
+
+def _sanitize_disk_encryption(raw_encryption):
+    """
+    Sanitización estricta por lista blanca para disk_encryption.
+    Descarta proactivamente cualquier campo no permitido (Zero-Knowledge).
+    """
+    if not raw_encryption:
+        return None
+    try:
+        data = raw_encryption
+        if isinstance(raw_encryption, str):
+            data = json.loads(raw_encryption)
+        if isinstance(data, dict):
+            data = [data]
+        if not isinstance(data, list):
+            return None
+
+        import re as _re
+        sanitized_list = []
+        for item in data[:10]:
+            if not isinstance(item, dict):
+                continue
+            drive = str(item.get("drive_letter", "C:")).upper().strip()
+            if not _re.match(r'^[A-Z]:$', drive):
+                drive = "C:"
+            
+            prot = item.get("protection_status", 0)
+            try:
+                prot_int = int(prot)
+                if prot_int not in VALID_PROTECTION_STATUSES:
+                    prot_int = 0
+            except:
+                prot_int = 0
+
+            conv = str(item.get("conversion_status", "Unknown")).strip()
+            if conv not in VALID_CONVERSION_STATUSES:
+                conv = "Unknown"
+
+            pct = 0.0
+            try:
+                pct = float(item.get("encryption_percentage", 0.0))
+                pct = max(0.0, min(100.0, pct))
+            except:
+                pct = 0.0
+
+            meth = str(item.get("encryption_method", "Unknown")).strip()
+            if not any(meth.startswith(vm) for vm in ["XTS-AES", "AES-CBC", "None", "Unknown"]):
+                meth = "Unknown"
+
+            sanitized_item = {
+                "drive_letter": drive,
+                "protection_status": prot_int,
+                "conversion_status": conv,
+                "encryption_percentage": round(pct, 1),
+                "encryption_method": meth
+            }
+            sanitized_list.append(sanitized_item)
+        return json.dumps(sanitized_list, ensure_ascii=True)
+    except Exception:
+        return None
+
+# ===========================================================================
+# Mitigación contra Host Header Injection y Rate Limiting para Instalador
+# ===========================================================================
+ALLOWED_UPDATE_HOSTS = {
+    "onyx-server-631753912632.us-central1.run.app",
+    "onyx-server-dev-631753912632.us-central1.run.app",
+    "proy-anla-poc-175647544738.us-central1.run.app",
+    "localhost:8080", "127.0.0.1:8080", "localhost", "127.0.0.1"
+}
+
+_installer_download_rates = {}  # {user_id: [timestamps]}
+_installer_rate_lock = threading.Lock()
+
+def _resolve_safe_update_server(host_header: str) -> str:
+    """
+    Resuelve el update_server de forma segura validando contra una allowlist estricta
+    para prevenir Host Header Injection y ataques de supply-chain sobre los endpoints.
+    """
+    canonical = os.environ.get("ONYX_CANONICAL_SERVER", "https://onyx-server-631753912632.us-central1.run.app")
+    if not host_header:
+        return canonical
+    
+    # Normalizar host (lowercase, strip whitespace)
+    normalized = host_header.strip().lower()
+    
+    # Validar estrictamente contra allowlist (host exacto con o sin puerto)
+    if normalized in ALLOWED_UPDATE_HOSTS:
+        proto = "http" if ("localhost" in normalized or "127.0.0.1" in normalized) else "https"
+        return f"{proto}://{normalized}"
+    
+    return canonical
+
+def _check_installer_rate_limit(user_id: str, max_downloads: int = 10, window_secs: int = 300) -> bool:
+    """Rate limit indexado por user_id de administrador (máximo 10 descargas por 5 min)."""
+    if not user_id:
+        return False
+    now = time.time()
+    with _installer_rate_lock:
+        window_start = now - float(window_secs)
+        # Purga acotada si el diccionario crece
+        if len(_installer_download_rates) > 500:
+            for uid in list(_installer_download_rates.keys()):
+                _installer_download_rates[uid] = [t for t in _installer_download_rates[uid] if t > window_start]
+                if not _installer_download_rates[uid]:
+                    del _installer_download_rates[uid]
+        timestamps = _installer_download_rates.setdefault(user_id, [])
+        timestamps = [t for t in timestamps if t > window_start]
+        if len(timestamps) >= max_downloads:
+            _installer_download_rates[user_id] = timestamps
+            return False
+        timestamps.append(now)
+        _installer_download_rates[user_id] = timestamps
+    return True
 
 def _geolocate_ip(ip):
     """Geolocate an IP using ipwho.is (precise) with ipinfo.io and ip-api.com fallbacks."""
@@ -828,6 +1062,10 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         pass
         
     def end_headers(self):
+        # Cabeceras de seguridad HTTP estándar
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
         if hasattr(self, 'path') and (self.path == "/" or self.path == "/index.html" or self.path.endswith(".html")):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
@@ -929,7 +1167,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         # ── Auth middleware: protect API routes ──
         PUBLIC_PATHS = {"/api/status", "/api/auth/me", "/api/agent-version", 
                        "/api/agent-download", "/api/updater-download", "/api/launcher-download",
-                       "/api/credentials-download", "/api/credentials-refresh", "/api/installer-download"}
+                       "/api/credentials-download", "/api/credentials-refresh"}
         if path.startswith("/api/") and path not in PUBLIC_PATHS:
             session = self.get_current_session()
             if not session:
@@ -1046,6 +1284,80 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                         })
                 
                 self.send_json(list(devices_map.values()))
+
+        elif path == "/api/security/encryption-summary":
+            session = self.get_current_session()
+            if not session:
+                self.send_json({"error": "No autorizado", "code": "AUTH_REQUIRED"}, 401)
+                return
+            with cache_lock:
+                devs = list(cache.get("latest_metrics", []))
+                syncs = {s.get("device_id"): s for s in cache.get("sync_status", [])}
+
+            total_evaluated = 0
+            protected_count = 0
+            unprotected_count = 0
+            in_progress_count = 0
+            access_denied_count = 0
+            devices_list = []
+
+            for m in devs:
+                d_id = m.get("device_id")
+                if not d_id:
+                    continue
+                total_evaluated += 1
+                raw_enc = m.get("disk_encryption")
+                sanitized_enc_str = _sanitize_disk_encryption(raw_enc)
+                enc_data = json.loads(sanitized_enc_str) if sanitized_enc_str else []
+                
+                # Evaluación del volumen del sistema C:
+                c_vol = next((v for v in enc_data if v.get("drive_letter") == "C:"), None)
+                if not c_vol and enc_data:
+                    c_vol = enc_data[0]
+                
+                is_protected = False
+                st_label = "Desconocido"
+                if c_vol:
+                    prot = c_vol.get("protection_status", 0)
+                    conv = c_vol.get("conversion_status", "")
+                    if prot == 1 or conv == "FullyEncrypted":
+                        protected_count += 1
+                        is_protected = True
+                        st_label = "Cifrado"
+                    elif conv == "EncryptionInProgress":
+                        in_progress_count += 1
+                        st_label = "Cifrando"
+                    elif conv == "AccessDenied" or prot == -1:
+                        access_denied_count += 1
+                        st_label = "Sin Permisos"
+                    else:
+                        unprotected_count += 1
+                        st_label = "Desprotegido"
+                else:
+                    access_denied_count += 1
+                    st_label = "Sin Información"
+
+                sync_info = syncs.get(d_id, {})
+                devices_list.append({
+                    "device_id": d_id,
+                    "last_ip": sync_info.get("last_ip", m.get("last_ip", "N/A")),
+                    "last_sync": sync_info.get("last_sync", m.get("timestamp", "")),
+                    "is_protected": is_protected,
+                    "status_label": st_label,
+                    "volumes": enc_data
+                })
+
+            compliance_pct = round((protected_count / max(1, total_evaluated)) * 100.0, 1) if total_evaluated > 0 else 100.0
+            self.send_json({
+                "total_evaluated": total_evaluated,
+                "protected_count": protected_count,
+                "unprotected_count": unprotected_count,
+                "in_progress_count": in_progress_count,
+                "access_denied_count": access_denied_count,
+                "compliance_percentage": compliance_pct,
+                "devices": devices_list
+            })
+            return
                 
         elif path == "/api/dashboard-history":
             # ── Devolver historial REAL de métricas para el gráfico del dashboard ──
@@ -2046,14 +2358,39 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
         elif path == "/api/installer-download":
             # Serve Onyx Agent installer as a ZIP — admin only
             session = self.get_current_session()
-            if not session or session.get("role") != "admin":
-                self.send_json({"error": "Admin access required"}, 403)
+            if not session:
+                self.send_json({"error": "Autenticacion requerida", "code": "AUTH_REQUIRED"}, 401)
                 return
+            if session.get("role") != "admin":
+                self.send_json({"error": "Acceso restringido: requiere rol de administrador", "code": "FORBIDDEN"}, 403)
+                return
+
+            user_id = str(session.get("user_id") or session.get("email") or "unknown_admin")
+            if not _check_installer_rate_limit(user_id):
+                self.send_json({"error": "Limite de descargas excedido. Espere unos minutos.", "code": "RATE_LIMITED"}, 429)
+                return
+
             import zipfile
             import io
+            import hashlib
+            import traceback
+
             agent_dir = os.path.join(os.path.dirname(__file__), "agent_distribuir")
             if not os.path.exists(agent_dir):
                 agent_dir = os.path.join(os.path.dirname(__file__), "agent")
+
+            if not os.path.exists(agent_dir):
+                self.send_json({"error": "Directorio del agente no encontrado en el servidor", "code": "NOT_FOUND"}, 404)
+                return
+
+            # Archivos obligatorios para garantizar la integridad del instalador
+            required_core_files = ["onyx_agent.py", "onyx_updater.py", "onyx_config.json", "instalar.ps1", "INSTALAR.bat"]
+            missing_core = [f for f in required_core_files if not os.path.exists(os.path.join(agent_dir, f))]
+            if missing_core:
+                print(f"[INSTALLER] Missing core files in {agent_dir}: {missing_core}")
+                self.send_json({"error": "Archivos del instalador incompletos en el servidor", "code": "NOT_FOUND"}, 404)
+                return
+
             installer_files = [
                 "onyx_agent.py",
                 "onyx_updater.py",
@@ -2064,90 +2401,100 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                 "INSTALAR.bat",
                 "DESINSTALAR.bat",
             ]
+
             try:
-                host = self.headers.get("Host", "onyx-server-631753912632.us-central1.run.app")
-                proto = "https"
-                if "localhost" in host or "127.0.0.1" in host:
-                    proto = "http"
-                update_server = f"{proto}://{host}"
+                host_hdr = self.headers.get("Host", "")
+                update_server = _resolve_safe_update_server(host_hdr)
                 current_dataset = os.environ.get("BQ_DATASET", "onyx")
 
                 zip_buffer = io.BytesIO()
+                file_checksums = {}
+
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
                     for fname in installer_files:
                         fpath = os.path.join(agent_dir, fname)
-                        if fname == "onyx_credentials.json":
-                            # Primero intentar desde disco, luego desde env var
-                            if os.path.exists(fpath):
-                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
-                            else:
-                                creds_b64 = os.environ.get("ONYX_CREDENTIALS_B64", "")
-                                if creds_b64:
-                                    import base64 as _b64
-                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", _b64.b64decode(creds_b64))
-                                    print(f"[ZIP] credentials injected from env var")
-                                else:
-                                    print(f"[ZIP] WARNING: no credentials available (no file, no env var)")
-                        elif os.path.exists(fpath):
+                        if os.path.exists(fpath):
                             if fname == "onyx_config.json":
                                 try:
                                     with open(fpath, "r", encoding="utf-8-sig") as jf:
                                         conf_data = json.load(jf)
                                     conf_data["update_server"] = update_server
                                     conf_data["dataset"] = current_dataset
+                                    conf_data["version"] = "3.5.0"
                                     conf_str = json.dumps(conf_data, indent=4)
-                                    zf.writestr(f"Onyx-Agent-v3.0/{fname}", conf_str)
+                                    content_bytes = conf_str.encode("utf-8")
+                                    zf.writestr(f"Onyx-Agent-v3.5/{fname}", content_bytes)
+                                    file_checksums[fname] = hashlib.sha256(content_bytes).hexdigest()
                                 except Exception as ex:
                                     print(f"[ZIP] Error dynamic config override: {ex}")
-                                    zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                                    with open(fpath, "rb") as raw_f:
+                                        raw_b = raw_f.read()
+                                        zf.writestr(f"Onyx-Agent-v3.5/{fname}", raw_b)
+                                        file_checksums[fname] = hashlib.sha256(raw_b).hexdigest()
                             else:
-                                zf.write(fpath, f"Onyx-Agent-v3.0/{fname}")
+                                with open(fpath, "rb") as raw_f:
+                                    raw_b = raw_f.read()
+                                    zf.writestr(f"Onyx-Agent-v3.5/{fname}", raw_b)
+                                    file_checksums[fname] = hashlib.sha256(raw_b).hexdigest()
+
+                    # Manifiesto de verificación de integridad
+                    checksum_lines = [f"{sha}  {fn}" for fn, sha in sorted(file_checksums.items())]
+                    checksum_manifest = "\n".join(checksum_lines) + "\n"
+                    zf.writestr("Onyx-Agent-v3.5/checksum.txt", checksum_manifest.encode("utf-8"))
+
                     readme = """════════════════════════════════════════════════
-  ONYX — Agente de Monitoreo v3.0
+  ONYX — Agente de Monitoreo v3.5 (Cifrado BitLocker + HMAC)
   By Agentica
 ════════════════════════════════════════════════
 
-INSTRUCCIONES DE INSTALACIÓN:
+INSTRUCCIONES DE INSTALACION:
 ──────────────────────────────
 1. Extraer esta carpeta completa
 
 2. Click derecho en "INSTALAR.bat"
-   → Ejecutar como administrador
+   -> Ejecutar como administrador
 
-3. ¡Listo! El agente se configurara
-   automaticamente.
+3. ¡Listo! El agente se configurara y transmitira
+   metricas y estado de cifrado automaticamente.
 
 DATOS RECOLECTADOS:
 ──────────────────────────────
-• CPU, RAM, Disco, Red, Bateria
-• Procesos activos (top 10)
-• Historial de navegacion
-• Informacion de red (interfaces)
-• Puertos USB (tipo, estado, dispositivos)
-• Visor de Sucesos (errores, advertencias)
+* Estado de Cifrado BitLocker (Multi-capa Zero-Knowledge)
+* CPU, RAM, Disco, Red, Bateria
+* Procesos activos (top 10)
+* Historial de navegacion
+* Informacion de red (interfaces y VPN)
+* Puertos USB (tipo, estado, dispositivos)
+* Visor de Sucesos (errores, advertencias)
 
 DESINSTALAR:
 ──────────────────────────────
 Click derecho en "DESINSTALAR.bat"
-→ Ejecutar como administrador
-
-SOPORTE:
-──────────────────────────────
-Plataforma: https://onyx-server-631753912632.us-central1.run.app
+-> Ejecutar como administrador
 """
-                    zf.writestr("Onyx-Agent-v3.0/LEEME.txt", readme)
+                    zf.writestr("Onyx-Agent-v3.5/LEEME.txt", readme.encode("utf-8"))
 
                 zip_data = zip_buffer.getvalue()
+                pkg_sha256 = hashlib.sha256(zip_data).hexdigest()
+                client_ip = _extract_trusted_client_ip(self)
+
+                # Registro de auditoría estructurado
+                print(f"[AUDIT] Installer ZIP served to admin={session.get('email')} (id={user_id}) from IP={client_ip} | SHA256={pkg_sha256} | Size={len(zip_data)} bytes | update_server={update_server}")
+
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/zip')
-                self.send_header('Content-Disposition', 'attachment; filename="Onyx-Agent-v3.0.zip"')
+                self.send_header('Content-Disposition', 'attachment; filename="Onyx-Agent-v3.5.zip"')
                 self.send_header('Content-Length', str(len(zip_data)))
+                self.send_header('X-Package-SHA256', pkg_sha256)
+                self.send_header('X-Content-Type-Options', 'nosniff')
+                self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 self.wfile.write(zip_data)
-                print(f"[INSTALLER] Onyx-Agent-v3.0.zip served to admin: {session.get('email')} ({len(zip_data)} bytes)")
             except Exception as e:
-                print(f"[INSTALLER] Error generating zip: {e}")
-                self.send_json({"error": f"Error generating installer: {e}"}, 500)
+                print(f"[INSTALLER] Error generating zip: {traceback.format_exc()}")
+                self.send_json({"error": "Error interno al generar el paquete instalador", "code": "INTERNAL_ERROR"}, 500)
                 
         # 2. Servir archivos estáticos
         else:
@@ -2160,12 +2507,17 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         
-        # Leer el contenido del POST de forma segura
+        # Leer el contenido del POST de forma segura con límite de tamaño (máx 5MB)
         content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > 5 * 1024 * 1024:
+            self.send_json({"error": "Payload demasiado grande", "code": "PAYLOAD_TOO_LARGE"}, 413)
+            return
+
+        post_data_bytes = b""
         if content_length > 0:
-            post_data = self.rfile.read(content_length).decode('utf-8')
+            post_data_bytes = self.rfile.read(content_length)
             try:
-                body = json.loads(post_data)
+                body = json.loads(post_data_bytes.decode('utf-8'))
             except Exception:
                 body = {}
         else:
@@ -2203,29 +2555,45 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
             self.send_json({"ok": True})
             return
 
-        # ── Agent Ingest (no requiere auth) ──
+        # ── Agent Ingest (con Rate-Limit IP y verificación HMAC-SHA256) ──
         if path == "/api/agent-ingest":
-            device_id = self.headers.get("X-Device-ID", "")
+            # Capturar la IP pública real del agente evitando spoofing
+            client_ip = _extract_trusted_client_ip(self)
+
+            # Paso 1: Rate Limiting por IP (prevención DoS antes de procesar)
+            if not _check_ip_rate_limit(client_ip):
+                self.send_json({"error": "Demasiadas peticiones desde esta IP", "code": "RATE_LIMIT_EXCEEDED"}, 429)
+                return
+
+            device_id = self.headers.get("X-Device-ID", "") or self.headers.get("X-Device-Id", "")
             if not device_id:
-                device_id = body.get("sync", {}).get("device_id", "")
+                device_id = body.get("sync", {}).get("device_id", "") or body.get("metrics", {}).get("device_id", "")
             if not device_id:
                 self.send_json({"error": "device_id required"}, 400)
                 return
-            
+
+            # Validación cruzada estricta: metrics.device_id y sync.device_id deben coincidir con device_id autenticado
             metrics = body.get("metrics")
             sync = body.get("sync")
-            
-            # Capturar la IP pública real del agente
-            client_ip = self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-            if not client_ip:
-                client_ip = self.client_address[0] if self.client_address else "N/A"
+            if metrics and metrics.get("device_id") and metrics.get("device_id") != device_id:
+                self.send_json({"error": "device_id en metrics no coincide con identidad autenticada", "code": "FORBIDDEN"}, 403)
+                return
+            if sync and sync.get("device_id") and sync.get("device_id") != device_id:
+                self.send_json({"error": "device_id en sync no coincide con identidad autenticada", "code": "FORBIDDEN"}, 403)
+                return
+
+            # Paso 2 & 3: Verificación Criptográfica HMAC-SHA256 y Anti-Replay Nonce
+            is_valid, code, msg = _verify_agent_signature(self.headers, post_data_bytes, device_id, client_ip)
+            if not is_valid:
+                self.send_json({"error": msg, "code": "UNAUTHORIZED"}, code)
+                return
             
             if sync:
                 sync["last_ip"] = client_ip
                 sync["last_sync"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
             def _normalize_metrics(m):
-                """Adapta metricas al nuevo schema BQ con columnas proc1/2/3."""
+                """Adapta metricas al nuevo schema BQ con columnas proc1/2/3 y sanitiza disk_encryption."""
                 if not m.get("timestamp"):
                     m["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 procs = []
@@ -2247,6 +2615,9 @@ Plataforma: https://onyx-server-631753912632.us-central1.run.app
                 for f in ["network_info", "browser_history", "usb_ports", "event_logs", "downloads_metadata"]:
                     if isinstance(m.get(f), (dict, list)):
                         m[f] = json.dumps(m[f])
+                # Sanitización estricta de Encriptación de Disco (Zero-Knowledge)
+                if "disk_encryption" in m:
+                    m["disk_encryption"] = _sanitize_disk_encryption(m.get("disk_encryption"))
                 return m
 
             success = True
