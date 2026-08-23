@@ -847,43 +847,50 @@ def invalidate_session(token):
 def load_users_from_bq():
     """Load users from BigQuery into memory cache (including 2FA fields)."""
     global users_cache
+    dataset = os.environ.get("BQ_DATASET", "onyx")
     # Auto-migrate: ensure allowed_pages column exists
     try:
-        run_bq_query("ALTER TABLE onyx.eq_users ADD COLUMN IF NOT EXISTS allowed_pages STRING")
-        print("[AUTH] Schema migration: allowed_pages column ensured")
+        run_bq_query(f"ALTER TABLE {dataset}.eq_users ADD COLUMN IF NOT EXISTS allowed_pages STRING")
+        print(f"[AUTH] Schema migration: allowed_pages column ensured on {dataset}")
     except Exception as me:
         print(f"[AUTH] Schema migration note: {me}")
+    # Auto-migrate: ensure 2FA columns exist
+    try:
+        run_bq_query(f"ALTER TABLE {dataset}.eq_users ADD COLUMN IF NOT EXISTS totp_secret STRING, ADD COLUMN IF NOT EXISTS totp_enabled BOOL")
+        print(f"[AUTH] Schema migration: 2FA columns ensured on {dataset}")
+    except Exception:
+        pass
     # Auto-migrate: GPS columns in eq_hardware_metrics
     for col, col_type in [("gps_latitude", "FLOAT64"), ("gps_longitude", "FLOAT64"),
                            ("gps_accuracy", "FLOAT64"), ("location_enabled", "BOOL")]:
         try:
-            run_bq_query(f"ALTER TABLE onyx.eq_hardware_metrics ADD COLUMN IF NOT EXISTS {col} {col_type}")
+            run_bq_query(f"ALTER TABLE {dataset}.eq_hardware_metrics ADD COLUMN IF NOT EXISTS {col} {col_type}")
         except Exception:
             pass
-    print("[AUTH] Schema migration: GPS columns ensured")
+    print(f"[AUTH] Schema migration: GPS columns ensured on {dataset}")
     try:
-        rows = run_bq_query("""
+        rows = run_bq_query(f"""
             SELECT user_id, email, password_hash, salt, full_name, role, avatar,
                    created_at, last_login, is_active,
                    totp_secret, totp_enabled, allowed_pages
-            FROM onyx.eq_users
+            FROM {dataset}.eq_users
             WHERE is_active = true
             ORDER BY created_at
         """)
         if rows:
             with users_cache_lock:
                 users_cache = rows
-            print(f"[AUTH] Loaded {len(rows)} users from BigQuery")
+            print(f"[AUTH] Loaded {len(rows)} users from BigQuery ({dataset})")
         else:
             print("[AUTH] No users found, will create default admin")
             _create_default_admin()
     except Exception as e:
         print(f"[AUTH] Error loading users: {e} — retrying without 2FA columns")
         try:
-            rows = run_bq_query("""
+            rows = run_bq_query(f"""
                 SELECT user_id, email, password_hash, salt, full_name, role, avatar,
                        created_at, last_login, is_active
-                FROM onyx.eq_users WHERE is_active = true ORDER BY created_at
+                FROM {dataset}.eq_users WHERE is_active = true ORDER BY created_at
             """)
             if rows:
                 with users_cache_lock:
