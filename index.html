@@ -5596,28 +5596,37 @@ async function downloadInstaller(btnElement) {
   let origText = '⬇️ Descargar Agente';
   if (btn) {
     origText = btn.textContent;
-    btn.textContent = '⏳ Descargando...';
+    btn.textContent = '⏳ Generando paquete...';
     btn.disabled = true;
   }
   try {
     const res = await fetch('/api/installer-download');
+    if (res.status === 401) {
+      alert('Tu sesión ha expirado o requiere autenticación. Por favor inicia sesión nuevamente.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+      return;
+    }
     if (res.status === 403) {
-      alert('Solo los administradores pueden descargar el instalador.');
-      if (btn) {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }
+      alert('Acceso denegado: Solo los administradores pueden descargar el instalador del agente.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
       return;
     }
     if (res.status === 404) {
-      alert('El instalador no está disponible en el servidor. Contacta al administrador del sistema.');
-      if (btn) {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }
+      alert('El paquete instalador no está disponible en el servidor. Contacta al administrador del sistema.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
       return;
     }
-    if (!res.ok) throw new Error('Error del servidor');
+    if (res.status === 429) {
+      alert('Límite de descargas alcanzado (máximo 10 descargas cada 5 minutos). Por favor espera un momento.');
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
+      return;
+    }
+    if (!res.ok) throw new Error('Error al generar el instalador en el servidor');
+
+    const pkgSha256 = res.headers.get('X-Package-SHA256');
+    if (pkgSha256) {
+      console.log(`[ONYX-INSTALLER] Paquete verificado SHA-256: ${pkgSha256}`);
+    }
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -5636,7 +5645,7 @@ async function downloadInstaller(btnElement) {
     }
   } catch(e) {
     console.error('Download error:', e);
-    alert('Error al descargar el instalador.');
+    alert('Error al descargar el instalador: ' + (e.message || e));
     if (btn) {
       btn.textContent = '⬇️ Descargar Agente';
       btn.disabled = false;
