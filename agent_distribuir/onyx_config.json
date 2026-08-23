@@ -8,5 +8,10 @@
     "ping_target": "8.8.8.8",
     "log_file": "onyx_agent.log",
     "version": "3.5.0",
-    "update_server": "https://onyx-server-631753912632.us-central1.run.app"
+    "update_server": "https://onyx-server-631753912632.us-central1.run.app",
+    "modules": {
+        "usb_monitoring": true,
+        "downloads_monitoring": true,
+        "event_logs": true
+    }
 }
