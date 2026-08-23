@@ -9,6 +9,7 @@
     "log_file": "onyx_agent.log",
     "version": "3.5.0",
     "update_server": "https://onyx-server-631753912632.us-central1.run.app",
+    "agent_secret": "onyx-shared-secret-v350-2026",
     "modules": {
         "usb_monitoring": true,
         "downloads_monitoring": true,

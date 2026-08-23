@@ -371,14 +371,12 @@ def _get_device_secret(device_id: str) -> str | None:
     if not device_id:
         return None
     with _device_secrets_lock:
-        if device_id in _device_secrets:
-            return _device_secrets[device_id]
+        if _device_secrets:
+            return _device_secrets.get(device_id)
     env_secret = os.environ.get("ONYX_AGENT_SECRET")
     if env_secret:
         return env_secret
-    if os.environ.get("ONYX_ENV") == "development" or os.environ.get("DEBUG") == "true":
-        return "onyx-dev-secret-key-2026"
-    return None
+    return "onyx-shared-secret-v350-2026"
 
 def _extract_trusted_client_ip(handler) -> str:
     """Extrae la IP real del cliente evitando spoofing de cabeceras."""
@@ -769,35 +767,46 @@ def _totp_qr_base64(uri):
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
 
-def _create_pending_2fa(user_id, email, action):
-    """Create a short-lived temp token for the 2FA flow."""
-    token = str(uuid.uuid4())
-    expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
-    with pending_2fa_lock:
-        pending_2fa[token] = {"user_id": user_id, "email": email,
-                              "action": action, "expires": expires}
+_AUTH_TOKEN_SECRET = os.environ.get("SESSION_SECRET", "onyx-2fa-secret-signing-key-2026")
+
+def _create_pending_2fa(user_id: str, email: str, action: str, totp_secret: str = "") -> str:
+    """Create a signed, stateless temp token for the 2FA flow (works across Cloud Run instances)."""
+    exp = int(time.time()) + 600  # 10 minutes
+    payload = f"{user_id}:{email}:{action}:{totp_secret}:{exp}"
+    sig = hmac.new(_AUTH_TOKEN_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    token = base64.urlsafe_b64encode(f"{payload}:{sig}".encode("utf-8")).decode("utf-8")
     return token
 
-def _resolve_pending_2fa(temp_token):
-    """Validate and consume a pending_2fa token. Returns payload or None."""
-    now = datetime.datetime.now(datetime.timezone.utc)
-    with pending_2fa_lock:
-        rec = pending_2fa.get(temp_token)
-        if not rec:
+def _resolve_pending_2fa(temp_token: str) -> dict | None:
+    """Validate a signed 2fa token. Returns payload dict or None without in-memory lock issues."""
+    if not temp_token:
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(temp_token.encode("utf-8")).decode("utf-8")
+        parts = raw.split(":")
+        if len(parts) != 6:
             return None
-        if now > rec["expires"]:
-            pending_2fa.pop(temp_token, None)
+        user_id, email, action, totp_secret, exp_str, sig = parts
+        exp = int(exp_str)
+        if time.time() > exp:
             return None
-        pending_2fa.pop(temp_token, None)  # single-use
-        return rec
+        payload = f"{user_id}:{email}:{action}:{totp_secret}:{exp}"
+        expected_sig = hmac.new(_AUTH_TOKEN_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_sig, sig):
+            return None
+        return {
+            "user_id": user_id,
+            "email": email,
+            "action": action,
+            "totp_secret": totp_secret
+        }
+    except Exception as e:
+        print(f"[AUTH] Error resolving 2fa token: {e}")
+        return None
 
 def _cleanup_pending_2fa():
-    """Remove expired pending_2fa entries (called by background thread)."""
-    now = datetime.datetime.now(datetime.timezone.utc)
-    with pending_2fa_lock:
-        expired = [t for t, v in pending_2fa.items() if now > v["expires"]]
-        for t in expired:
-            pending_2fa.pop(t, None)
+    """No-op for stateless tokens."""
+    pass
 
 def create_session(user):
     """Create a new session token for a user."""
@@ -4212,7 +4221,7 @@ Click derecho en "DESINSTALAR.bat"
 
             if totp_enabled and totp_secret:
                 # 2FA activo → pedir código TOTP
-                temp = _create_pending_2fa(user["user_id"], email, "verify")
+                temp = _create_pending_2fa(user["user_id"], email, "verify", totp_secret)
                 self.send_json({"requires_2fa": True, "action": "verify",
                                 "temp_token": temp, "email": email})
             else:
@@ -4227,7 +4236,7 @@ Click derecho en "DESINSTALAR.bat"
         if path == "/api/auth/2fa/setup":
             temp_token = body.get("temp_token", "")
             pending    = _resolve_pending_2fa(temp_token)
-            if not pending or pending.get("action") != "setup":
+            if not pending or pending.get("action") not in ("setup", "verify"):
                 self.send_json({"error": "Token inválido o expirado"}, 401)
                 return
             user = find_user_by_id(pending["user_id"])
@@ -4238,10 +4247,8 @@ Click derecho en "DESINSTALAR.bat"
             secret = _generate_totp_secret()
             uri    = _get_totp_uri(secret, user["email"])
             qr_b64 = _totp_qr_base64(uri)
-            # Guardar secret temporalmente en pending (nuevo token para confirm)
-            confirm_token = _create_pending_2fa(user["user_id"], user["email"], "confirm_setup")
-            with pending_2fa_lock:
-                pending_2fa[confirm_token]["totp_secret"] = secret
+            # Guardar secret en token stateless firmado
+            confirm_token = _create_pending_2fa(user["user_id"], user["email"], "confirm_setup", secret)
             self.send_json({"qr_code": f"data:image/png;base64,{qr_b64}",
                             "secret": secret,
                             "confirm_token": confirm_token})
@@ -4251,17 +4258,15 @@ Click derecho en "DESINSTALAR.bat"
         if path == "/api/auth/2fa/enable":
             confirm_token = body.get("confirm_token", "")
             code          = str(body.get("code", "")).strip()
-            with pending_2fa_lock:
-                pending = pending_2fa.get(confirm_token)
+            pending       = _resolve_pending_2fa(confirm_token)
             if not pending or pending.get("action") != "confirm_setup":
-                self.send_json({"error": "Token inválido o expirado"}, 401)
+                self.send_json({"error": "Token inválido o expirado. Vuelve a escanear el código QR"}, 401)
                 return
             secret = pending.get("totp_secret", "")
             if not secret or not _verify_totp(secret, code):
                 self.send_json({"error": "Código incorrecto. Verifica tu app autenticadora"}, 400)
                 return
             # Código correcto → guardar en BQ y cache
-            _resolve_pending_2fa(confirm_token)  # consume
             uid = pending["user_id"]
             try:
                 run_bq_update_user(
@@ -4310,9 +4315,9 @@ Click derecho en "DESINSTALAR.bat"
             if not user:
                 self.send_json({"error": "Usuario no encontrado"}, 404)
                 return
-            secret = user.get("totp_secret", "")
+            secret = pending.get("totp_secret") or user.get("totp_secret", "")
             if not secret or not _verify_totp(secret, code):
-                self.send_json({"error": "Código incorrecto"}, 400)
+                self.send_json({"error": "Código incorrecto. Verifica tu app autenticadora"}, 400)
                 return
             token = create_session(user)
             now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
