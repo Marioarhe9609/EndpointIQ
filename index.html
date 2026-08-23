@@ -859,12 +859,10 @@
       <div id="totpQrContainer" style="text-align:center;margin:16px 0;">
         <div style="color:#64748b;font-size:13px;">⏳ Generando código QR...</div>
       </div>
-      <div id="totpSecretContainer" style="display:none;background:#1e293b;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;">
-        <p style="color:#64748b;font-size:11px;margin:0 0 4px;">¿No puedes escanear? Ingresa este código manualmente:</p>
-        <code id="totpSecretText" style="color:#60a5fa;font-size:14px;letter-spacing:2px;"></code>
-        <button onclick="document.getElementById('totpSecretContainer').style.display='none'" style="display:block;margin:8px auto 0;background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;">ocultar</button>
+      <div id="totpSecretContainer" style="background:#1e293b;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;">
+        <p style="color:#94a3b8;font-size:11px;margin:0 0 4px;">Clave secreta manual (para agregar manualmente en tu app):</p>
+        <code id="totpSecretText" style="color:#60a5fa;font-size:14px;letter-spacing:2px;font-weight:bold;display:block;margin:4px 0;"></code>
       </div>
-      <button onclick="document.getElementById('totpSecretContainer').style.display='block'" id="showSecretBtn" style="background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;margin-bottom:12px;display:block;text-align:left;">📋 Ingresar código manualmente</button>
       <form onsubmit="handleTotpEnable(event)">
         <div class="login-field">
           <label>Código de verificación (6 dígitos)</label>
@@ -893,7 +891,10 @@
         </div>
         <button type="submit" class="login-btn" id="totpVerifyBtn">🔓 Verificar</button>
       </form>
-      <button onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;margin-top:10px;">← Usar otra cuenta</button>
+      <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <button type="button" onclick="reconfigTotp()" style="background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;text-decoration:underline;">🔄 Reconfigurar app autenticadora / Escanear nuevo QR</button>
+        <button type="button" onclick="showLoginStep('credentials')" style="background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;">← Volver a ingresar contraseña</button>
+      </div>
     </div>
 
     <div class="login-footer">Onyx v1.0 · By Agentica · 2FA TOTP</div>
@@ -5174,6 +5175,13 @@ async function handleLogin(e) {
     btn.disabled    = false;
     btn.textContent = '🔐 Iniciar Sesión';
   }
+}
+
+async function reconfigTotp() {
+  const errEl = document.getElementById('loginError');
+  if (errEl) errEl.style.display = 'none';
+  showLoginStep('setup');
+  await loadTotpQr();
 }
 
 async function loadTotpQr() {
