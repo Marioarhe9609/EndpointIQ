@@ -113,11 +113,16 @@ Write-Host ""
 Write-Host "  [4/8] Instalando archivos del agente..." -ForegroundColor Yellow
 if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null }
 
-foreach ($f in @("onyx_agent.py","onyx_updater.py","onyx_credentials.json","onyx_launcher.vbs")) {
-    Copy-Item "$SourceDir\$f" "$InstallDir\$f" -Force
-    Write-Host "        [OK] $f copiado" -ForegroundColor Green
+foreach ($f in @("onyx_agent.py","onyx_updater.py","onyx_config.json","onyx_launcher.vbs")) {
+    if (Test-Path "$SourceDir\$f") {
+        Copy-Item "$SourceDir\$f" "$InstallDir\$f" -Force
+        Write-Host "        [OK] $f copiado" -ForegroundColor Green
+    }
 }
-# Siempre copiar onyx_config.json para garantizar dataset correcto en reinstalaciones
+if (Test-Path "$SourceDir\onyx_credentials.json") {
+    Copy-Item "$SourceDir\onyx_credentials.json" "$InstallDir\onyx_credentials.json" -Force
+    Write-Host "        [OK] onyx_credentials.json copiado" -ForegroundColor Green
+}
 Copy-Item "$SourceDir\onyx_config.json" "$InstallDir\onyx_config.json" -Force
 Write-Host "        [OK] onyx_config.json copiado" -ForegroundColor Green
 Write-Host ""

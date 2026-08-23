@@ -45,7 +45,9 @@ echo.
 
 set "MISSING=0"
 if not exist "%~dp0onyx_agent.py" set "MISSING=1"
-if not exist "%~dp0onyx_credentials.json" set "MISSING=1"
+if not exist "%~dp0onyx_config.json" set "MISSING=1"
+if not exist "%~dp0onyx_launcher.vbs" set "MISSING=1"
+if not exist "%~dp0onyx_updater.py" set "MISSING=1"
 
 if "%MISSING%"=="1" (
     echo.
@@ -55,7 +57,6 @@ if "%MISSING%"=="1" (
 )
 
 echo         [OK] onyx_agent.py
-echo         [OK] onyx_credentials.json
 echo         [OK] onyx_config.json
 echo         [OK] onyx_launcher.vbs
 echo         [OK] onyx_updater.py
@@ -164,27 +165,29 @@ copy /y "%~dp0onyx_agent.py" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_agent.py copiado
 copy /y "%~dp0onyx_updater.py" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_updater.py - auto-actualizador
-copy /y "%~dp0onyx_credentials.json" "%INSTALL_DIR%\" >nul 2>&1
-echo         [OK] onyx_credentials.json - credenciales BigQuery
+copy /y "%~dp0onyx_config.json" "%INSTALL_DIR%\" >nul 2>&1
+echo         [OK] onyx_config.json copiado
+if exist "%~dp0onyx_credentials.json" (
+    copy /y "%~dp0onyx_credentials.json" "%INSTALL_DIR%\" >nul 2>&1
+    echo         [OK] onyx_credentials.json copiado
+)
 copy /y "%~dp0onyx_launcher.vbs" "%INSTALL_DIR%\" >nul 2>&1
 echo         [OK] onyx_launcher.vbs - lanzador invisible
 echo.
 
 :: ----------------------------------------------
-:: PASO 5: ESCRIBIR CONFIG CORRECTO (sin BOM, dataset=onyx)
+:: PASO 5: CONFIGURAR SERVIDOR DE ACTUALIZACIONES
 :: ----------------------------------------------
 echo   [5/8] Configurando servidor de actualizaciones...
 echo.
 set "CONFIG=%INSTALL_DIR%\onyx_config.json"
 
-:: Escribir config via Python para garantizar UTF-8 sin BOM y valores correctos
-"%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':60,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.5.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
-if %errorlevel%==0 (
-    echo         [OK] Config escrita: dataset=onyx, sin BOM
-    echo         [OK] Servidor: onyx-server-631753912632.us-central1.run.app
-) else (
-    echo         [WARN] No se pudo escribir config via Python, usando copia del ZIP
+if exist "%~dp0onyx_config.json" (
     copy /y "%~dp0onyx_config.json" "%CONFIG%" >nul 2>&1
+    echo         [OK] Config aplicada desde el instalador
+) else (
+    "%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':60,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.5.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
+    echo         [OK] Config escrita por defecto
 )
 echo         [OK] Auto-update habilitado
 echo.
