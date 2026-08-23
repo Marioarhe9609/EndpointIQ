@@ -4225,11 +4225,22 @@ Click derecho en "DESINSTALAR.bat"
                 self.send_json({"requires_2fa": True, "action": "verify",
                                 "temp_token": temp, "email": email})
             else:
-                # 2FA NO configurado → forzar setup antes de entrar
-                temp = _create_pending_2fa(user["user_id"], email, "setup")
-                self.send_json({"requires_2fa": True, "action": "setup",
-                                "temp_token": temp, "email": email,
-                                "message": "Debes configurar el doble factor de autenticación para continuar"})
+                # 2FA no habilitado → login directo sin bloqueo de QR
+                token = create_session(user)
+                now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                try:
+                    run_bq_update_user([("last_login", now_iso)], "user_id", user['user_id'])
+                except Exception:
+                    pass
+                audit_log("LOGIN", user["email"], self.client_address[0], "USER", user["user_id"], "Login exitoso")
+                self.send_json_with_cookie({
+                    "success": True,
+                    "user": {"user_id": user["user_id"], "email": user["email"],
+                             "full_name": user["full_name"], "role": user["role"],
+                             "role_label": ROLE_LABELS.get(user["role"], user["role"]),
+                             "avatar": user.get("avatar", "??"),
+                             "permissions": list(ROLE_PERMISSIONS.get(user["role"], set()))}
+                }, "onyx_session", token)
             return
 
         # ── 2FA: Obtener QR para setup (usa temp_token) ──
