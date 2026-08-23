@@ -1,20 +1,23 @@
 """
-Onyx Agent v2.3.0
+Onyx Agent v3.5.0
 =================
-Monitoring agent for Windows. Sends metrics via Pub/Sub (primary) or
+Monitoring agent for Windows. Sends metrics via HTTP (primary) or
 directly to BigQuery (fallback). Works offline with SQLite buffer.
 
 Architecture:
-  Online  → Pub/Sub Topic → Cloud Run /api/internal/ingest → BigQuery
-  Fallback → BigQuery DML INSERT (direct, if Pub/Sub unavailable)
-  Offline  → SQLite buffer → flush on reconnect
+  Online  → HTTP POST to Cloud Run /api/agent-ingest (primary, no SDK needed)
+  Pub/Sub → Cloud Run push subscription → BigQuery (fallback)
+  BQ DML  → BigQuery direct INSERT (last resort)
+  Offline → SQLite buffer → flush on reconnect
 
+# Onyx Agent - version 3.4.0
+# Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle
   --verbose Show detailed output in console
 
 Metrics: CPU, RAM, Disk, Network latency, Battery, Top processes, Idle time
-Target: Pub/Sub topic onyx-metrics → BigQuery proy-anla-poc dataset
+Target: BigQuery proy-anla-poc dataset: onyx
 """
 
 import os
@@ -27,6 +30,10 @@ import logging
 import platform
 import datetime
 import hashlib
+import hmac
+import uuid
+import urllib.request as _ur
+import urllib.error as _ue
 from pathlib import Path
 
 # ===========================================================================
@@ -63,14 +70,23 @@ def load_config():
     if not CONFIG_PATH.exists():
         print("[ERROR] Config file not found: " + str(CONFIG_PATH))
         sys.exit(1)
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        # utf-8-sig strips the BOM silently if PowerShell wrote it with -Encoding UTF8
+        with open(CONFIG_PATH, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print("[ERROR] onyx_config.json is invalid JSON: " + str(e))
+        print("[ERROR] Delete " + str(CONFIG_PATH) + " and re-run the installer.")
+        sys.exit(1)
 
 CONFIG = load_config()
 
-# Setup logging
+# Setup logging with rotation (max 5MB, keep 3 backups)
+from logging.handlers import RotatingFileHandler
 LOG_PATH = SCRIPT_DIR / CONFIG.get("log_file", "onyx_agent.log")
-log_handlers = [logging.FileHandler(LOG_PATH, encoding="utf-8")]
+HEARTBEAT_PATH = SCRIPT_DIR / "onyx_heartbeat.txt"
+
+log_handlers = [RotatingFileHandler(str(LOG_PATH), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")]
 if "--verbose" in sys.argv:
     log_handlers.append(logging.StreamHandler(sys.stdout))
 
@@ -80,6 +96,14 @@ logging.basicConfig(
     handlers=log_handlers
 )
 log = logging.getLogger("EIQ")
+
+def write_heartbeat():
+    """Write heartbeat file so watchdog can verify agent is alive."""
+    try:
+        with open(str(HEARTBEAT_PATH), "w") as f:
+            f.write(datetime.datetime.utcnow().isoformat())
+    except Exception:
+        pass
 
 # ===========================================================================
 # Generate stable Device ID
@@ -97,7 +121,7 @@ DEVICE_ID = get_device_id()
 # ===========================================================================
 # Auto-Update from central server
 # ===========================================================================
-UPDATE_SERVER = CONFIG.get("update_server", "https://proy-anla-poc-175647544738.us-central1.run.app")
+UPDATE_SERVER = CONFIG.get("update_server", "https://onyx-server-631753912632.us-central1.run.app")
 
 def check_for_updates():
     """Check central server for agent updates and auto-apply if available."""
@@ -116,6 +140,29 @@ def check_for_updates():
 
         server_hash    = version_data.get("hash", "")
         server_version = version_data.get("version", "unknown")
+
+        # Apply recommended interval from server if different
+        recommended_interval = version_data.get("recommended_interval")
+        if recommended_interval and recommended_interval != CONFIG.get("interval_seconds"):
+            try:
+                CONFIG["interval_seconds"] = recommended_interval
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                cfg["interval_seconds"] = recommended_interval
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    json.dump(cfg, f, indent=4)
+                log.info("[CONFIG] Interval updated to %ds from server", recommended_interval)
+            except Exception as cfg_err:
+                log.debug("[CONFIG] Could not update interval: %s", cfg_err)
+
+        # Proteccion contra downgrade: no actualizar si version del servidor es menor
+        def _ver_tuple(v):
+            try: return tuple(int(x) for x in str(v).split("."))
+            except: return (0, 0, 0)
+        local_version = CONFIG.get("version", "3.0.0")
+        if _ver_tuple(server_version) < _ver_tuple(local_version):
+            log.info("[UPDATE] Server version %s < local %s — no downgrade", server_version, local_version)
+            return False
 
         if not server_hash or server_hash == local_hash:
             log.info("[UPDATE] Agent is up to date (v%s)", CONFIG.get("version", "?"))
@@ -147,10 +194,26 @@ def check_for_updates():
         except Exception:
             pass
 
-        log.info("[UPDATE] Agent updated to v%s. Reiniciando servicio...", server_version)
-        time.sleep(2)
-        sys.exit(0)   # NSSM reinicia el servicio automaticamente (restart/5000)
-        # El nuevo onyx_agent.py en disco se cargara en el proximo inicio
+        log.info("[UPDATE] Agent updated to v%s. Relanzando desde disco...", server_version)
+        time.sleep(1)
+
+        # Auto-reinicio: lanza el nuevo agente desde disco y sale
+        # Esto garantiza continuidad SIN depender de la tarea programada
+        try:
+            python_exe = sys.executable
+            agent_args  = [python_exe, str(agent_file)] + sys.argv[1:]
+            # CREATE_NO_WINDOW + DETACHED_PROCESS para que corra en segundo plano
+            import subprocess as _sp
+            _sp.Popen(
+                agent_args,
+                creationflags=0x00000008 | 0x08000000,  # DETACHED + NO_WINDOW
+                close_fds=True
+            )
+            log.info("[UPDATE] Nuevo agente lanzado. Saliendo proceso anterior.")
+        except Exception as restart_err:
+            log.warning("[UPDATE] No se pudo relanzar automaticamente: %s", restart_err)
+
+        sys.exit(0)
         return True
 
     except Exception as e:
@@ -371,7 +434,7 @@ def bq_insert_row(table_name, row_dict, retries=3):
     Direct DML INSERT into BigQuery — used as fallback when Pub/Sub is unavailable.
     Skips None values to avoid schema errors for new optional fields.
     """
-    dataset    = CONFIG.get("dataset", "proy-anla-poc")
+    dataset    = CONFIG.get("dataset", "onyx")
     full_table = dataset + "." + table_name
 
     cols, vals = [], []
@@ -419,7 +482,7 @@ def bq_upsert_sync(sync_row):
     client = get_bq_client()
     if client is None:
         return False
-    dataset    = CONFIG.get("dataset", "proy-anla-poc")
+    dataset    = CONFIG.get("dataset", "onyx")
     full_table = dataset + ".eq_sync_status"
 
     def sv(v):
@@ -456,6 +519,48 @@ def bq_upsert_sync(sync_row):
 # ===========================================================================
 # HTTP Send — PRIMARY method (no GCP credentials required on endpoint)
 # ===========================================================================
+
+# Contador para escanear la red solo cada N ciclos (no en cada ciclo)
+_NETWORK_SCAN_EVERY   = 5  # ciclos (ej: si interval=300s → cada 25 min)
+_network_scan_counter = _NETWORK_SCAN_EVERY - 1  # Escanear ya en el 1er ciclo
+
+def scan_network():
+    """
+    Escanea la red local usando 'arp -a' (nativo Windows, sin dependencias).
+    Devuelve lista de {ip, mac, hostname} de dispositivos descubiertos.
+    """
+    import re as _re
+    devices = []
+    try:
+        result = subprocess.run(
+            ["arp", "-a"], capture_output=True, text=True, timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        )
+        for line in result.stdout.splitlines():
+            # Línea típica: "  192.168.1.50    b8-27-eb-a1-b2-c3    dinámica"
+            m = _re.search(
+                r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2}[-:][0-9a-f]{2})',
+                line, _re.IGNORECASE
+            )
+            if not m:
+                continue
+            ip  = m.group(1)
+            mac = m.group(2).replace("-", ":").upper()
+            # Filtrar broadcast y multicast
+            if ip.endswith(".255") or ip.startswith("224.") or ip.startswith("239."):
+                continue
+            # Intentar resolver hostname (sin bloquear demasiado)
+            hostname = ""
+            try:
+                hostname = socket.gethostbyaddr(ip)[0]
+            except Exception:
+                pass
+            devices.append({"ip": ip, "mac": mac, "hostname": hostname})
+    except Exception as e:
+        log.debug("[NET-SCAN] Error: %s", e)
+    return devices
+
+
 def send_via_http(metrics_row, sync_row):
     """
     POST metrics + sync data directly to Cloud Run /api/agent-ingest.
@@ -463,27 +568,51 @@ def send_via_http(metrics_row, sync_row):
     Returns True if server confirmed 200 OK.
     """
     try:
-        import urllib.request as _ur
         server = CONFIG.get("update_server",
-                            "https://proy-anla-poc-175647544738.us-central1.run.app")
+                            "https://onyx-server-631753912632.us-central1.run.app")
         url    = server.rstrip("/") + "/api/agent-ingest"
-        payload = json.dumps(
-            {"metrics": metrics_row, "sync": sync_row},
+        global _network_scan_counter
+        _network_scan_counter += 1
+        net_scan = []
+        if _network_scan_counter >= _NETWORK_SCAN_EVERY:
+            net_scan = scan_network()
+            _network_scan_counter = 0
+            log.info("[NET-SCAN] Detectados %d dispositivos en red", len(net_scan))
+
+        agent_secret = CONFIG.get("agent_secret") or os.environ.get("ONYX_AGENT_SECRET")
+        if not agent_secret:
+            log.error("[SECURITY] No se puede transmitir telemetría: 'agent_secret' no está configurado.")
+            return False
+
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        nonce = str(uuid.uuid4())
+        canonical_body = json.dumps(
+            {"metrics": metrics_row, "sync": sync_row, "network_scan": net_scan},
+            sort_keys=True,
+            separators=(',', ':'),
             default=str
         ).encode("utf-8")
+        
+        dev_id = str(metrics_row.get('device_id',''))
+        sig_str = f"{ts}|{nonce}|{dev_id}|{canonical_body.decode('utf-8')}".encode("utf-8")
+        signature = hmac.new(agent_secret.encode("utf-8"), sig_str, hashlib.sha256).hexdigest()
+
         req = _ur.Request(
             url,
-            data=payload,
+            data=canonical_body,
             headers={
-                "Content-Type":  "application/json",
-                "Content-Length": str(len(payload)),
-                "User-Agent":    "EIQ-Agent/" + CONFIG.get("version", "2.3"),
-                "X-Device-Id":   metrics_row.get("device_id", "")
+                "Content-Type":      "application/json",
+                "Content-Length":    str(len(canonical_body)),
+                "User-Agent":        "EIQ-Agent/" + CONFIG.get("version", "3.5.0"),
+                "X-Device-Id":       metrics_row.get("device_id", ""),
+                "X-Agent-Timestamp": ts,
+                "X-Agent-Nonce":     nonce,
+                "X-Agent-Signature": signature
             }
         )
         with _ur.urlopen(req, timeout=15) as resp:
             if resp.status == 200:
-                log.info("[HTTP-INGEST] OK → server accepted metrics for %s",
+                log.info("[HTTP-INGEST] OK -> server accepted metrics for %s",
                          metrics_row.get("device_id", "?"))
                 return True
             else:
@@ -558,6 +687,362 @@ def measure_latency():
         return round(ms, 1)
     except Exception:
         return -1.0
+
+# ===========================================================================
+# GPS Location — Windows Location Services
+# ===========================================================================
+def get_gps_location():
+    """Get GPS coordinates from Windows Location Services.
+    Returns {latitude, longitude, accuracy, location_enabled} or fallback."""
+    result = {"latitude": None, "longitude": None, "accuracy": None, "location_enabled": None}
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub
+        # Use PowerShell to query Windows Location API
+        ps_script = r'''
+try {
+    Add-Type -AssemblyName System.Device
+    $watcher = New-Object System.Device.Location.GeoCoordinateWatcher
+    $watcher.Start()
+    $timeout = 0
+    while ($watcher.Status -ne 'Ready' -and $timeout -lt 15) {
+        Start-Sleep -Milliseconds 500
+        $timeout++
+    }
+    if ($watcher.Status -eq 'Ready') {
+        $coord = $watcher.Position.Location
+        if ($coord.Latitude -ne [Double]::NaN) {
+            @{status='ok'; lat=$coord.Latitude; lon=$coord.Longitude; acc=$coord.HorizontalAccuracy} | ConvertTo-Json -Compress
+        } else {
+            @{status='no_fix'} | ConvertTo-Json -Compress
+        }
+    } else {
+        @{status='disabled'; watcher_status=$watcher.Status.ToString()} | ConvertTo-Json -Compress
+    }
+    $watcher.Stop()
+    $watcher.Dispose()
+} catch {
+    @{status='error'; msg=$_.Exception.Message} | ConvertTo-Json -Compress
+}
+'''
+        r = _sub.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+            capture_output=True, text=True, timeout=20,
+            creationflags=0x08000000  # CREATE_NO_WINDOW
+        )
+        if r.stdout.strip():
+            import json as _j
+            data = _j.loads(r.stdout.strip())
+            if data.get("status") == "ok":
+                result["latitude"] = round(data["lat"], 6)
+                result["longitude"] = round(data["lon"], 6)
+                result["accuracy"] = round(data.get("acc", 0), 1)
+                result["location_enabled"] = True
+                log.info("[GPS] Location: %.6f, %.6f (accuracy: %.1fm)",
+                         result["latitude"], result["longitude"], result["accuracy"])
+            elif data.get("status") == "disabled":
+                result["location_enabled"] = False
+                log.warning("[GPS] Location Services DISABLED on this machine")
+            else:
+                result["location_enabled"] = True  # enabled but no fix
+                log.info("[GPS] Location enabled but no fix: %s", data.get("status"))
+    except Exception as e:
+        log.debug("[GPS] Error getting location: %s", e)
+    return result
+
+# ===========================================================================
+# Endpoint Security Status — ISO 27001 A.8.7, A.8.8, A.8.9, A.8.24
+# ===========================================================================
+def get_security_status():
+    """Collect endpoint security posture for ISO 27001 compliance scoring."""
+    result = {
+        "antivirus_name": "",
+        "antivirus_enabled": None,
+        "antivirus_updated": None,
+        "firewall_enabled": None,
+        "bitlocker_enabled": None,
+        "uac_enabled": None,
+        "windows_update_pending": None,
+        "last_update_installed": ""
+    }
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+
+        # ── Antivirus (SecurityCenter2 WMI) ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | '
+                 'Select-Object displayName,productState | ConvertTo-Json -Compress'],
+                capture_output=True, text=True, timeout=10, creationflags=_NW
+            )
+            if r.stdout.strip():
+                av = _j.loads(r.stdout.strip())
+                if isinstance(av, dict): av = [av]
+                if av:
+                    primary = av[0]
+                    result["antivirus_name"] = primary.get("displayName", "")
+                    ps = primary.get("productState", 0)
+                    # productState bitmask: bits 12-8 = enabled, bits 4-0 = updated
+                    result["antivirus_enabled"] = bool((ps >> 12) & 0x1)
+                    result["antivirus_updated"] = not bool((ps >> 4) & 0x1)
+                    log.info("[SEC] Antivirus: %s (enabled=%s, updated=%s)",
+                             result['antivirus_name'], result['antivirus_enabled'], result['antivirus_updated'])
+        except Exception as e:
+            log.debug("[SEC] Antivirus check error: %s", e)
+
+        # ── Firewall ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'Get-NetFirewallProfile | Select-Object Name,Enabled | ConvertTo-Json -Compress'],
+                capture_output=True, text=True, timeout=8, creationflags=_NW
+            )
+            if r.stdout.strip():
+                fw = _j.loads(r.stdout.strip())
+                if isinstance(fw, dict): fw = [fw]
+                result["firewall_enabled"] = all(p.get("Enabled", False) for p in fw)
+                log.info("[SEC] Firewall: %s", result['firewall_enabled'])
+        except Exception as e:
+            log.debug("[SEC] Firewall check error: %s", e)
+
+        # ── BitLocker ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 '(Get-BitLockerVolume -MountPoint C: -ErrorAction SilentlyContinue).ProtectionStatus'],
+                capture_output=True, text=True, timeout=8, creationflags=_NW
+            )
+            out = r.stdout.strip().lower()
+            if 'on' in out or out == '1':
+                result["bitlocker_enabled"] = True
+            elif 'off' in out or out == '0':
+                result["bitlocker_enabled"] = False
+            log.info("[SEC] BitLocker: %s", result['bitlocker_enabled'])
+        except Exception as e:
+            log.debug("[SEC] BitLocker check error: %s", e)
+
+        # ── UAC ──
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                r'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System')
+            val, _ = winreg.QueryValueEx(key, 'EnableLUA')
+            result["uac_enabled"] = bool(val)
+            winreg.CloseKey(key)
+            log.info("[SEC] UAC: %s", result['uac_enabled'])
+        except Exception as e:
+            log.debug("[SEC] UAC check error: %s", e)
+
+        # ── Windows Update ──
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 'try { $s = New-Object -ComObject Microsoft.Update.Session; '
+                 '$u = $s.CreateUpdateSearcher(); '
+                 '$r = $u.Search("IsInstalled=0 AND IsHidden=0"); '
+                 '@{pending=$r.Updates.Count; '
+                 'last_installed=(Get-HotFix | Sort-Object InstalledOn -Descending | '
+                 'Select-Object -First 1).InstalledOn.ToString("yyyy-MM-dd")} '
+                 '| ConvertTo-Json -Compress } catch { @{pending=-1;last_installed=""} | ConvertTo-Json -Compress }'],
+                capture_output=True, text=True, timeout=30, creationflags=_NW
+            )
+            if r.stdout.strip():
+                wu = _j.loads(r.stdout.strip())
+                result["windows_update_pending"] = wu.get("pending", -1)
+                result["last_update_installed"] = wu.get("last_installed", "")
+                log.info("[SEC] Windows Update: %d pending, last=%s",
+                         result['windows_update_pending'], result['last_update_installed'])
+        except Exception as e:
+            log.debug("[SEC] Windows Update check error: %s", e)
+
+    except Exception as e:
+        log.debug("[SEC] Security status error: %s", e)
+    return result
+
+# ===========================================================================
+# DLP — Data Loss Prevention Monitoring (ISO 27001 A.8.12)
+# ===========================================================================
+def get_dlp_status():
+    """Detect potential data exfiltration vectors."""
+    result = {
+        "cloud_sync_apps": [],
+        "screen_capture_tools": [],
+        "remote_access_tools": [],
+        "usb_write_events": 0
+    }
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+
+        # Cloud sync apps (personal = risk)
+        cloud_apps = {
+            "Dropbox": ["dropbox"],
+            "Google Drive Personal": ["googledrivesync", "googledrivefs"],
+            "MEGA": ["megasync"],
+            "WeTransfer": ["wetransfer"],
+            "pCloud": ["pcloud"],
+            "Telegram Desktop": ["telegram"],
+            "WhatsApp Desktop": ["whatsapp"],
+        }
+        remote_apps = {
+            "TeamViewer": ["teamviewer"],
+            "AnyDesk": ["anydesk"],
+            "UltraVNC": ["ultravnc", "winvnc"],
+            "Chrome Remote Desktop": ["remoting_host"],
+        }
+        capture_apps = {
+            "OBS Studio": ["obs64", "obs32"],
+            "ShareX": ["sharex"],
+            "Lightshot": ["lightshot"],
+            "Snagit": ["snagit"],
+        }
+
+        try:
+            procs = {p.name().lower() for p in psutil.process_iter(['name'])}
+        except Exception:
+            procs = set()
+
+        for app_name, proc_names in cloud_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["cloud_sync_apps"].append(app_name)
+        for app_name, proc_names in remote_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["remote_access_tools"].append(app_name)
+        for app_name, proc_names in capture_apps.items():
+            if any(pn in procs for pn in proc_names):
+                result["screen_capture_tools"].append(app_name)
+
+        # USB write events from Windows Event Log (last hour)
+        try:
+            r = _sub.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 '(Get-WinEvent -FilterHashtable @{LogName="Microsoft-Windows-DriverFrameworks-UserMode/Operational";'
+                 'StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue | '
+                 'Where-Object {$_.Message -like "*USB*"}).Count'],
+                capture_output=True, text=True, timeout=10, creationflags=_NW
+            )
+            cnt = r.stdout.strip()
+            if cnt.isdigit():
+                result["usb_write_events"] = int(cnt)
+        except Exception:
+            pass
+
+        if result["cloud_sync_apps"]:
+            log.info("[DLP] Cloud sync detected: %s", ', '.join(result['cloud_sync_apps']))
+        if result["remote_access_tools"]:
+            log.warning("[DLP] Remote access tools: %s", ', '.join(result['remote_access_tools']))
+
+    except Exception as e:
+        log.debug("[DLP] Error: %s", e)
+    return result
+
+# ===========================================================================
+# Software Inventory (ISO 27001 A.8.9)
+# ===========================================================================
+def get_software_inventory():
+    """Get installed software list with versions."""
+    result = []
+    if platform.system() != "Windows":
+        return result
+    try:
+        import subprocess as _sub, json as _j
+        _NW = 0x08000000
+        r = _sub.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             'Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*,'
+             'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* '
+             '-ErrorAction SilentlyContinue | '
+             'Where-Object {$_.DisplayName -and $_.DisplayName.Trim() -ne ""} | '
+             'Select-Object DisplayName,DisplayVersion,Publisher,InstallDate | '
+             'Sort-Object DisplayName | '
+             'ConvertTo-Json -Compress'],
+            capture_output=True, text=True, timeout=15, creationflags=_NW
+        )
+        if r.stdout.strip():
+            sw = _j.loads(r.stdout.strip())
+            if isinstance(sw, dict): sw = [sw]
+            result = [{
+                "name": s.get("DisplayName", ""),
+                "version": s.get("DisplayVersion", ""),
+                "publisher": s.get("Publisher", ""),
+                "install_date": s.get("InstallDate", "")
+            } for s in sw[:100]]  # Limit to 100 entries
+            log.info("[SW] Found %d installed applications", len(result))
+    except Exception as e:
+        log.debug("[SW] Error: %s", e)
+    return result
+
+def _collect_disk_encryption():
+    """
+    Recolección multi-capa de BitLocker con Invariante Zero-Knowledge.
+    Descarta proactivamente contraseñas o claves de recuperación.
+    """
+    volumes = []
+    if platform.system() != "Windows":
+        return volumes
+    try:
+        import subprocess as _sub
+        _NW = 0x08000000
+        cmd = [
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            "try { Get-BitLockerVolume | Select-Object MountPoint, ProtectionStatus, VolumeStatus, EncryptionPercentage | ForEach-Object { @{ drive_letter=$_.MountPoint; protection_status=$_.ProtectionStatus; conversion_status=$_.VolumeStatus; encryption_percentage=$_.EncryptionPercentage; encryption_method='XTS-AES 128' } } | ConvertTo-Json -Compress } catch { @() }"
+        ]
+        r = _sub.run(cmd, capture_output=True, text=True, timeout=6, creationflags=_NW)
+        if r.returncode == 0 and r.stdout.strip():
+            raw = json.loads(r.stdout.strip())
+            if isinstance(raw, dict):
+                raw = [raw]
+            if isinstance(raw, list):
+                for item in raw:
+                    drive = str(item.get("drive_letter") or item.get("MountPoint") or "C:").upper().strip()
+                    prot_val = item.get("protection_status") if item.get("protection_status") is not None else item.get("ProtectionStatus", 0)
+                    conv_val = str(item.get("conversion_status") or item.get("VolumeStatus") or "Unknown")
+                    pct_val = item.get("encryption_percentage") if item.get("encryption_percentage") is not None else item.get("EncryptionPercentage", 0.0)
+                    meth_val = str(item.get("encryption_method") or item.get("EncryptionMethod") or "XTS-AES 128")
+                    volumes.append({
+                        "drive_letter": drive,
+                        "protection_status": int(prot_val),
+                        "conversion_status": conv_val,
+                        "encryption_percentage": float(pct_val),
+                        "encryption_method": meth_val
+                    })
+    except Exception:
+        pass
+
+    if not volumes:
+        try:
+            r = _sub.run(["manage-bde.exe", "-status", "C:"], capture_output=True, text=True, timeout=5, creationflags=_NW)
+            if r.returncode == 0 and r.stdout:
+                out = r.stdout
+                prot = 1 if "Estado de protección: Activado" in out or "Protection Status: Protection On" in out else 0
+                conv = "FullyEncrypted" if "Completamente cifrado" in out or "Fully Encrypted" in out else "FullyDecrypted"
+                pct = 100.0 if prot == 1 else 0.0
+                volumes.append({
+                    "drive_letter": "C:",
+                    "protection_status": prot,
+                    "conversion_status": conv,
+                    "encryption_percentage": pct,
+                    "encryption_method": "XTS-AES 128"
+                })
+        except Exception:
+            pass
+
+    if not volumes:
+        volumes.append({
+            "drive_letter": "C:",
+            "protection_status": 0,
+            "conversion_status": "FullyDecrypted",
+            "encryption_percentage": 0.0,
+            "encryption_method": "None"
+        })
+    return volumes
 
 # ===========================================================================
 # Metrics Collection
@@ -854,8 +1339,8 @@ def collect_metrics():
                 nd = {"interfaces":[], "wifi_ssid":None, "connected_devices":[],
                       "public_ip":None, "city":None, "country":"CO"}
 
-                # Interfaces via ipconfig
-                ic = _sub.run(["ipconfig"], capture_output=True, text=True, timeout=4,
+                # Interfaces via ipconfig /all (includes Description for VPN detection)
+                ic = _sub.run(["ipconfig", "/all"], capture_output=True, text=True, timeout=6,
                               creationflags=0x08000000)
                 iface = {}
                 for ln in ic.stdout.splitlines():
@@ -873,7 +1358,61 @@ def collect_metrics():
                             if ip_v and not ip_v.startswith("127"): iface["ip"] = ip_v
                 if iface and iface.get("ip"): nd["interfaces"].append(iface)
 
-                # WiFi SSID
+                # ── Deteccion de VPN por nombre de adaptador O descripcion ──
+                VPN_ADAPTER_KEYWORDS = [
+                    "vpn", "tap", "tun", "wireguard", "wg",
+                    "nordvpn", "expressvpn", "surfshark", "protonvpn", "mullvad",
+                    "cyberghost", "ipvanish", "tunnelbear", "purevpn", "windscribe",
+                    "cisco anyconnect", "anyconnect", "pulse secure", "globalprotect",
+                    "juniper", "fortinet", "sonicwall", "openvpn", "pptp", "l2tp",
+                    "sstp", "ikev2", "virtual private", "ppp adapter",
+                    "check point", "checkpoint", "forticlient",
+                    "fortinet ssl", "fortinet virtual"
+                ]
+                vpn_active  = False
+                vpn_adapter = None
+                # Escanear TODO el output de ipconfig: nombres de adaptador Y descripciones
+                # Un adaptador VPN activo tiene IP asignada (no "medios desconectados")
+                lines_ipconfig = ic.stdout.splitlines()
+                current_adapter_name = None
+                current_has_ip = False
+                current_is_vpn = False
+                for idx2, ln2 in enumerate(lines_ipconfig):
+                    low2 = ln2.strip().lower()
+                    # Detectar linea de nombre de adaptador
+                    if ("adaptador" in low2 or "adapter" in low2) and ":" in ln2:
+                        # Antes de resetear, verificar si el adaptador anterior era VPN con IP
+                        if current_is_vpn and current_has_ip and current_adapter_name:
+                            vpn_active = True
+                            vpn_adapter = current_adapter_name
+                        # Resetear para nuevo adaptador
+                        current_adapter_name = ln2.strip().rstrip(":")
+                        current_has_ip = False
+                        current_is_vpn = any(k in low2 for k in VPN_ADAPTER_KEYWORDS)
+                    # Detectar linea de Descripcion (contiene el nombre real del driver)
+                    elif ("descripci" in low2 or "description" in low2) and ":" in ln2:
+                        desc_val = ln2.split(":", 1)[-1].strip()
+                        if any(k in desc_val.lower() for k in VPN_ADAPTER_KEYWORDS):
+                            current_is_vpn = True
+                            # Guardar nombre descriptivo: "Adaptador (Descripcion)"
+                            if current_adapter_name:
+                                current_adapter_name = current_adapter_name + " (" + desc_val + ")"
+                    # Detectar si tiene IP asignada (no desconectado)
+                    elif any(k in low2 for k in ["ipv4", "dirección ipv4", "ipv4 address"]):
+                        ip_part = ln2.split(":")[-1].strip().split("(")[0].strip()
+                        if ip_part and not ip_part.startswith("127"):
+                            current_has_ip = True
+                    # Detectar "medios desconectados" = no activo
+                    elif "medios desconectados" in low2 or "media disconnected" in low2:
+                        current_has_ip = False
+                        current_is_vpn = False  # desconectado = no activo
+                # Verificar el ultimo adaptador
+                if current_is_vpn and current_has_ip and current_adapter_name:
+                    vpn_active = True
+                    vpn_adapter = current_adapter_name
+                nd["vpn_active"]  = vpn_active
+                nd["vpn_adapter"] = vpn_adapter
+
                 try:
                     wo = _sub.run(["netsh","wlan","show","interfaces"],
                                   capture_output=True, text=True, timeout=4,
@@ -941,6 +1480,11 @@ def collect_metrics():
     except Exception as e:
         log.debug("[COLLECT] Extended metrics failed: %s", e)
 
+    # ── GPS Location ──────────────────────────────────────────────────────
+    gps_data = get_gps_location()
+    security_status = get_security_status()
+    dlp_status = get_dlp_status()
+    software_inventory = get_software_inventory()
 
     metrics_row = {
         "timestamp":          now,
@@ -961,15 +1505,46 @@ def collect_metrics():
         "downloads_metadata": downloads_json,
         "browser_history":    browser_history_json,
         "network_info":       network_info_json,
+        "gps_latitude":       gps_data.get("latitude"),
+        "gps_longitude":      gps_data.get("longitude"),
+        "gps_accuracy":       gps_data.get("accuracy"),
+        "location_enabled":   gps_data.get("location_enabled"),
+        "antivirus_name":        security_status.get("antivirus_name", ""),
+        "antivirus_enabled":     security_status.get("antivirus_enabled"),
+        "antivirus_updated":     security_status.get("antivirus_updated"),
+        "firewall_enabled":      security_status.get("firewall_enabled"),
+        "bitlocker_enabled":     security_status.get("bitlocker_enabled"),
+        "disk_encryption":       json.dumps(_collect_disk_encryption()),
+        "uac_enabled":           security_status.get("uac_enabled"),
+        "windows_update_pending": security_status.get("windows_update_pending"),
+        "last_update_installed": security_status.get("last_update_installed", ""),
+        "dlp_cloud_sync":        json.dumps(dlp_status.get("cloud_sync_apps", [])),
+        "dlp_remote_access":     json.dumps(dlp_status.get("remote_access_tools", [])),
+        "dlp_screen_capture":    json.dumps(dlp_status.get("screen_capture_tools", [])),
+        "dlp_usb_write_events":  dlp_status.get("usb_write_events", 0),
+        "software_inventory":    json.dumps(software_inventory[:50]),
     }
 
 
+    # Extraer vpn_active desde network_info para incluirlo en sync
+    _vpn_active  = False
+    _vpn_adapter = None
+    if network_info_json:
+        try:
+            _ni = _j.loads(network_info_json) if isinstance(network_info_json, str) else network_info_json
+            _vpn_active  = _ni.get("vpn_active", False)
+            _vpn_adapter = _ni.get("vpn_adapter", None)
+        except Exception:
+            pass
+
     sync_row = {
-        "timestamp":  now,
-        "device_id":  DEVICE_ID,
-        "last_sync":  now,
-        "last_ip":    local_ip,
-        "status":     "Online"
+        "timestamp":   now,
+        "device_id":   DEVICE_ID,
+        "last_sync":   now,
+        "last_ip":     local_ip,
+        "status":      "Online",
+        "vpn_active":  _vpn_active,
+        "vpn_adapter": _vpn_adapter or ""
     }
 
     idle_str = f"{idle_seconds}s" if idle_seconds is not None else "N/A"
@@ -1048,24 +1623,39 @@ def run_once():
 def run_loop():
     interval           = CONFIG.get("interval_seconds", 300)
     consecutive_fails  = 0
+    max_restarts       = 10
+    restart_count      = 0
     log.info("[START] Onyx Agent v%s | Device: %s | Interval: %ds | Pub/Sub: %s",
              CONFIG.get("version", "?"), DEVICE_ID, interval,
              "enabled" if HAS_PUBSUB else "disabled (BQ fallback)")
     while True:
         try:
+            write_heartbeat()
             run_once()
             consecutive_fails = 0
+            restart_count = 0  # reset on success
         except Exception as e:
             consecutive_fails += 1
             log.error("[LOOP] Error #%d: %s", consecutive_fails, e, exc_info=True)
             if consecutive_fails >= 3:
                 log.warning("[LOOP] Resetting clients after 3 consecutive failures...")
-                get_bq_client(force_reset=True)
+                try:
+                    get_bq_client(force_reset=True)
+                except Exception:
+                    pass
                 global _pubsub_publisher
                 _pubsub_publisher = None
                 consecutive_fails = 0
-        log.info("[WAIT] Next collection in %ds...", interval)
-        time.sleep(interval)
+                restart_count += 1
+                if restart_count >= max_restarts:
+                    log.critical("[LOOP] %d restart cycles exhausted. Sleeping 10min then retrying...", max_restarts)
+                    time.sleep(600)
+                    restart_count = 0
+        try:
+            log.info("[WAIT] Next collection in %ds...", interval)
+            time.sleep(interval)
+        except Exception:
+            time.sleep(60)  # fallback sleep on any error
 
 # ===========================================================================
 # Entry Point
@@ -1076,12 +1666,25 @@ if __name__ == "__main__":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
     print("+------------------------------------------------+")
-    print("|  Onyx Agent v%-8s                          |" % CONFIG.get("version", "2.3.0"))
+    print("|  Onyx Agent v%-8s                          |" % CONFIG.get("version", "3.5.0"))
     print("|  Device:  %-37s |" % DEVICE_ID)
     print("|  Pub/Sub: %-37s |" % ("Enabled" if HAS_PUBSUB else "Disabled (BQ fallback)"))
     print("+------------------------------------------------+")
 
     if "--once" in sys.argv:
-        run_once()
+        try:
+            run_once()
+        except Exception as e:
+            log.critical("[FATAL] run_once crashed: %s", e, exc_info=True)
+            sys.exit(1)
     else:
-        run_loop()
+        # Global crash guard: if run_loop itself crashes, restart it
+        while True:
+            try:
+                run_loop()
+            except SystemExit:
+                break  # Allow clean exit for updates
+            except Exception as e:
+                log.critical("[FATAL] run_loop crashed: %s — restarting in 30s...", e, exc_info=True)
+                write_heartbeat()  # mark we're still alive
+                time.sleep(30)

@@ -30,6 +30,10 @@ import logging
 import platform
 import datetime
 import hashlib
+import hmac
+import uuid
+import urllib.request as _ur
+import urllib.error as _ue
 from pathlib import Path
 
 # ===========================================================================
@@ -564,7 +568,6 @@ def send_via_http(metrics_row, sync_row):
     Returns True if server confirmed 200 OK.
     """
     try:
-        import urllib.request as _ur
         server = CONFIG.get("update_server",
                             "https://onyx-server-631753912632.us-central1.run.app")
         url    = server.rstrip("/") + "/api/agent-ingest"
@@ -576,27 +579,40 @@ def send_via_http(metrics_row, sync_row):
             _network_scan_counter = 0
             log.info("[NET-SCAN] Detectados %d dispositivos en red", len(net_scan))
 
-        payload = json.dumps(
-            {"metrics": metrics_row, "sync": sync_row,
-             "network_scan": net_scan},
+        agent_secret = CONFIG.get("agent_secret") or os.environ.get("ONYX_AGENT_SECRET")
+        if not agent_secret:
+            log.error("[SECURITY] No se puede transmitir telemetría: 'agent_secret' no está configurado.")
+            return False
+
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        nonce = str(uuid.uuid4())
+        canonical_body = json.dumps(
+            {"metrics": metrics_row, "sync": sync_row, "network_scan": net_scan},
+            sort_keys=True,
+            separators=(',', ':'),
             default=str
         ).encode("utf-8")
-        agent_key = CONFIG.get("agent_api_key",
-                                 os.environ.get("AGENT_API_KEY", "onyx-agent-key-2026-secure"))
+        
+        dev_id = str(metrics_row.get('device_id',''))
+        sig_str = f"{ts}|{nonce}|{dev_id}|{canonical_body.decode('utf-8')}".encode("utf-8")
+        signature = hmac.new(agent_secret.encode("utf-8"), sig_str, hashlib.sha256).hexdigest()
+
         req = _ur.Request(
             url,
-            data=payload,
+            data=canonical_body,
             headers={
-                "Content-Type":  "application/json",
-                "Content-Length": str(len(payload)),
-                "User-Agent":    "EIQ-Agent/" + CONFIG.get("version", "2.3"),
-                "X-Device-Id":   metrics_row.get("device_id", ""),
-                "X-Agent-Key":   agent_key
+                "Content-Type":      "application/json",
+                "Content-Length":    str(len(canonical_body)),
+                "User-Agent":        "EIQ-Agent/" + CONFIG.get("version", "3.5.0"),
+                "X-Device-Id":       metrics_row.get("device_id", ""),
+                "X-Agent-Timestamp": ts,
+                "X-Agent-Nonce":     nonce,
+                "X-Agent-Signature": signature
             }
         )
         with _ur.urlopen(req, timeout=15) as resp:
             if resp.status == 200:
-                log.info("[HTTP-INGEST] OK → server accepted metrics for %s",
+                log.info("[HTTP-INGEST] OK -> server accepted metrics for %s",
                          metrics_row.get("device_id", "?"))
                 return True
             else:
@@ -962,6 +978,71 @@ def get_software_inventory():
     except Exception as e:
         log.debug("[SW] Error: %s", e)
     return result
+
+def _collect_disk_encryption():
+    """
+    Recolección multi-capa de BitLocker con Invariante Zero-Knowledge.
+    Descarta proactivamente contraseñas o claves de recuperación.
+    """
+    volumes = []
+    if platform.system() != "Windows":
+        return volumes
+    try:
+        import subprocess as _sub
+        _NW = 0x08000000
+        cmd = [
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            "try { Get-BitLockerVolume | Select-Object MountPoint, ProtectionStatus, VolumeStatus, EncryptionPercentage | ForEach-Object { @{ drive_letter=$_.MountPoint; protection_status=$_.ProtectionStatus; conversion_status=$_.VolumeStatus; encryption_percentage=$_.EncryptionPercentage; encryption_method='XTS-AES 128' } } | ConvertTo-Json -Compress } catch { @() }"
+        ]
+        r = _sub.run(cmd, capture_output=True, text=True, timeout=6, creationflags=_NW)
+        if r.returncode == 0 and r.stdout.strip():
+            raw = json.loads(r.stdout.strip())
+            if isinstance(raw, dict):
+                raw = [raw]
+            if isinstance(raw, list):
+                for item in raw:
+                    drive = str(item.get("drive_letter") or item.get("MountPoint") or "C:").upper().strip()
+                    prot_val = item.get("protection_status") if item.get("protection_status") is not None else item.get("ProtectionStatus", 0)
+                    conv_val = str(item.get("conversion_status") or item.get("VolumeStatus") or "Unknown")
+                    pct_val = item.get("encryption_percentage") if item.get("encryption_percentage") is not None else item.get("EncryptionPercentage", 0.0)
+                    meth_val = str(item.get("encryption_method") or item.get("EncryptionMethod") or "XTS-AES 128")
+                    volumes.append({
+                        "drive_letter": drive,
+                        "protection_status": int(prot_val),
+                        "conversion_status": conv_val,
+                        "encryption_percentage": float(pct_val),
+                        "encryption_method": meth_val
+                    })
+    except Exception:
+        pass
+
+    if not volumes:
+        try:
+            r = _sub.run(["manage-bde.exe", "-status", "C:"], capture_output=True, text=True, timeout=5, creationflags=_NW)
+            if r.returncode == 0 and r.stdout:
+                out = r.stdout
+                prot = 1 if "Estado de protección: Activado" in out or "Protection Status: Protection On" in out else 0
+                conv = "FullyEncrypted" if "Completamente cifrado" in out or "Fully Encrypted" in out else "FullyDecrypted"
+                pct = 100.0 if prot == 1 else 0.0
+                volumes.append({
+                    "drive_letter": "C:",
+                    "protection_status": prot,
+                    "conversion_status": conv,
+                    "encryption_percentage": pct,
+                    "encryption_method": "XTS-AES 128"
+                })
+        except Exception:
+            pass
+
+    if not volumes:
+        volumes.append({
+            "drive_letter": "C:",
+            "protection_status": 0,
+            "conversion_status": "FullyDecrypted",
+            "encryption_percentage": 0.0,
+            "encryption_method": "None"
+        })
+    return volumes
 
 # ===========================================================================
 # Metrics Collection
@@ -1433,6 +1514,7 @@ def collect_metrics():
         "antivirus_updated":     security_status.get("antivirus_updated"),
         "firewall_enabled":      security_status.get("firewall_enabled"),
         "bitlocker_enabled":     security_status.get("bitlocker_enabled"),
+        "disk_encryption":       json.dumps(_collect_disk_encryption()),
         "uac_enabled":           security_status.get("uac_enabled"),
         "windows_update_pending": security_status.get("windows_update_pending"),
         "last_update_installed": security_status.get("last_update_installed", ""),

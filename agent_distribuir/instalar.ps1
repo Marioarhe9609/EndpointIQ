@@ -1,4 +1,4 @@
-# Onyx Agent Installer v3.0 - PowerShell Edition
+# Onyx Agent Installer v3.5 - PowerShell Edition
 # Alternativa al INSTALAR.bat para entornos donde el .bat no funciona correctamente.
 # Ejecutar con: powershell -ExecutionPolicy Bypass -File instalar.ps1
 
@@ -8,7 +8,7 @@ $SourceDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host ""
 Write-Host "  +=========================================================+" -ForegroundColor Cyan
-Write-Host "  |   ONYX - Agente de Monitoreo - Instalador v3.0         |" -ForegroundColor Cyan
+Write-Host "  |   ONYX - Agente de Monitoreo - Instalador v3.5         |" -ForegroundColor Cyan
 Write-Host "  |                    By Agentica                          |" -ForegroundColor Cyan
 Write-Host "  +=========================================================+" -ForegroundColor Cyan
 Write-Host ""
@@ -21,7 +21,7 @@ Write-Host ""
 # -----------------------------------------------
 Write-Host "  [1/8] Verificando archivos de instalacion..." -ForegroundColor Yellow
 $missing = $false
-foreach ($f in @("onyx_agent.py","onyx_credentials.json","onyx_launcher.vbs","onyx_updater.py")) {
+foreach ($f in @("onyx_agent.py","onyx_config.json","onyx_launcher.vbs","onyx_updater.py")) {
     if (-not (Test-Path "$SourceDir\$f")) {
         Write-Host "        [ERROR] $f - NO ENCONTRADO" -ForegroundColor Red
         $missing = $true
