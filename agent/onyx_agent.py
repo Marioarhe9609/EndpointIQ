@@ -86,7 +86,16 @@ from logging.handlers import RotatingFileHandler
 LOG_PATH = SCRIPT_DIR / CONFIG.get("log_file", "onyx_agent.log")
 HEARTBEAT_PATH = SCRIPT_DIR / "onyx_heartbeat.txt"
 
-log_handlers = [RotatingFileHandler(str(LOG_PATH), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")]
+log_handlers = []
+try:
+    log_handlers.append(RotatingFileHandler(str(LOG_PATH), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8"))
+except Exception:
+    try:
+        temp_log = Path(tempfile.gettempdir()) / "onyx_agent.log"
+        log_handlers.append(RotatingFileHandler(str(temp_log), maxBytes=5*1024*1024, backupCount=3, encoding="utf-8"))
+    except Exception:
+        log_handlers.append(logging.StreamHandler(sys.stdout))
+
 if "--verbose" in sys.argv:
     log_handlers.append(logging.StreamHandler(sys.stdout))
 
@@ -587,7 +596,8 @@ def send_via_http(metrics_row, sync_row):
             {"metrics": metrics_row, "sync": sync_row, "network_scan": net_scan},
             sort_keys=True,
             separators=(',', ':'),
-            default=str
+            default=str,
+            ensure_ascii=False
         ).encode("utf-8")
         
         dev_id = str(metrics_row.get('device_id',''))
@@ -1518,7 +1528,7 @@ def collect_metrics():
         "dlp_cloud_sync":        json.dumps(dlp_status.get("cloud_sync_apps", [])),
         "dlp_remote_access":     json.dumps(dlp_status.get("remote_access_tools", [])),
         "dlp_screen_capture":    json.dumps(dlp_status.get("screen_capture_tools", [])),
-        "dlp_usb_write_events":  dlp_status.get("usb_write_events", 0),
+        "dlp_usb_write_events":  str(dlp_status.get("usb_write_events", 0)),
         "software_inventory":    json.dumps(software_inventory[:50]),
     }
 
