@@ -751,9 +751,16 @@ def _get_totp_uri(secret, email):
     return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=APP_NAME)
 
 def _verify_totp(secret, code):
-    """Verify a TOTP code with a 1-window tolerance (30s before/after)."""
-    totp = pyotp.TOTP(secret)
-    return totp.verify(code, valid_window=1)
+    """Verify a TOTP code with a 2-window tolerance (60s before/after) and character sanitization."""
+    if not secret or not code:
+        return False
+    clean_code = str(code).replace(" ", "").replace("-", "").strip()
+    try:
+        totp = pyotp.TOTP(secret)
+        return totp.verify(clean_code, valid_window=2)
+    except Exception as e:
+        print(f"[2FA] Error verifying TOTP code: {e}")
+        return False
 
 def _totp_qr_base64(uri):
     """Generate a QR code PNG as base64 string."""
@@ -918,8 +925,7 @@ def _create_default_admin():
             users_cache = [admin]
 
 def _seed_platform_admins():
-    """Auto-create essential platform admin accounts if they don't exist.
-       If they exist but password doesn't match, force-reset the password."""
+    """Auto-create essential platform admin accounts if they don't exist."""
     seed_users = [
         {
             "email": "jramirez@agenticatech.ai",
@@ -932,28 +938,10 @@ def _seed_platform_admins():
     for su in seed_users:
         existing = find_user_by_email(su["email"])
         if existing:
-            # Verify password matches; if not, force-reset it
-            if verify_password(su["password"], existing.get("password_hash", ""), existing.get("salt", "")):
-                print(f"[AUTH] Seed user OK: {su['email']}")
-                continue
-            else:
-                print(f"[AUTH] Seed user password mismatch, resetting: {su['email']}")
-                pw_hash, salt = hash_password(su["password"])
-                existing["password_hash"] = pw_hash
-                existing["salt"] = salt
-                existing["role"] = su["role"]
-                existing["totp_secret"] = None
-                existing["totp_enabled"] = False
-                try:
-                    run_bq_update_user(
-                        [("password_hash", pw_hash), ("salt", salt), ("role", su["role"]),
-                         ("totp_secret", None), ("totp_enabled", False)],
-                        "email", su["email"]
-                    )
-                    print(f"[AUTH] Seed user fully reset in BQ: {su['email']}")
-                except Exception as e:
-                    print(f"[AUTH] Error resetting seed user in BQ: {e}")
-                continue
+            print(f"[AUTH] Seed user already exists: {su['email']}")
+            continue
+        if not su.get("password"):
+            continue
         pw_hash, salt = hash_password(su["password"])
         new_user = {
             "user_id": str(uuid.uuid4()),
@@ -973,7 +961,7 @@ def _seed_platform_admins():
             run_bq_insert("onyx.eq_users", new_user)
             with users_cache_lock:
                 users_cache.append(new_user)
-            print(f"[AUTH] Seed admin created: {su['email']}")
+            print(f"[AUTH] Seed user created: {su['email']}")
         except Exception as e:
             print(f"[AUTH] Error creating seed user {su['email']}: {e}")
             with users_cache_lock:
