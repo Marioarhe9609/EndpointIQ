@@ -985,12 +985,37 @@ def _seed_platform_admins():
             with users_cache_lock:
                 users_cache.append(new_user)
 
-def find_user_by_email(email):
-    """Find a user by email in the cache."""
-    with users_cache_lock:
-        for u in users_cache:
-            if u.get("email", "").lower() == email.lower():
-                return u
+def find_user_by_email(email, force_refresh=False):
+    """Find a user by email in the cache, with direct BigQuery sync on force_refresh or cache-miss."""
+    if not force_refresh:
+        with users_cache_lock:
+            for u in users_cache:
+                if u.get("email", "").lower() == email.lower():
+                    return u
+    try:
+        dataset = os.environ.get("BQ_DATASET", "onyx")
+        rows = run_bq_query(f"""
+            SELECT user_id, email, password_hash, salt, full_name, role, avatar,
+                   created_at, last_login, is_active,
+                   totp_secret, totp_enabled, allowed_pages
+            FROM {dataset}.eq_users
+            WHERE LOWER(email) = '{email.lower().strip()}' AND is_active = true
+            LIMIT 1
+        """)
+        if rows:
+            u = rows[0]
+            with users_cache_lock:
+                found = False
+                for idx, cu in enumerate(users_cache):
+                    if cu.get("email", "").lower() == email.lower():
+                        users_cache[idx] = u
+                        found = True
+                        break
+                if not found:
+                    users_cache.append(u)
+            return u
+    except Exception as e:
+        print(f"[AUTH] Error querying user {email} from BQ: {e}")
     return None
 
 def find_user_by_id(user_id):
@@ -4222,11 +4247,16 @@ Click derecho en "DESINSTALAR.bat"
             if not ad_user_info:
                 # Local authentication path
                 user = find_user_by_email(email)
+                if not user or not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
+                    # Intentar recargar directamente desde BigQuery por si la clave cambió
+                    user = find_user_by_email(email, force_refresh=True)
+
                 if not user or not user.get("is_active", True):
                     _record_failed_login(email)
                     audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
                     self.send_json({"error": "Credenciales incorrectas"}, 401)
                     return
+
                 if not verify_password(password, user.get("password_hash", ""), user.get("salt", "")):
                     _record_failed_login(email)
                     audit_log("LOGIN_FAILED", email, self.client_address[0], "USER", "", "Intento fallido", "FAILURE")
