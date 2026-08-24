@@ -10,7 +10,7 @@ Architecture:
   BQ DML  → BigQuery direct INSERT (last resort)
   Offline → SQLite buffer → flush on reconnect
 
-# Onyx Agent - version 3.4.0
+# Onyx Agent - version 3.5.0
 # Agente de monitoreo de endpoints para Onyx Platform
 Usage: python onyx_agent.py [--once] [--verbose]
   --once    Run a single collection cycle

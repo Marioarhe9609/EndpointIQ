@@ -42,6 +42,7 @@ log = logging.getLogger("onyx")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
 
 PORT = int(os.environ.get("PORT", 8080))
+BQ_DATASET = os.environ.get("BQ_DATASET", "onyx")
 
 # ═══════════ Active Directory Configuration ═══════════
 AD_ENABLED = os.environ.get("AD_ENABLED", "false").lower() == "true"
@@ -2991,7 +2992,7 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
             updater_path = os.path.join(base_dir, "onyx_updater.py")
             agent_hash = ""
             updater_hash = ""
-            agent_version = "3.1.0"  # version minima soportada
+            agent_version = "3.5.0"  # version actual
             if os.path.exists(agent_path):
                 with open(agent_path, "rb") as f:
                     content = f.read()
@@ -3756,10 +3757,11 @@ Click derecho en "DESINSTALAR.bat"
                 return m
 
             success = True
+            target_dataset = os.environ.get("BQ_DATASET", "onyx")
             if metrics:
                 try:
                     norm_m = _normalize_metrics(metrics)
-                    run_bq_insert(f"{BQ_DATASET}.eq_hardware_metrics", norm_m)
+                    run_bq_insert(f"{target_dataset}.eq_hardware_metrics", norm_m)
                     with cache_lock:
                         found = False
                         for i, lm in enumerate(cache.get("latest_metrics", [])):
@@ -3777,7 +3779,7 @@ Click derecho en "DESINSTALAR.bat"
                 try:
                     if not sync.get("timestamp"):
                         sync["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                    run_bq_insert(f"{BQ_DATASET}.eq_sync_status", sync)
+                    run_bq_insert(f"{target_dataset}.eq_sync_status", sync)
                     with cache_lock:
                         found = False
                         for i, ss in enumerate(cache.get("sync_status", [])):
