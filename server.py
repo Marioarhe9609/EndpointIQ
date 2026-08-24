@@ -1812,34 +1812,41 @@ class OnyxRequestHandler(SimpleHTTPRequestHandler):
                     if d_id in devices_map:
                         devices_map[d_id].update(m)
                 
-                # ── Calcular status real basado en antigüedad de last_sync ──
+                # ── Calcular status real basado en la marca temporal más reciente (last_sync o timestamp) ──
                 now = datetime.datetime.now(datetime.timezone.utc)
                 for d_id, dev in devices_map.items():
-                    last_sync_str = dev.get("last_sync", dev.get("timestamp", ""))
-                    if last_sync_str:
+                    candidates = []
+                    for t_key in ("last_sync", "timestamp", "last_seen"):
+                        t_val = dev.get(t_key)
+                        if not t_val:
+                            continue
                         try:
-                            if isinstance(last_sync_str, str):
-                                ls = datetime.datetime.fromisoformat(last_sync_str.replace("Z", "+00:00"))
+                            if isinstance(t_val, str):
+                                dt_parsed = datetime.datetime.fromisoformat(str(t_val).replace("Z", "+00:00"))
                             else:
-                                ls = last_sync_str
-                            if ls.tzinfo is None:
-                                ls = ls.replace(tzinfo=datetime.timezone.utc)
-                            diff_min = (now - ls).total_seconds() / 60
-                            if diff_min > 15:
-                                dev["status"] = "Offline"
-                                dev["calculated_status"] = "offline"
-                            elif diff_min > 8:
-                                dev["status"] = "Alerta"
-                                dev["calculated_status"] = "warn"
-                            else:
-                                dev["status"] = "Online"
-                                dev["calculated_status"] = "online"
-                            dev["minutes_since_sync"] = round(diff_min, 1)
+                                dt_parsed = t_val
+                            if dt_parsed.tzinfo is None:
+                                dt_parsed = dt_parsed.replace(tzinfo=datetime.timezone.utc)
+                            candidates.append(dt_parsed)
                         except Exception:
-                            dev["calculated_status"] = "unknown"
-                            dev["minutes_since_sync"] = -1
+                            pass
+
+                    if candidates:
+                        ls = max(candidates)
+                        diff_min = (now - ls).total_seconds() / 60
+                        if diff_min > 15:
+                            dev["status"] = "Offline"
+                            dev["calculated_status"] = "offline"
+                        elif diff_min > 8:
+                            dev["status"] = "Alerta"
+                            dev["calculated_status"] = "warn"
+                        else:
+                            dev["status"] = "Online"
+                            dev["calculated_status"] = "online"
+                        dev["minutes_since_sync"] = round(diff_min, 1)
                     else:
-                        dev["calculated_status"] = "unknown"
+                        dev["status"] = dev.get("status", "Offline")
+                        dev["calculated_status"] = "online" if dev["status"] == "Online" else "offline"
                         dev["minutes_since_sync"] = -1
                 # ── Generate minimal network_info for dashboard if agent hasn't sent it ──
                 # Only uses REAL data (IP, device_type). No fake MACs, SSIDs, or connected_devices.
@@ -3752,7 +3759,7 @@ Click derecho en "DESINSTALAR.bat"
             if metrics:
                 try:
                     norm_m = _normalize_metrics(metrics)
-                    run_bq_insert("onyx.eq_hardware_metrics", norm_m)
+                    run_bq_insert(f"{BQ_DATASET}.eq_hardware_metrics", norm_m)
                     with cache_lock:
                         found = False
                         for i, lm in enumerate(cache.get("latest_metrics", [])):
@@ -3770,7 +3777,16 @@ Click derecho en "DESINSTALAR.bat"
                 try:
                     if not sync.get("timestamp"):
                         sync["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                    run_bq_insert("onyx.eq_sync_status", sync)
+                    run_bq_insert(f"{BQ_DATASET}.eq_sync_status", sync)
+                    with cache_lock:
+                        found = False
+                        for i, ss in enumerate(cache.get("sync_status", [])):
+                            if ss.get("device_id") == device_id:
+                                cache["sync_status"][i] = dict(sync)
+                                found = True
+                                break
+                        if not found:
+                            cache.setdefault("sync_status", []).append(dict(sync))
                 except Exception as e:
                     print(f"[INGEST-ERROR] Error al insertar sync para {device_id}: {e}")
                     success = False

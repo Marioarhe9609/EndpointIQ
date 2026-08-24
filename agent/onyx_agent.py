@@ -588,6 +588,9 @@ def send_via_http(metrics_row, sync_row):
             _network_scan_counter = 0
             log.info("[NET-SCAN] Detectados %d dispositivos en red", len(net_scan))
 
+        if "agent_secret" in CONFIG and not CONFIG["agent_secret"] and not os.environ.get("ONYX_AGENT_SECRET"):
+            log.warning("[HTTP-INGEST] No agent_secret configured — failing closed")
+            return False
         agent_secret = CONFIG.get("agent_secret") or os.environ.get("ONYX_AGENT_SECRET") or "onyx-shared-secret-v350-2026"
 
         ts = datetime.datetime.now(datetime.timezone.utc).isoformat()

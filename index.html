@@ -2968,7 +2968,7 @@ function updateDashboardKPIs() {
   if (totalCards.length < 5) return;
   
   const total = fleetDevices.length;
-  const online = fleetDevices.filter(d => d.status === 'Online').length;
+  const online = fleetDevices.filter(d => d.status === 'Online' || d.calculated_status === 'online').length;
   const offline = total - online;
   const alerts = fleetDevices.filter(d => d.cause_root).length;
   
@@ -3404,8 +3404,8 @@ function renderFleetStatusDonut() {
   const total = fleetDevices.length;
   if (total === 0) return;
   
-  const online = fleetDevices.filter(d => d.status === 'Online' && (d.cpu_usage || 0) < 90 && (d.ram_usage || 0) < 92).length;
-  const warn = fleetDevices.filter(d => d.status === 'Online' && ((d.cpu_usage || 0) >= 90 || (d.ram_usage || 0) >= 92)).length;
+  const online = fleetDevices.filter(d => (d.status === 'Online' || d.calculated_status === 'online') && (d.cpu_usage || 0) < 90 && (d.ram_usage || 0) < 92).length;
+  const warn = fleetDevices.filter(d => (d.status === 'Online' || d.calculated_status === 'online') && ((d.cpu_usage || 0) >= 90 || (d.ram_usage || 0) >= 92)).length;
   const offline = total - online - warn;
   
   const onlinePct = online / total;
