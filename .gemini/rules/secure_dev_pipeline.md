@@ -4,7 +4,7 @@ trigger: always_on
 # Protocolo de Desarrollo Seguro Multi-Agente (Gemini 3.7 + Claude Code) con Blindaje Anti-Regresión
 
 Cuando se requiera desarrollar funcionalidades siguiendo el proceso de desarrollo seguro, Antigravity (Gemini 3.7) coordinará con Claude Code usando el script global:
-python C:\Users\ASUS\.gemini\config\skills\claude-secure-pipeline\scripts\claude_gate.py
+python "%USERPROFILE%\.gemini\config\skills\claude-secure-pipeline\scripts\claude_gate.py"
 
 Fases y Puntos de Control Obligatorios (Cero Regresiones):
 1. Requerimientos: Claude genera el prompt -> Gemini genera implementation_plan.md con análisis de impacto y preservación de contratos/APIs preexistentes -> Claude audita (review-plan). Bloquear hasta APPROVED.
