@@ -617,7 +617,7 @@ def send_via_http(metrics_row, sync_row):
                 "X-Agent-Signature": signature
             }
         )
-        with _ur.urlopen(req, timeout=15) as resp:
+        with _ur.urlopen(req, timeout=30) as resp:
             if resp.status == 200:
                 log.info("[HTTP-INGEST] OK -> server accepted metrics for %s",
                          metrics_row.get("device_id", "?"))

@@ -413,13 +413,10 @@ def _check_ip_rate_limit(ip: str, max_req_per_min: int = 60) -> bool:
 
 def _verify_agent_signature(headers: dict, body_bytes: bytes, device_id: str, client_ip: str = "") -> tuple[bool, int, str]:
     """Paso 2 y 3: Verificación HMAC-SHA256, expiración de timestamp y anti-replay."""
-    secret = _get_device_secret(device_id)
-    if not secret:
-        return False, 401, "Dispositivo no autorizado"
-
-    ts_header = headers.get("X-Agent-Timestamp")
-    nonce = headers.get("X-Agent-Nonce")
-    signature = headers.get("X-Agent-Signature")
+    h_lower = {str(k).lower(): v for k, v in headers.items()} if headers else {}
+    ts_header = h_lower.get("x-agent-timestamp")
+    nonce = h_lower.get("x-agent-nonce")
+    signature = h_lower.get("x-agent-signature")
 
     if not ts_header or not nonce or not signature:
         return False, 401, "Cabeceras criptograficas incompletas"
@@ -434,6 +431,10 @@ def _verify_agent_signature(headers: dict, body_bytes: bytes, device_id: str, cl
             return False, 401, "Timestamp fuera de ventana"
     except Exception:
         return False, 401, "Timestamp malformado"
+
+    secret = _get_device_secret(device_id)
+    if not secret:
+        return False, 401, "Dispositivo no autorizado"
 
     try:
         body_obj = json.loads(body_bytes.decode('utf-8'))
