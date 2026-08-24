@@ -1567,7 +1567,7 @@ def collect_metrics():
 # Sync pending buffer to cloud
 # ===========================================================================
 def sync_pending(conn):
-    """Flush buffered records to cloud when reconnected (Pub/Sub or BQ fallback)."""
+    """Flush buffered records to cloud when reconnected (HTTP primary, Pub/Sub or BQ fallback)."""
     pending = get_pending_count(conn)
     if pending == 0:
         return
@@ -1582,7 +1582,11 @@ def sync_pending(conn):
             try:
                 payload = json.loads(payload_json)
                 payload["_table"] = table_name
-                ok = pubsub_publish(payload) if HAS_PUBSUB else bq_insert_row(table_name, payload, retries=2)
+                m_row = payload if table_name == "eq_hardware_metrics" else {}
+                s_row = payload if table_name == "eq_sync_status" else {}
+                ok = send_via_http(m_row, s_row)
+                if not ok:
+                    ok = pubsub_publish(payload) if HAS_PUBSUB else bq_insert_row(table_name, payload, retries=2)
                 if ok:
                     synced_ids.append(rec_id)
             except Exception as e:
