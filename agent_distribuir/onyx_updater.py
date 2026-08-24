@@ -26,13 +26,22 @@ LOG_FILE = SCRIPT_DIR / "onyx_updater.log"
 # Default server - se puede sobrescribir desde onyx_config.json
 DEFAULT_SERVER = "https://proy-anla-poc-175647544738.us-central1.run.app"
 
-# Setup logging
+# Setup logging resiliente ante permisos restringidos
+_updater_handlers = [logging.StreamHandler(sys.stdout)]
+try:
+    _updater_handlers.append(logging.FileHandler(LOG_FILE, encoding="utf-8"))
+except Exception:
+    try:
+        import tempfile
+        _fallback_log = Path(tempfile.gettempdir()) / "onyx_updater.log"
+        _updater_handlers.append(logging.FileHandler(_fallback_log, encoding="utf-8"))
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [UPDATER] %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-    ]
+    handlers=_updater_handlers
 )
 log = logging.getLogger("EIQ-UPDATER")
 
