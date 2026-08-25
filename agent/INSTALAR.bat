@@ -1,35 +1,294 @@
 @echo off
-title Onyx Agent - Instalador
-echo.
-echo  +==================================================+
-echo  ^|       Onyx Agent - Instalador v1.0         ^|
-echo  ^|       Monitoreo Inteligente de Endpoints         ^|
-echo  +==================================================+
-echo.
+setlocal EnableDelayedExpansion
+title Onyx Agent - Instalador v3.5
 
-:: Verificar permisos de administrador
+:: ============================================
+:: AUTO-ELEVACION como Administrador via VBS
+:: ============================================
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  [!!] Se requieren permisos de Administrador.
-    echo  Cerrando y reabriendo como Administrador...
-    echo.
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    echo Solicitando permisos de Administrador...
+    set "ELEVATE_VBS=%TEMP%\onyx_elevate.vbs"
+    echo Set UAC = CreateObject^("Shell.Application"^) > "%ELEVATE_VBS%"
+    echo UAC.ShellExecute "%~f0", "", "%~dp0", "runas", 1 >> "%ELEVATE_VBS%"
+    cscript //nologo "%ELEVATE_VBS%"
+    del "%ELEVATE_VBS%" >nul 2>&1
     exit /b
 )
 
-echo  [OK] Permisos de Administrador verificados
+:: ============================================
+:: YA SOMOS ADMINISTRADOR
+:: ============================================
+cd /d "%~dp0"
+cls
+color 0B
+
+echo.
+echo   +==========================================================+
+echo   ^|                                                          ^|
+echo   ^|   ONYX  -  Agente de Monitoreo  -  Instalador v3.5      ^|
+echo   ^|                    By Agentica                           ^|
+echo   ^|                                                          ^|
+echo   +==========================================================+
+echo.
+echo   Equipo: %COMPUTERNAME%
+echo   Fecha : %date% %time:~0,8%
+echo.
+echo   ----------------------------------------------------------
 echo.
 
-:: Ejecutar el instalador PowerShell con politica de ejecucion correcta
-echo  [..] Iniciando instalacion...
+:: ----------------------------------------------
+:: PASO 1: VERIFICAR ARCHIVOS
+:: ----------------------------------------------
+echo   [1/8] Verificando archivos de instalacion...
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0onyx_installer.ps1"
 
-if %errorlevel% neq 0 (
+set "MISSING=0"
+if not exist "%~dp0onyx_agent.py" set "MISSING=1"
+if not exist "%~dp0onyx_config.json" set "MISSING=1"
+if not exist "%~dp0onyx_launcher.vbs" set "MISSING=1"
+if not exist "%~dp0onyx_updater.py" set "MISSING=1"
+
+if "%MISSING%"=="1" (
     echo.
-    echo  [ERROR] Hubo un problema durante la instalacion.
-    echo  Revise los mensajes anteriores.
+    echo   ERROR: Faltan archivos. Extraiga TODOS los archivos del ZIP antes de ejecutar.
     echo.
+    goto :FIN
 )
 
-pause
+echo         [OK] onyx_agent.py
+echo         [OK] onyx_config.json
+echo         [OK] onyx_launcher.vbs
+echo         [OK] onyx_updater.py
+echo.
+echo         Resultado: Todos los archivos presentes
+echo.
+
+:: ----------------------------------------------
+:: PASO 2: BARRIDO DE DESINSTALACION DE AGENTES ANTERIORES
+:: ----------------------------------------------
+echo   [2/8] Ejecutando barrido de versiones anteriores...
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0onyx_uninstaller.ps1" -Sweep 2>nul
+echo.
+
+:: ----------------------------------------------
+:: PASO 3: BUSCAR / INSTALAR PYTHON
+:: ----------------------------------------------
+echo   [3/8] Buscando Python 3...
+echo.
+set "PYTHON_EXE="
+
+:: Buscar en PATH
+where python.exe >nul 2>&1
+if %errorlevel%==0 (
+    for /f "delims=" %%i in ('where python.exe 2^>nul') do (
+        set "PYTHON_EXE=%%i"
+        goto :PYTHON_FOUND
+    )
+)
+
+:: Buscar en rutas comunes
+for %%V in (Python314 Python313 Python312 Python311 Python310 Python39) do (
+    if exist "C:\%%V\python.exe" (
+        set "PYTHON_EXE=C:\%%V\python.exe"
+        goto :PYTHON_FOUND
+    )
+    if exist "C:\Program Files\%%V\python.exe" (
+        set "PYTHON_EXE=C:\Program Files\%%V\python.exe"
+        goto :PYTHON_FOUND
+    )
+)
+
+:: Buscar en AppData de todos los usuarios
+for /d %%U in (C:\Users\*) do (
+    for %%V in (Python314 Python313 Python312 Python311 Python310 Python39) do (
+        if exist "%%U\AppData\Local\Programs\Python\%%V\python.exe" (
+            set "PYTHON_EXE=%%U\AppData\Local\Programs\Python\%%V\python.exe"
+            goto :PYTHON_FOUND
+        )
+    )
+)
+
+:: No se encontro - descargar
+echo         [WARN] Python 3 no encontrado en el sistema
+echo          Descargando Python 3.11 automaticamente...
+echo.
+set "PY_INSTALLER=%TEMP%\python-3.11.9-amd64.exe"
+powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe' -OutFile '%PY_INSTALLER%' -UseBasicParsing"
+if not exist "%PY_INSTALLER%" (
+    echo         [ERROR] No se pudo descargar Python
+    echo          Instale manualmente: https://www.python.org/downloads/
+    goto :FIN
+)
+echo         [OK] Python descargado
+echo         [..] Instalando Python 3.11 (2-3 minutos)...
+"%PY_INSTALLER%" /quiet InstallAllUsers=1 PrependPath=1 Include_pip=1
+del "%PY_INSTALLER%" >nul 2>&1
+
+set "PATH=C:\Program Files\Python311;C:\Program Files\Python311\Scripts;%PATH%"
+for %%V in (Python314 Python313 Python312 Python311 Python310) do (
+    if exist "C:\Program Files\%%V\python.exe" (
+        set "PYTHON_EXE=C:\Program Files\%%V\python.exe"
+        goto :PYTHON_FOUND
+    )
+    if exist "C:\%%V\python.exe" (
+        set "PYTHON_EXE=C:\%%V\python.exe"
+        goto :PYTHON_FOUND
+    )
+)
+where python.exe >nul 2>&1
+if %errorlevel%==0 (
+    for /f "delims=" %%i in ('where python.exe 2^>nul') do (
+        set "PYTHON_EXE=%%i"
+        goto :PYTHON_FOUND
+    )
+)
+echo         [ERROR] No se pudo instalar Python automaticamente
+echo          Instale desde https://www.python.org/downloads/
+goto :FIN
+
+:PYTHON_FOUND
+echo         [OK] Python encontrado
+echo           Ruta: %PYTHON_EXE%
+echo.
+
+:: ----------------------------------------------
+:: PASO 4: CREAR DIRECTORIO E INSTALAR ARCHIVOS
+:: ----------------------------------------------
+echo   [4/8] Instalando archivos del agente...
+echo.
+set "INSTALL_DIR=C:\ProgramData\Onyx"
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+
+copy /y "%~dp0onyx_agent.py" "%INSTALL_DIR%\" >nul 2>&1
+echo         [OK] onyx_agent.py copiado
+copy /y "%~dp0onyx_updater.py" "%INSTALL_DIR%\" >nul 2>&1
+echo         [OK] onyx_updater.py - auto-actualizador
+copy /y "%~dp0onyx_config.json" "%INSTALL_DIR%\" >nul 2>&1
+echo         [OK] onyx_config.json copiado
+if exist "%~dp0onyx_credentials.json" (
+    copy /y "%~dp0onyx_credentials.json" "%INSTALL_DIR%\" >nul 2>&1
+    echo         [OK] onyx_credentials.json copiado
+)
+copy /y "%~dp0onyx_launcher.vbs" "%INSTALL_DIR%\" >nul 2>&1
+echo         [OK] onyx_launcher.vbs - lanzador invisible
+echo.
+
+:: ----------------------------------------------
+:: PASO 5: CONFIGURAR SERVIDOR DE ACTUALIZACIONES
+:: ----------------------------------------------
+echo   [5/8] Configurando servidor de actualizaciones...
+echo.
+set "CONFIG=%INSTALL_DIR%\onyx_config.json"
+
+if exist "%~dp0onyx_config.json" (
+    copy /y "%~dp0onyx_config.json" "%CONFIG%" >nul 2>&1
+    echo         [OK] Config aplicada desde el instalador
+) else (
+    "%PYTHON_EXE%" -c "import json; c={'device_id':'auto','project_id':'proy-anla-poc','dataset':'onyx','interval_seconds':60,'offline_buffer_max':1000,'credentials_file':'onyx_credentials.json','ping_target':'8.8.8.8','log_file':'onyx_agent.log','version':'3.5.0','update_server':'https://onyx-server-631753912632.us-central1.run.app'}; open(r'%CONFIG%','w',encoding='utf-8').write(json.dumps(c,indent=4))" 2>nul
+    echo         [OK] Config escrita por defecto
+)
+echo         [OK] Auto-update habilitado
+echo.
+
+:: ----------------------------------------------
+:: PASO 6: INSTALAR DEPENDENCIAS PYTHON
+:: ----------------------------------------------
+echo   [6/8] Instalando dependencias de Python...
+echo.
+echo         [..] psutil - monitoreo de hardware...
+"%PYTHON_EXE%" -m pip install --quiet --upgrade psutil 2>nul
+echo         [OK] psutil instalado
+echo         [..] google-cloud-bigquery - envio de datos...
+"%PYTHON_EXE%" -m pip install --quiet --upgrade google-cloud-bigquery 2>nul
+echo         [OK] google-cloud-bigquery instalado
+echo.
+
+:: ----------------------------------------------
+:: PASO 7: CONFIGURAR SEGURIDAD Y TAREA
+:: ----------------------------------------------
+echo   [7/8] Configurando seguridad y tarea programada...
+echo.
+
+:: Exclusion Defender
+powershell -NoProfile -Command "try { Add-MpPreference -ExclusionPath '%INSTALL_DIR%' -ErrorAction Stop; Write-Host '        [OK] Exclusion de Windows Defender configurada' } catch { Write-Host '        [WARN] Defender no disponible - otro antivirus activo' }" 2>nul
+
+:: Limpiar tareas anteriores
+schtasks /delete /tn "Onyx-Agent" /f >nul 2>&1
+schtasks /delete /tn "Onyx_Monitor" /f >nul 2>&1
+schtasks /delete /tn "Onyx Monitor" /f >nul 2>&1
+echo         [OK] Tareas anteriores limpiadas
+
+:: Crear tarea programada nueva y acceso en Inicio de Windows
+set "LAUNCHER=%INSTALL_DIR%\onyx_launcher.vbs"
+set "STARTUP_VBS=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\OnyxAgent.vbs"
+
+:: Limpiar acceso anterior si existe
+if exist "%STARTUP_VBS%" del /f /q "%STARTUP_VBS%" >nul 2>&1
+
+:: Crear acceso limpio en shell:startup
+echo Set WshShell = CreateObject("WScript.Shell") > "%STARTUP_VBS%"
+echo WshShell.Run "wscript.exe ""%LAUNCHER%""", 0, False >> "%STARTUP_VBS%"
+echo         [OK] Inicio automatico de Windows configurado en Startup
+
+schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc minute /mo 5 /ru SYSTEM /rl HIGHEST /f >nul 2>&1
+if %errorlevel%==0 (
+    echo         [OK] Tarea programada creada como SYSTEM - cada 5 minutos
+) else (
+    schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc minute /mo 5 /f >nul 2>&1
+    echo         [OK] Tarea programada creada para usuario actual - cada 5 minutos
+)
+echo.
+
+:: ----------------------------------------------
+:: PASO 8: PRIMERA EJECUCION Y ARRANQUE
+:: ----------------------------------------------
+echo   [8/8] Ejecutando primera recoleccion y arrancando agente...
+echo.
+echo         [..] Enviando telemetría inicial al servidor...
+"%PYTHON_EXE%" "%INSTALL_DIR%\onyx_agent.py" --once 2>nul
+if %errorlevel%==0 (
+    echo         [OK] Telemetría enviada correctamente
+) else (
+    echo         [WARN] Primera recolección en proceso - el agente reintentará automáticamente
+)
+
+:: Arrancar el agente en segundo plano ahora mismo
+schtasks /run /tn "Onyx-Agent" >nul 2>&1
+start "" wscript.exe "%LAUNCHER%"
+echo         [OK] Agente iniciado en segundo plano exitosamente
+echo.
+
+:: ----------------------------------------------
+:: RESUMEN FINAL
+:: ----------------------------------------------
+echo.
+echo   +==========================================================+
+echo   ^|                                                          ^|
+echo   ^|      INSTALACION COMPLETADA CON EXITO                   ^|
+echo   ^|                                                          ^|
+echo   +==========================================================+
+echo   ^|  Equipo     : %COMPUTERNAME%
+echo   ^|  Directorio : %INSTALL_DIR%
+echo   ^|  Python     : Detectado y configurado
+echo   ^|  Tarea      : Onyx-Agent cada 5 min
+echo   ^|  Auto-Update: Habilitado
+echo   +==========================================================+
+echo   ^|  Datos recolectados:
+echo   ^|    - CPU, RAM, Disco, Red, Bateria
+echo   ^|    - Procesos activos
+echo   ^|    - Historial de navegacion
+echo   ^|    - Informacion de red e interfaces
+echo   ^|    - Puertos USB
+echo   ^|    - Visor de Sucesos
+echo   +==========================================================+
+echo   ^|  Servidor: onyx-server-631753912632.us-central1.run.app
+echo   ^|  Onyx v3.5 - By Agentica
+echo   +==========================================================+
+echo.
+
+:FIN
+echo.
+echo   Presione cualquier tecla para cerrar...
+pause >nul

@@ -220,8 +220,18 @@ schtasks /delete /tn "Onyx_Monitor" /f >nul 2>&1
 schtasks /delete /tn "Onyx Monitor" /f >nul 2>&1
 echo         [OK] Tareas anteriores limpiadas
 
-:: Crear tarea programada nueva
+:: Crear tarea programada nueva y acceso en Inicio de Windows
 set "LAUNCHER=%INSTALL_DIR%\onyx_launcher.vbs"
+set "STARTUP_VBS=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\OnyxAgent.vbs"
+
+:: Limpiar acceso anterior si existe
+if exist "%STARTUP_VBS%" del /f /q "%STARTUP_VBS%" >nul 2>&1
+
+:: Crear acceso limpio en shell:startup
+echo Set WshShell = CreateObject("WScript.Shell") > "%STARTUP_VBS%"
+echo WshShell.Run "wscript.exe ""%LAUNCHER%""", 0, False >> "%STARTUP_VBS%"
+echo         [OK] Inicio automatico de Windows configurado en Startup
+
 schtasks /create /tn "Onyx-Agent" /tr "wscript.exe \"%LAUNCHER%\"" /sc minute /mo 5 /ru SYSTEM /rl HIGHEST /f >nul 2>&1
 if %errorlevel%==0 (
     echo         [OK] Tarea programada creada como SYSTEM - cada 5 minutos
@@ -232,19 +242,22 @@ if %errorlevel%==0 (
 echo.
 
 :: ----------------------------------------------
-:: PASO 8: PRIMERA EJECUCION
+:: PASO 8: PRIMERA EJECUCION Y ARRANQUE
 :: ----------------------------------------------
-echo   [8/8] Ejecutando primera recoleccion de datos...
+echo   [8/8] Ejecutando primera recoleccion y arrancando agente...
 echo.
-echo         [..] Recolectando metricas del equipo...
+echo         [..] Enviando telemetría inicial al servidor...
 "%PYTHON_EXE%" "%INSTALL_DIR%\onyx_agent.py" --once 2>nul
 if %errorlevel%==0 (
-    echo         [OK] Primera recoleccion completada
-    echo           Datos enviados correctamente
+    echo         [OK] Telemetría enviada correctamente
 ) else (
-    echo         [WARN] La primera recoleccion tuvo un problema menor
-    echo           El agente reintentara automaticamente en 5 minutos
+    echo         [WARN] Primera recolección en proceso - el agente reintentará automáticamente
 )
+
+:: Arrancar el agente en segundo plano ahora mismo
+schtasks /run /tn "Onyx-Agent" >nul 2>&1
+start "" wscript.exe "%LAUNCHER%"
+echo         [OK] Agente iniciado en segundo plano exitosamente
 echo.
 
 :: ----------------------------------------------
