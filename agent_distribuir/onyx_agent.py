@@ -50,14 +50,12 @@ try:
     HAS_PUBSUB = True
 except ImportError:
     HAS_PUBSUB = False
-    print("[WARN] google-cloud-pubsub not installed. Falling back to BigQuery direct.")
 
 try:
     from google.cloud import bigquery
     HAS_BQ = True
 except ImportError:
     HAS_BQ = False
-    print("[WARN] google-cloud-bigquery not installed. Offline-only mode.")
 
 # ===========================================================================
 # Configuration
